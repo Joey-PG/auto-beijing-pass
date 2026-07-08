@@ -1,0 +1,42 @@
+{
+  "name": "auto-beijing-pass",
+  "version": "0.1.0",
+  "description": "Self-hosted multi-account CLI for authorized Beijing entry permit automation.",
+  "type": "module",
+  "bin": {
+    "auto-bj": "dist/bin/auto-bj.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx bin/auto-bj.ts",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "check": "npm run build && npm run lint && npm test"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.3.2",
+    "commander": "^14.0.3",
+    "cron-parser": "^5.2.0",
+    "drizzle-orm": "^0.44.4",
+    "jimp": "^1.6.0",
+    "onnxruntime-node": "^1.24.3",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/node": "^24.0.10",
+    "@types/pg": "^8.15.4",
+    "drizzle-kit": "^0.31.4",
+    "eslint": "^9.31.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitest": "^3.2.4"
+  }
+}
