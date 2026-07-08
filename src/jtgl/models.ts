@@ -1,5 +1,22 @@
 import { LICENSE_PLATE_TYPE_MAP, VEHICLE_TYPE_MAP } from './constants.js';
 
+type RawRecord = Record<string, unknown>;
+
+function readString(data: RawRecord, key: string): string {
+  const value = data[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function readUnknownArray(data: RawRecord, key: string): unknown[] {
+  const value = data[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function readStringOrNumber(data: RawRecord, key: string): string | number {
+  const value = data[key];
+  return typeof value === 'string' || typeof value === 'number' ? value : '';
+}
+
 export type ParsedVehicle = {
   licenseNumber: string;
   licensePlateType: string;
@@ -37,56 +54,62 @@ export type ParsedStateVehicle = {
   secondaryRecords: ParsedRecord[];
 };
 
-export function parseVehicle(data: any): ParsedVehicle {
+export function parseVehicle(data: RawRecord): ParsedVehicle {
   return {
-    licenseNumber: data.hphm || '',
-    licensePlateType: data.hpzl || '',
-    licensePlateTypeName: LICENSE_PLATE_TYPE_MAP[data.hpzl] || data.hpzl || '',
-    vehicleType: data.cllx || '',
-    vehicleTypeName: VEHICLE_TYPE_MAP[data.cllx] || data.cllx || '',
-    engineNumber: data.fdjh || '',
-    brand: data.ppxh || '',
-    registrationDate: data.zcsj || '',
-    vehicleId: data.vId || '',
+    licenseNumber: readString(data, 'hphm'),
+    licensePlateType: readString(data, 'hpzl'),
+    licensePlateTypeName:
+      LICENSE_PLATE_TYPE_MAP[readString(data, 'hpzl')] || readString(data, 'hpzl'),
+    vehicleType: readString(data, 'cllx'),
+    vehicleTypeName: VEHICLE_TYPE_MAP[readString(data, 'cllx')] || readString(data, 'cllx'),
+    engineNumber: readString(data, 'fdjh'),
+    brand: readString(data, 'ppxh'),
+    registrationDate: readString(data, 'zcsj'),
+    vehicleId: readString(data, 'vId'),
   };
 }
 
-export function parseUserInfo(data: any): { idNumber: string; name: string } {
+export function parseUserInfo(data: RawRecord): { idNumber: string; name: string } {
   return {
-    idNumber: data.jszh || '',
-    name: data.jsrxm || '',
+    idNumber: readString(data, 'jszh'),
+    name: readString(data, 'jsrxm'),
   };
 }
 
-export function parseRecord(data: any): ParsedRecord {
+export function parseRecord(data: RawRecord): ParsedRecord {
   return {
-    vehicleId: data.vId || '',
-    applyId: data.applyId || '',
-    statusCode: data.blzt || '',
-    statusName: data.blztmc || '',
-    validFrom: data.yxqs || '',
-    validTo: data.yxqz || '',
-    remainingDays: data.sxsyts ?? '',
-    entryType: data.jjzzl || '',
-    entryTypeName: data.jjzzlmc || '',
-    applyTime: data.sqsj || '',
-    licenseNumber: data.hphm || '',
+    vehicleId: readString(data, 'vId'),
+    applyId: readString(data, 'applyId'),
+    statusCode: readString(data, 'blzt'),
+    statusName: readString(data, 'blztmc'),
+    validFrom: readString(data, 'yxqs'),
+    validTo: readString(data, 'yxqz'),
+    remainingDays: readStringOrNumber(data, 'sxsyts'),
+    entryType: readString(data, 'jjzzl'),
+    entryTypeName: readString(data, 'jjzzlmc'),
+    applyTime: readString(data, 'sqsj'),
+    licenseNumber: readString(data, 'hphm'),
   };
 }
 
-export function parseStateData(data: any): { idNumber: string; vehicles: ParsedStateVehicle[] } {
+export function parseStateData(data: RawRecord): { idNumber: string; vehicles: ParsedStateVehicle[] } {
   return {
-    idNumber: data.sfzmhm || '',
-    vehicles: (data.bzclxx || []).map((vehicle: any) => ({
-      vId: vehicle.vId || '',
-      licensePlateType: vehicle.hpzl || '',
-      licenseNumber: vehicle.hphm || '',
-      remainingTimes: String(vehicle.sycs ?? ''),
-      remainingDays: String(vehicle.syts ?? ''),
-      vehicleType: vehicle.cllx || '',
-      records: (vehicle.bzxx || []).map(parseRecord),
-      secondaryRecords: (vehicle.ecbzxx || []).map(parseRecord),
-    })),
+    idNumber: readString(data, 'sfzmhm'),
+    vehicles: readUnknownArray(data, 'bzclxx').map((vehicle) => {
+      const item = vehicle as RawRecord;
+      return {
+        vId: readString(item, 'vId'),
+        licensePlateType: readString(item, 'hpzl'),
+        licenseNumber: readString(item, 'hphm'),
+        remainingTimes: String(item.sycs ?? ''),
+        remainingDays: String(item.syts ?? ''),
+        vehicleType: readString(item, 'cllx'),
+        records: readUnknownArray(item, 'bzxx').map((record) => parseRecord(record as RawRecord)),
+        secondaryRecords: readUnknownArray(item, 'ecbzxx').map((record) =>
+          parseRecord(record as RawRecord),
+        ),
+      };
+    }),
   };
 }
 

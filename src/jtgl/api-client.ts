@@ -1,5 +1,12 @@
 import { SOURCE } from './constants.js';
 
+type ApiResponse = {
+  code?: number;
+  msg?: string;
+  message?: string;
+  data?: unknown;
+};
+
 export class ApiClient {
   private sessionReady = false;
 
@@ -39,7 +46,7 @@ export class ApiClient {
       },
       body: JSON.stringify({ token: this.token, state: '101000004071' }),
     });
-    const result = (await response.json()) as { code?: number; msg?: string; message?: string };
+    const result = (await response.json()) as ApiResponse;
     if (result.code !== 200) {
       throw new Error(
         `Session activation failed: code=${result.code}, msg=${
@@ -50,7 +57,7 @@ export class ApiClient {
     this.sessionReady = true;
   }
 
-  private async callApi(path: string, data: Record<string, unknown>): Promise<Record<string, any>> {
+  private async callApi(path: string, data: Record<string, unknown>): Promise<ApiResponse> {
     if (!path.includes('loginUser')) await this.ensureSession();
     const response = await fetch(`${this.baseUrl.replace(/\/+$/, '')}/${path}`, {
       method: 'POST',
@@ -61,7 +68,7 @@ export class ApiClient {
       },
       body: JSON.stringify(data),
     });
-    const result = (await response.json()) as Record<string, any>;
+    const result = (await response.json()) as ApiResponse;
     if (result.code !== 200) {
       throw new Error(
         `API error [${path}]: code=${result.code}, msg=${

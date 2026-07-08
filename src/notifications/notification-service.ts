@@ -1,4 +1,5 @@
 import type { CredentialService } from '../credentials/credential-service.js';
+import type { EncryptedSecret } from '../credentials/crypto.js';
 import type { NotificationsRepo } from '../database/repositories/notifications.repo.js';
 import { redactNotificationUrl } from '../output/redaction.js';
 import { notify, testNotify } from './notifier.js';
@@ -21,9 +22,7 @@ export class NotificationService {
       accountId: channel.accountId,
       type: channel.type,
       enabled: channel.enabled,
-      url: redactNotificationUrl(
-        this.credentialService.decrypt(channel.encryptedUrl as any),
-      ),
+      url: redactNotificationUrl(this.credentialService.decrypt(channel.encryptedUrl as EncryptedSecret)),
     }));
   }
 
@@ -41,6 +40,6 @@ export class NotificationService {
     const channels = await this.notificationsRepo.listByAccount(accountId);
     return channels
       .filter((channel) => channel.enabled)
-      .map((channel) => this.credentialService.decrypt(channel.encryptedUrl as any));
+      .map((channel) => this.credentialService.decrypt(channel.encryptedUrl as EncryptedSecret));
   }
 }

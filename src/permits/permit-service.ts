@@ -32,14 +32,14 @@ export class PermitService {
   async status(accountName: string) {
     const account = await this.requireAccount(accountName);
     const api = await this.createApi(account.id, account.phone);
-    const state = parseStateData(await api.getStateData());
+    const state = parseStateData(expectObject(await api.getStateData(), '进京证状态'));
     return { account, state };
   }
 
   async syncVehicles(accountName: string) {
     const account = await this.requireAccount(accountName);
     const api = await this.createApi(account.id, account.phone);
-    const rawVehicles = (await api.listVehicles()) as any[];
+    const rawVehicles = expectObjectArray(await api.listVehicles(), '车辆列表');
     const parsed = rawVehicles.map(parseVehicle);
     for (const vehicle of parsed) {
       await this.deps.vehiclesRepo.upsertForAccount({
@@ -63,7 +63,7 @@ export class PermitService {
     try {
       const api = await this.createApi(account.id, account.phone);
       const rawState = await api.getStateData();
-      const state = parseStateData(rawState);
+      const state = parseStateData(expectObject(rawState, '进京证状态'));
       const selected = selectVehicle(
         state.vehicles.map((vehicle) => ({
           ...vehicle,
@@ -95,11 +95,11 @@ export class PermitService {
         return { applied: false, message: `无需办理: ${decision.reason}` };
       }
 
-      const fullVehicles = ((await api.listVehicles()) as any[]).map(parseVehicle);
+      const fullVehicles = expectObjectArray(await api.listVehicles(), '车辆列表').map(parseVehicle);
       const fullVehicle = fullVehicles.find((vehicle) => vehicle.licenseNumber === selected.licenseNumber);
       if (!fullVehicle) throw new Error(`未找到车辆详细信息: ${selected.licenseNumber}`);
 
-      const userInfo = parseUserInfo(await api.getUserInfo());
+      const userInfo = parseUserInfo(expectObject(await api.getUserInfo(), '用户信息'));
       const payload = buildApplyPayload(
         fullVehicle,
         userInfo,
@@ -159,6 +159,20 @@ export class PermitService {
       rawSnapshotJson: record,
     });
   }
+}
+
+function expectObjectArray(value: unknown, label: string): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label}响应格式不正确`);
+  }
+  return value.map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>) : {}));
+}
+
+function expectObject(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label}响应格式不正确`);
+  }
+  return value as Record<string, unknown>;
 }
 
 function maskEngine(engineNumber: string): string {
