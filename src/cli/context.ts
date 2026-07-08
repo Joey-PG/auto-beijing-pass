@@ -8,8 +8,11 @@ import { AuditRepo } from '../database/repositories/audit.repo.js';
 import { CredentialsRepo } from '../database/repositories/credentials.repo.js';
 import { JobsRepo } from '../database/repositories/jobs.repo.js';
 import { NotificationsRepo } from '../database/repositories/notifications.repo.js';
+import { PermitRecordsRepo } from '../database/repositories/permit-records.repo.js';
 import { SchedulesRepo } from '../database/repositories/schedules.repo.js';
 import { VehiclesRepo } from '../database/repositories/vehicles.repo.js';
+import { NotificationService } from '../notifications/notification-service.js';
+import { PermitService } from '../permits/permit-service.js';
 
 export function createCliContext() {
   const env = loadEnv();
@@ -21,8 +24,18 @@ export function createCliContext() {
   const jobsRepo = new JobsRepo(db);
   const vehiclesRepo = new VehiclesRepo(db);
   const notificationsRepo = new NotificationsRepo(db);
+  const permitRecordsRepo = new PermitRecordsRepo(db);
   const credentialService = new CredentialService(env.appSecretKey);
   const auditService = new AuditService(auditRepo);
+  const notificationService = new NotificationService(notificationsRepo, credentialService);
+  const permitService = new PermitService({
+    accountsRepo,
+    credentialsRepo,
+    vehiclesRepo,
+    jobsRepo,
+    permitRecordsRepo,
+    credentialService,
+  });
   const accountService = new AccountService(
     accountsRepo,
     credentialsRepo,
@@ -41,11 +54,14 @@ export function createCliContext() {
       jobsRepo,
       vehiclesRepo,
       notificationsRepo,
+      permitRecordsRepo,
     },
     services: {
       accountService,
       auditService,
       credentialService,
+      notificationService,
+      permitService,
     },
   };
 }
