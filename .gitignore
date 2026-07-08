@@ -4,3 +4,4 @@ node_modules/
 url_key.key
 docs/
 .npmrc
+.worktrees/
