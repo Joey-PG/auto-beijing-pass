@@ -1,0 +1,52 @@
+{
+  "name": "auto-beijing-pass",
+  "version": "1.0.2",
+  "description": "进京证 CLI 工具 - 让人类和 AI Agent 都能在终端中办理进京证",
+  "type": "module",
+  "bin": {
+    "auto-bj-pass": "bin/auto-bj-pass.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "web": "node bin/auto-bj-pass.js web",
+    "web:build": "vite build --config web/vite.config.ts",
+    "web:dev": "vite --config web/vite.config.ts"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "models/",
+    "skills/",
+    "KNOWN_ISSUES.md"
+  ],
+  "keywords": [
+    "进京证",
+    "北京",
+    "cli",
+    "agent",
+    "beijing",
+    "vehicle-permit"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ant-design/icons": "5.6.1",
+    "@inquirer/prompts": "^8.3.2",
+    "antd": "5.29.3",
+    "commander": "^14.0.3",
+    "jimp": "^1.6.0",
+    "onnxruntime-node": "^1.24.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
+    "@types/node": "22.19.15",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.9.3",
+    "vite": "5.4.21"
+  }
+}
