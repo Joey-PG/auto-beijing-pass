@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { applyPermit } from '../src/commands/run.js';
 import { buildApplyPayload } from '../src/lib/models.js';
+import { createTripProfile } from '../src/lib/trip-profile.js';
 
 test('builds an apply payload from the confirmed trip profile', () => {
   const payload = buildApplyPayload(
@@ -65,4 +67,59 @@ test('refuses to build a production payload without a trip profile', () => {
       ),
     /未配置出行地址/,
   );
+});
+
+test('manual renewal accepts a one-time trip profile without saving it', async () => {
+  let submittedPayload = null;
+  const tripProfile = createTripProfile({
+    inBeijingAddress: '本次在京地址',
+    inBeijingLongitude: '116.40',
+    inBeijingLatitude: '39.90',
+    destinationAddress: '本次进京目的地',
+    destinationLongitude: '116.41',
+    destinationLatitude: '39.91',
+    destinationArea: '朝阳区',
+    districtCode: '001',
+    purposeName: '其它',
+    purposeCode: '06',
+  });
+  const api = {
+    loadHomePageData: async () => ({
+      state: {
+        bzclxx: [{
+          hphm: '京A00001',
+          hpzl: '02',
+          cllx: '01',
+          sycs: 8,
+          syts: 20,
+          bzxx: [],
+        }],
+      },
+    }),
+    listVehicles: async () => [{
+      hphm: '京A00001',
+      hpzl: '02',
+      cllx: '01',
+      vId: 'vehicle-1',
+    }],
+    getUserInfo: async () => ({
+      jsrxm: '测试用户',
+      jszh: '110101199001011234',
+    }),
+    submitApply: async (payload) => {
+      submittedPayload = payload;
+    },
+  };
+
+  const result = await applyPermit(
+    api,
+    { entry_type: '六环外' },
+    '京A00001',
+    undefined,
+    { tripProfile },
+  );
+
+  assert.equal(result.applied, true);
+  assert.equal(submittedPayload.zjxxdz, '本次在京地址');
+  assert.equal(submittedPayload.xxdz, '本次进京目的地');
 });

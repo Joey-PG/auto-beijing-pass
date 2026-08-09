@@ -13,7 +13,7 @@ import {
   getFutureDate,
 } from '../lib/models.js';
 import { notify } from '../lib/notifier.js';
-import { resolveTripProfile } from '../lib/trip-profile.js';
+import { isCompleteTripProfile } from '../lib/trip-profile.js';
 import { output, success, error } from '../output.js';
 import { getCronScheduleInfo } from './cron.js';
 
@@ -160,15 +160,20 @@ async function getStatusForUser(
     `自动续签: ${autoRenewText}` +
     (nextRenewTime ? `（下次：${nextRenewTime}）` : '') +
     '\n';
-  const tripProfile = resolveTripProfile(user.trip_profile);
-  const { destination, in_beijing_address: inBeijingAddress } = tripProfile;
-  const addressLabel = user.trip_profile ? '' : '（默认）';
-  body +=
-    `在京地址${addressLabel}: ${inBeijingAddress.address} ` +
-    `(${inBeijingAddress.longitude}, ${inBeijingAddress.latitude})\n`;
-  body +=
-    `进京目的地${addressLabel}: ${destination.address} ` +
-    `(${destination.longitude}, ${destination.latitude})\n`;
+  const tripProfile = isCompleteTripProfile(user.trip_profile)
+    ? user.trip_profile
+    : null;
+  if (tripProfile) {
+    const { destination, in_beijing_address: inBeijingAddress } = tripProfile;
+    body +=
+      `在京地址: ${inBeijingAddress.address} ` +
+      `(${inBeijingAddress.longitude}, ${inBeijingAddress.latitude})\n`;
+    body +=
+      `进京目的地: ${destination.address} ` +
+      `(${destination.longitude}, ${destination.latitude})\n`;
+  } else {
+    body += '出行配置: 未配置（自动续签不会执行）\n';
+  }
   body += `车牌: ${vehicle.licenseNumber}\n`;
   if (record) {
     body += `类型: ${record.entryTypeName || ''}\n`;
@@ -187,10 +192,12 @@ async function getStatusForUser(
     body += `进京证类型: ${user.entry_type || '六环外'}\n`;
     body += `通知渠道数: ${(user.notify_urls || []).length}\n`;
     body += `首选车辆: ${user.preferred_vehicle || '未设置'}\n`;
-    body += `是否已在京: ${tripProfile.is_in_beijing ? '是' : '否'}\n`;
-    body +=
-      `目的地区县: ${tripProfile.destination.area} ` +
-      `(${tripProfile.destination.district_code})\n`;
+    body += `是否已在京: ${tripProfile ? '是' : '未配置'}\n`;
+    if (tripProfile) {
+      body +=
+        `目的地区县: ${tripProfile.destination.area} ` +
+        `(${tripProfile.destination.district_code})\n`;
+    }
   }
 
   if (options.notify && user.notify_urls?.length > 0) {

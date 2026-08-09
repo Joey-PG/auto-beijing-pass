@@ -30,6 +30,7 @@ import {
   MEMBERSHIP_REMINDER_DAYS,
 } from '../lib/membership.js';
 import { notify } from '../lib/notifier.js';
+import { isCompleteTripProfile } from '../lib/trip-profile.js';
 
 const COMMAND_NAME =
   process.env.AUTO_BJ_PASS_COMMAND_NAME ||
@@ -586,6 +587,18 @@ export function registerCronCommand(program) {
     )
     .action(async (options) => {
       try {
+        const missingProfiles = getUsers({ initializedOnly: true })
+          .filter(
+            (user) =>
+              user.auto_renew !== false &&
+              !isCompleteTripProfile(user.trip_profile),
+          )
+          .map((user, index) => getAccountLabel(user, index));
+        if (missingProfiles.length > 0) {
+          throw new Error(
+            `以下自动续签账号尚未配置完整出行信息：${missingProfiles.join('、')}`,
+          );
+        }
         ensureCronLog();
         let current = getCurrentCrontab();
 
@@ -700,6 +713,7 @@ export function registerCronCommand(program) {
         let eligibleCount = 0;
         let disabledCount = 0;
         let expiredCount = 0;
+        let missingProfileCount = 0;
 
         for (const [index, user] of users.entries()) {
           const accountKey =
@@ -757,6 +771,15 @@ export function registerCronCommand(program) {
           }
           if (user.auto_renew === false) {
             disabledCount += 1;
+            continue;
+          }
+          if (!isCompleteTripProfile(user.trip_profile)) {
+            missingProfileCount += 1;
+            writeAuditEvent('cron_account_skipped', {
+              account: getAccountLabel(user, index),
+              result: 'skipped',
+              reason: 'missing_trip_profile',
+            });
             continue;
           }
           eligibleCount += 1;
@@ -943,6 +966,7 @@ export function registerCronCommand(program) {
             eligible_count: eligibleCount,
             disabled_count: disabledCount,
             expired_count: expiredCount,
+            missing_profile_count: missingProfileCount,
             selected_count: selectedAccounts.length,
             succeeded_count: succeededCount,
             failed_count: failedCount,

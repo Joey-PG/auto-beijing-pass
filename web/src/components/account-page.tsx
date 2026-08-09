@@ -2,6 +2,7 @@ import {
   CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
+  EnvironmentOutlined,
   KeyOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -27,7 +28,9 @@ import type {
   AccountCreateInput,
   AccountUpdateInput,
   MembershipUpdateInput,
+  TripProfileInput,
 } from '../types';
+import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 
 interface AccountPageProps {
   accounts: Account[];
@@ -38,6 +41,10 @@ interface AccountPageProps {
   onRelogin: (account: Account, password: string) => Promise<void>;
   onToggle: (account: Account, checked: boolean) => Promise<void>;
   onUpdate: (account: Account, values: AccountUpdateInput) => Promise<void>;
+  onUpdateTripProfile: (
+    account: Account,
+    values: TripProfileInput,
+  ) => Promise<void>;
 }
 
 export function AccountPage({
@@ -49,15 +56,18 @@ export function AccountPage({
   onRelogin,
   onToggle,
   onUpdate,
+  onUpdateTripProfile,
 }: AccountPageProps) {
   const [addForm] = Form.useForm<AccountCreateInput>();
   const [editForm] = Form.useForm<AccountUpdateInput>();
   const [loginForm] = Form.useForm<{ password: string }>();
   const [membershipForm] = Form.useForm<MembershipUpdateInput>();
+  const [tripForm] = Form.useForm<TripProfileInput>();
   const [addOpen, setAddOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [loginAccount, setLoginAccount] = useState<Account | null>(null);
   const [membershipAccount, setMembershipAccount] = useState<Account | null>(null);
+  const [tripAccount, setTripAccount] = useState<Account | null>(null);
   const addMembershipTerm = Form.useWatch('membershipTerm', addForm);
   const membershipTerm = Form.useWatch('membershipTerm', membershipForm);
 
@@ -78,6 +88,12 @@ export function AccountPage({
     }
   }, [editAccount, editForm]);
 
+  useEffect(() => {
+    if (tripAccount) {
+      tripForm.setFieldsValue(tripProfileToInput(tripAccount.tripProfile));
+    }
+  }, [tripAccount, tripForm]);
+
   const columns: ColumnsType<Account> = [
     { dataIndex: 'name', key: 'name', title: '账号名称' },
     { dataIndex: 'phone', key: 'phone', title: '手机号' },
@@ -88,6 +104,13 @@ export function AccountPage({
       title: '登录状态',
     },
     { dataIndex: 'entryType', key: 'entryType', title: '进京证类型' },
+    {
+      key: 'tripProfile',
+      render: (_, account) => account.tripProfileConfigured
+        ? <Tag color="success">已配置</Tag>
+        : <Tag color="warning">待配置</Tag>,
+      title: '出行配置',
+    },
     {
       key: 'vehicles',
       render: (_, account) => `${account.vehicles.length} 辆`,
@@ -147,6 +170,14 @@ export function AccountPage({
             续费
           </Button>
           <Button
+            icon={<EnvironmentOutlined />}
+            onClick={() => setTripAccount(account)}
+            size="small"
+            type="text"
+          >
+            出行配置
+          </Button>
+          <Button
             icon={<EditOutlined />}
             onClick={() => setEditAccount(account)}
             size="small"
@@ -177,7 +208,7 @@ export function AccountPage({
         </Space>
       ),
       title: '操作',
-      width: 390,
+      width: 500,
     },
   ];
 
@@ -207,7 +238,7 @@ export function AccountPage({
           locale={{ emptyText: '尚未添加北京通账号' }}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 1050 }}
+          scroll={{ x: 1280 }}
         />
       </Card>
 
@@ -224,7 +255,7 @@ export function AccountPage({
       >
         <Form
           form={addForm}
-          initialValues={{ autoRenew: true, entryType: '六环外', membershipTerm: '1y' }}
+          initialValues={{ autoRenew: false, entryType: '六环外', membershipTerm: '1y' }}
           layout="vertical"
           onFinish={async (values) => {
             await onAdd(values);
@@ -331,6 +362,39 @@ export function AccountPage({
               <Input min={new Date().toISOString().slice(0, 10)} type="date" />
             </Form.Item>
           ) : null}
+        </Form>
+      </Modal>
+
+      <Modal
+        centered
+        destroyOnClose
+        maskClosable={!loading}
+        okButtonProps={{ loading }}
+        okText="保存为默认配置"
+        onCancel={() => setTripAccount(null)}
+        onOk={() => tripForm.submit()}
+        open={Boolean(tripAccount)}
+        title={`出行配置 · ${tripAccount?.name || ''}`}
+        width={720}
+      >
+        <Alert
+          className="modal-inline-alert"
+          message="定时续签会直接使用这里保存的信息；手动执行时仍可临时修改。"
+          showIcon
+          type={tripAccount?.tripProfileConfigured ? 'info' : 'warning'}
+        />
+        <Form
+          className="trip-profile-form"
+          form={tripForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!tripAccount) return;
+            await onUpdateTripProfile(tripAccount, values);
+            setTripAccount(null);
+          }}
+          preserve={false}
+        >
+          <TripProfileFields />
         </Form>
       </Modal>
 

@@ -24,6 +24,24 @@ import {
 } from '../src/commands/cron.js';
 import { saveConfig } from '../src/lib/config-manager.js';
 
+const TEST_TRIP_PROFILE = {
+  is_in_beijing: true,
+  current_location: { longitude: '116.40', latitude: '39.90' },
+  in_beijing_address: {
+    address: '测试在京地址',
+    longitude: '116.40',
+    latitude: '39.90',
+  },
+  destination: {
+    address: '测试目的地',
+    longitude: '116.41',
+    latitude: '39.91',
+    area: '朝阳区',
+    district_code: '001',
+  },
+  purpose: { name: '其它', code: '06' },
+};
+
 test('random window generates cron ticks only inside the configured hours', () => {
   assert.deepEqual(
     getRandomWindowCronSchedules('07:30-08:30'),
@@ -262,6 +280,40 @@ test('cron tick lock prevents concurrent scheduler processes', () => {
   }
 });
 
+test('cron setup refuses enabled accounts without trip profiles', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-trip-'));
+  const originalLog = console.log;
+  const originalError = console.error;
+  const messages = [];
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '待配置账号',
+        bjt_phone: '13800000001',
+        auth: 'token',
+        auto_renew: true,
+      }],
+    });
+    console.log = (message) => messages.push(String(message));
+    console.error = (message) => messages.push(String(message));
+
+    const program = new Command();
+    registerCronCommand(program);
+    await program.parseAsync(['node', 'test', 'cron', 'setup']);
+
+    assert.equal(process.exitCode, 1);
+    assert.match(messages.join('\n'), /尚未配置完整出行信息：待配置账号/);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    process.exitCode = undefined;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('failed cron execution stays retryable instead of being marked completed', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-fail-'));
   const fakeBin = join(configDir, 'fake-auto-bj-pass');
@@ -280,6 +332,7 @@ test('failed cron execution stays retryable instead of being marked completed', 
           bjt_phone: '13800000001',
           auth: 'token',
           auto_renew: true,
+          trip_profile: TEST_TRIP_PROFILE,
         },
       ],
     });
@@ -362,6 +415,7 @@ test('successful cron execution is marked completed for the current day', async 
           bjt_phone: '13800000002',
           auth: 'token',
           auto_renew: true,
+          trip_profile: TEST_TRIP_PROFILE,
         },
       ],
     });

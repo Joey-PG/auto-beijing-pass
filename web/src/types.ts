@@ -37,16 +37,35 @@ export interface Vehicle {
 }
 
 export interface TripProfile {
-  destination?: {
-    address?: string;
-    area?: string;
+  destination: {
+    address: string;
+    area: string;
+    district_code: string;
+    latitude: string;
+    longitude: string;
   };
-  in_beijing_address?: {
-    address?: string;
+  in_beijing_address: {
+    address: string;
+    latitude: string;
+    longitude: string;
   };
-  purpose?: {
-    name?: string;
+  purpose: {
+    code: string;
+    name: string;
   };
+}
+
+export interface TripProfileInput {
+  destinationAddress: string;
+  destinationArea: string;
+  destinationLatitude: string;
+  destinationLongitude: string;
+  districtCode: string;
+  inBeijingAddress: string;
+  inBeijingLatitude: string;
+  inBeijingLongitude: string;
+  purposeCode: string;
+  purposeName: string;
 }
 
 export interface Account {
@@ -62,7 +81,8 @@ export interface Account {
   membershipStatus: MembershipStatus;
   phone: string;
   preferredVehicle: string;
-  tripProfile: TripProfile;
+  tripProfile: TripProfile | null;
+  tripProfileConfigured: boolean;
   vehicles: Vehicle[];
 }
 

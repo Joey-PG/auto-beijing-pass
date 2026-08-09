@@ -1,10 +1,12 @@
 import type {
   AccountCreateInput,
+  AccountUpdateInput,
   ApiResponse,
   AuditPageData,
   AuditQuery,
   Dashboard,
   MembershipUpdateInput,
+  TripProfileInput,
 } from './types';
 
 export interface SessionState {
@@ -77,9 +79,13 @@ export const dashboardApi = {
     return request<AuditPageData>(`/api/audit?${search}`);
   },
   getDashboard: () => request<Dashboard>('/api/dashboard'),
-  renewVehicle: (accountId: string, licenseNumber: string) =>
+  renewVehicle: (
+    accountId: string,
+    licenseNumber: string,
+    tripProfile?: TripProfileInput,
+  ) =>
     request<{ applied: boolean; message: string }>('/api/renewals', {
-      body: JSON.stringify({ accountId, licenseNumber }),
+      body: JSON.stringify({ accountId, licenseNumber, tripProfile }),
       method: 'POST',
     }),
   extendMembership: (accountId: string, body: MembershipUpdateInput) =>
@@ -100,10 +106,18 @@ export const dashboardApi = {
     ),
   updateAccount: (
     accountId: string,
-    body: Record<string, boolean | string>,
+    body: AccountUpdateInput | Record<string, boolean | string>,
   ) =>
     request<{ updated: boolean }>(`/api/accounts/${encodeURIComponent(accountId)}`, {
       body: JSON.stringify(body),
       method: 'PATCH',
     }),
+  updateTripProfile: (accountId: string, body: TripProfileInput) =>
+    request<{ updated: boolean }>(
+      `/api/accounts/${encodeURIComponent(accountId)}/trip-profile`,
+      {
+        body: JSON.stringify(body),
+        method: 'PUT',
+      },
+    ),
 };
