@@ -3,8 +3,8 @@ import {
   getSystemDefaultTripProfile,
   getSelectedUsers,
 } from '../lib/config-manager.js';
-import { ApiManager } from '../lib/api-manager.js';
-import { API_BASE_URL, COMMAND_NAME } from '../constants.js';
+import { COMMAND_NAME } from '../constants.js';
+import { createAuthenticatedApi } from '../lib/authenticated-api.js';
 import {
   parseStateData,
   getLatestRecord,
@@ -77,7 +77,7 @@ async function getStatusForUser(
   includeLabel,
   scheduleInfo,
 ) {
-  const api = new ApiManager(API_BASE_URL, user.auth);
+  const api = createAuthenticatedApi(user);
   const { state: rawState } = await api.loadHomePageData();
   const state = parseStateData(rawState);
   const label = getAccountLabel(user);

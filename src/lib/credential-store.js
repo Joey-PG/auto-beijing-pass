@@ -119,11 +119,18 @@ export function protectConfig(config, configDir) {
   const users = Array.isArray(protectedConfig?.users)
     ? protectedConfig.users
     : [];
-  const hasToken = users.some((user) => typeof user.auth === 'string' && user.auth);
-  const key = hasToken ? readOrCreateKey(configDir) : null;
+  const hasCredentials = users.some(
+    (user) =>
+      (typeof user.auth === 'string' && user.auth) ||
+      (typeof user.bjt_pwd === 'string' && user.bjt_pwd),
+  );
+  const key = hasCredentials ? readOrCreateKey(configDir) : null;
   for (const user of users) {
     if (typeof user.auth === 'string' && user.auth) {
       user.auth_encrypted = encrypt(user.auth, key);
+    }
+    if (typeof user.bjt_pwd === 'string' && user.bjt_pwd) {
+      user.bjt_pwd_encrypted = encrypt(user.bjt_pwd, key);
     }
     delete user.auth;
     delete user.bjt_pwd;
@@ -136,14 +143,19 @@ export function unprotectConfig(config, configDir) {
   const users = Array.isArray(unprotectedConfig?.users)
     ? unprotectedConfig.users
     : [];
-  const hasEncryptedToken = users.some((user) => user.auth_encrypted);
-  const key = hasEncryptedToken ? readOrCreateKey(configDir) : null;
+  const hasEncryptedCredentials = users.some(
+    (user) => user.auth_encrypted || user.bjt_pwd_encrypted,
+  );
+  const key = hasEncryptedCredentials ? readOrCreateKey(configDir) : null;
   for (const user of users) {
     if (user.auth_encrypted) {
       user.auth = decrypt(user.auth_encrypted, key);
     }
+    if (user.bjt_pwd_encrypted) {
+      user.bjt_pwd = decrypt(user.bjt_pwd_encrypted, key);
+    }
     delete user.auth_encrypted;
-    delete user.bjt_pwd;
+    delete user.bjt_pwd_encrypted;
   }
   return unprotectedConfig;
 }
@@ -153,6 +165,6 @@ export function needsCredentialMigration(config) {
   return users.some(
     (user) =>
       (typeof user.auth === 'string' && user.auth.length > 0) ||
-      Object.hasOwn(user, 'bjt_pwd'),
+      (typeof user.bjt_pwd === 'string' && user.bjt_pwd.length > 0),
   );
 }

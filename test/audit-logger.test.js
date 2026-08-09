@@ -43,6 +43,8 @@ test('writes persistent logs with restrictive permissions and masks secrets', ()
         phone: '13901224105',
         plate: '津G835S0',
         auth: 'private-token',
+        auth_encrypted: 'encrypted-private-token',
+        bjt_pwd_encrypted: 'encrypted-private-password',
         address: '王辛庄镇放光村村委会',
         result: 'success',
         reason: 'not_due',
@@ -61,7 +63,10 @@ test('writes persistent logs with restrictive permissions and masks secrets', ()
     assert.match(appLog, /津G\*{5}/);
     assert.match(auditLog, /13901224105/);
     assert.match(auditLog, /津G835S0/);
-    assert.doesNotMatch(auditLog, /private-token|放光村/);
+    assert.doesNotMatch(
+      auditLog,
+      /private-token|encrypted-private-token|encrypted-private-password|放光村/,
+    );
     assert.equal(statSync(getLogDir()).mode & 0o777, 0o700);
     assert.equal(statSync(getAppLogPath(date)).mode & 0o777, 0o600);
     assert.equal(statSync(getAuditLogPath(date)).mode & 0o777, 0o600);

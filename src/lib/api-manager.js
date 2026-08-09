@@ -24,6 +24,34 @@ const WECHAT_MINI_PROGRAM_HEADERS = {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
 
+export class ApiRequestError extends Error {
+  constructor(message, { apiCode = null, httpStatus = null, path = '' } = {}) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.apiCode = apiCode;
+    this.httpStatus = httpStatus;
+    this.path = path;
+  }
+}
+
+export function isAuthenticationError(error) {
+  if (!(error instanceof ApiRequestError)) return false;
+  if (
+    [401, 403].includes(Number(error.httpStatus)) ||
+    Number(error.apiCode) === 401
+  ) {
+    return true;
+  }
+  return (
+    /(?:token|登录|认证|授权).*(?:失效|过期|无效|失败|重新登录|未登录)/i.test(
+      error.message,
+    ) ||
+    /(?:失效|过期|无效|未登录).*(?:token|登录|认证|授权)/i.test(
+      error.message,
+    )
+  );
+}
+
 export class ApiManager {
   /**
    * @param {string} baseUrl - API base URL (no trailing slash)
@@ -34,12 +62,14 @@ export class ApiManager {
     token,
     {
       fetchImpl = globalThis.fetch,
+      refreshToken = null,
       timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
     } = {},
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.token = token;
     this.fetchImpl = fetchImpl;
+    this.refreshToken = refreshToken;
     this.timeoutMs = timeoutMs;
   }
 
@@ -54,6 +84,21 @@ export class ApiManager {
    * @throws if response code !== 200
    */
   async callApi(path, data = {}, extraHeaders = {}, method = 'POST') {
+    try {
+      return await this.callApiOnce(path, data, extraHeaders, method);
+    } catch (error) {
+      if (!this.refreshToken || !isAuthenticationError(error)) throw error;
+      const token = await this.refreshToken({
+        error,
+        failedToken: this.token,
+      });
+      if (!token) throw error;
+      this.token = token;
+      return this.callApiOnce(path, data, extraHeaders, method);
+    }
+  }
+
+  async callApiOnce(path, data = {}, extraHeaders = {}, method = 'POST') {
     const url = `${this.baseUrl}/${path}`;
     const headers = {
       Authorization: this.token,
@@ -85,19 +130,26 @@ export class ApiManager {
     }
 
     if (resp.ok === false) {
-      throw new Error(`API HTTP error [${path}]: ${resp.status}`);
+      throw new ApiRequestError(
+        `API HTTP error [${path}]: ${resp.status}`,
+        { httpStatus: resp.status, path },
+      );
     }
 
     let result;
     try {
       result = await resp.json();
     } catch {
-      throw new Error(`API response is not valid JSON [${path}]`);
+      throw new ApiRequestError(`API response is not valid JSON [${path}]`, {
+        httpStatus: resp.status || null,
+        path,
+      });
     }
 
     if (result.code !== 200) {
-      throw new Error(
+      throw new ApiRequestError(
         `API error [${path}]: code=${result.code}, msg=${result.msg || result.message || JSON.stringify(result)}`,
+        { apiCode: result.code, httpStatus: resp.status || null, path },
       );
     }
 

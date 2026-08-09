@@ -3,8 +3,7 @@ import {
   getCronScheduleInfo,
 } from '../commands/cron.js';
 import { applyPermit } from '../commands/run.js';
-import { API_BASE_URL } from '../constants.js';
-import { ApiManager } from '../lib/api-manager.js';
+import { createAuthenticatedApi } from '../lib/authenticated-api.js';
 import { login } from '../lib/bjt-login.js';
 import {
   getAccountLabel,
@@ -130,7 +129,7 @@ function getAccountById(accountId) {
 }
 
 function createApi(user) {
-  return new ApiManager(API_BASE_URL, user.auth);
+  return createAuthenticatedApi(user);
 }
 
 function getDashboardAccountName(user, index) {
@@ -392,6 +391,7 @@ export async function addDashboardAccount(
       name,
       auth: token,
       bjt_phone: phone,
+      bjt_pwd: password,
       entry_type: entryType,
       notify_urls: [],
       preferred_vehicle: '',
@@ -431,7 +431,7 @@ export async function reloginDashboardAccount(
     ({ user } = getAccountById(accountId));
     const password = validatePassword(input?.password);
     const token = await loginFn(user.bjt_phone, password);
-    updateUser({ auth: token }, user.bjt_phone);
+    updateUser({ auth: token, bjt_pwd: password }, user.bjt_phone);
     writeAuditEvent('account_reauthenticated', {
       account: getAccountLabel(user),
       actor,

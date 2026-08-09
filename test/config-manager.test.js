@@ -96,6 +96,10 @@ test('supports selecting, updating, and removing multiple accounts', () => {
 
     assert.equal(getSelectedUsers().length, 2);
     assert.equal(getSelectedUsers('工作账号')[0].auth, 'token-2');
+    assert.equal(
+      getSelectedUsers('工作账号')[0].bjt_pwd,
+      'not-a-real-password',
+    );
     assert.equal(resolveUser([first, second], '2'), second);
     assert.equal(resolveUser([first, second], '13800000001'), first);
     assert.throws(
@@ -137,6 +141,7 @@ test('supports selecting, updating, and removing multiple accounts', () => {
       /token-1|token-2|token-new|not-a-real-password/,
     );
     assert.match(storedConfig, /auth_encrypted/);
+    assert.match(storedConfig, /bjt_pwd_encrypted/);
     assert.equal(statSync(join(configDir, 'credentials.key')).mode & 0o777, 0o600);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
@@ -162,10 +167,11 @@ test('migrates plaintext tokens and stored passwords without losing access', () 
   try {
     const [user] = loadConfig().users;
     assert.equal(user.auth, 'legacy-token');
-    assert.equal(Object.hasOwn(user, 'bjt_pwd'), false);
+    assert.equal(user.bjt_pwd, 'legacy-password');
     const storedConfig = readFileSync(configPath, 'utf8');
     assert.doesNotMatch(storedConfig, /legacy-token|legacy-password/);
     assert.match(storedConfig, /auth_encrypted/);
+    assert.match(storedConfig, /bjt_pwd_encrypted/);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

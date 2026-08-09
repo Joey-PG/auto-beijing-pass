@@ -3,8 +3,8 @@ import {
   getMutationUser,
   updateUser,
 } from '../lib/config-manager.js';
-import { ApiManager } from '../lib/api-manager.js';
-import { API_BASE_URL, COMMAND_NAME } from '../constants.js';
+import { COMMAND_NAME } from '../constants.js';
+import { createAuthenticatedApi } from '../lib/authenticated-api.js';
 import { parseVehicle, vehicleToApiDict } from '../lib/models.js';
 import { output, success, error } from '../output.js';
 import { VEHICLE_TYPE_MAP, LICENSE_PLATE_TYPE_MAP } from '../constants.js';
@@ -15,8 +15,7 @@ async function getApi(account) {
   if (!user) {
     throw new Error(`尚未初始化，请先运行 ${COMMAND_NAME} init`);
   }
-  const baseUrl = API_BASE_URL;
-  const api = new ApiManager(baseUrl, user.auth);
+  const api = createAuthenticatedApi(user);
   return { api, user };
 }
 

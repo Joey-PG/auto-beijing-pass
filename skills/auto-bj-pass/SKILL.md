@@ -38,7 +38,7 @@ auto-bj-pass init --name <name> --phone <phone> --password-stdin < /安全路径
 
 可重复执行 `init` 添加多个账号；相同手机号需加 `-f` 更新。更新时未显式传入的进京证类型、通知渠道和其他业务配置会保持不变。
 
-`init` 会自动完成新版北京通 OAuth 和交管局业务 token 交换。若后续状态查询提示 token 失效，使用相同手机号重新执行 `init -f`。
+`init` 会自动完成新版北京通 OAuth 和交管局业务 token 交换，并加密保存密码与 token。后续 token 失效时会自动重新登录；若密码已修改或旧账号尚未保存加密密码，使用相同手机号重新执行 `init -f`。
 
 ## 命令参考
 

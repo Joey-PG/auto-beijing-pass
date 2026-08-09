@@ -3,8 +3,8 @@ import {
   getSystemDefaultTripProfile,
   getSelectedUsers,
 } from '../lib/config-manager.js';
-import { ApiManager } from '../lib/api-manager.js';
-import { API_BASE_URL, COMMAND_NAME } from '../constants.js';
+import { COMMAND_NAME } from '../constants.js';
+import { createAuthenticatedApi } from '../lib/authenticated-api.js';
 import {
   parseStateData, getLatestRecord, calcRemainingDays,
   parseVehicle, parseUserInfo, buildApplyPayload,
@@ -208,7 +208,7 @@ async function runForUser(
 ) {
   const label = getAccountLabel(user);
   const prefix = includeLabel ? `[${label}] ` : '';
-  const api = new ApiManager(API_BASE_URL, user.auth);
+  const api = createAuthenticatedApi(user);
   const applyResult = await applyPermit(
     api,
     user,

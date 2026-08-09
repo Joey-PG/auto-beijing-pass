@@ -149,7 +149,7 @@ auto-bj-pass web --host 0.0.0.0 --port 3751
 ```
 
 生产环境应使用 Nginx/Caddy 配置 HTTPS，并通过安全组限制访问来源。北京通密码
-仅在新增或重新登录时通过 HTTPS 提交且不会落盘，业务 token 加密保存且不会返回浏览器，
+仅在新增或重新登录时通过 HTTPS 提交；密码和业务 token 均加密落盘且不会返回浏览器，
 普通日志继续保持敏感信息脱敏。受限权限的结构化审计日志会保留业务账号和车牌，
 用于管理员追溯操作；密码、token、通知地址和出行地址仍不会写入审计日志。
 Web 登录会话以服务端文件持久化，因此服务重启或代码部署不会主动退出登录；文件
@@ -404,13 +404,15 @@ auto-bj-pass cron setup
 ## 登录与凭证
 
 `init` 和 Web 后台的“添加账号/重新登录”都会完成北京通 OAuth 登录，并将 SSO
-中间 token 交换为交管局业务接口接受的 `accessToken`。账号密码不会保存；token 使用
+中间 token 交换为交管局业务接口接受的 `accessToken`。账号密码和 token 均使用
 AES-256-GCM 加密后写入当前执行用户的 `~/.auto-bj-pass/config.json`。本地密钥默认保存
 在同目录的 `credentials.key`，两个文件权限均为 `0600`；生产环境也可通过
 `AUTO_BJ_PASS_CREDENTIAL_KEY` 注入独立的 32 字节密钥。已有账号
 重新登录时，原业务配置保持不变；登录失败不会覆盖现有可用凭据。
 
-登录和状态查询使用当前 `:1443` 业务接口。现阶段已保存 token 失效后不会自动重新登录；遇到登录失效时，需要使用相同手机号重新执行：
+登录和状态查询使用当前 `:1443` 业务接口。检测到 token 过期或登录失效时，系统会按
+账号加锁，使用加密保存的密码重新登录、更新 token，并将原请求重试一次。自动登录失败
+会写入审计日志并尝试发送通知。已经运行过“不保存密码”版本的账号需要先重新登录一次：
 
 ```bash
 auto-bj-pass init --phone <phone> --password-stdin --force < /安全路径/password
@@ -447,8 +449,8 @@ auto-bj-pass init --phone <phone> --password-stdin --force < /安全路径/passw
 
 配置存储在 `~/.auto-bj-pass/config.json`，由 `auto-bj-pass init` 或 Web 后台账号管理
 自动创建，无需手动编辑。账号保存在 `users` 数组中，配置文件采用原子替换方式写入，
-权限会自动设置为 `0600`。读取旧版明文配置时会自动删除已保存密码并将业务 token
-迁移为加密格式；迁移后必须同时备份 `config.json` 和 `credentials.key` 才能恢复账号。
+权限会自动设置为 `0600`。读取旧版明文配置时会自动将密码和业务 token 迁移为加密
+格式；迁移后必须同时备份 `config.json` 和 `credentials.key` 才能恢复账号。
 
 单账号用户原有命令保持兼容。配置多个账号后：
 

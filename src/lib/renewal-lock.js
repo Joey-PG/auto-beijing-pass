@@ -14,6 +14,14 @@ import { getConfigDir } from './config-manager.js';
 
 const DEFAULT_STALE_MS = 30 * 60 * 1000;
 
+export class AccountLockError extends Error {
+  constructor(message = '账号操作正在执行，请稍后重试') {
+    super(message);
+    this.name = 'AccountLockError';
+    this.code = 'ACCOUNT_LOCKED';
+  }
+}
+
 export class RenewalLockError extends Error {
   constructor(message = '该账号已有续签任务正在执行，请稍后重试') {
     super(message);
@@ -22,10 +30,10 @@ export class RenewalLockError extends Error {
   }
 }
 
-function getAccountLockPath(user) {
+function getAccountLockPath(user, purpose) {
   const identity = String(user?.bjt_phone || user?.name || user?.auth || 'unknown');
   const key = createHash('sha256').update(identity).digest('hex').slice(0, 24);
-  return join(getConfigDir(), 'locks', `renewal-${key}.lock`);
+  return join(getConfigDir(), 'locks', `${purpose}-${key}.lock`);
 }
 
 function isProcessAlive(pid) {
@@ -63,11 +71,19 @@ function removeStaleLock(lockPath, staleMs, now) {
   return false;
 }
 
-export function acquireRenewalLock(
+export function acquireAccountLock(
   user,
-  { now = Date.now(), staleMs = DEFAULT_STALE_MS } = {},
+  purpose,
+  {
+    lockMessage = '账号操作正在执行，请稍后重试',
+    now = Date.now(),
+    staleMs = DEFAULT_STALE_MS,
+  } = {},
 ) {
-  const lockPath = getAccountLockPath(user);
+  if (!/^[a-z][a-z0-9-]*$/.test(purpose)) {
+    throw new Error('账号锁用途格式无效');
+  }
+  const lockPath = getAccountLockPath(user, purpose);
   mkdirSync(join(getConfigDir(), 'locks'), { recursive: true, mode: 0o700 });
   const token = randomBytes(24).toString('hex');
   const owner = {
@@ -88,7 +104,7 @@ export function acquireRenewalLock(
       if (descriptor !== undefined) closeSync(descriptor);
       if (error?.code !== 'EEXIST') throw error;
       if (attempt === 0 && removeStaleLock(lockPath, staleMs, now)) continue;
-      throw new RenewalLockError();
+      throw new AccountLockError(lockMessage);
     }
   }
 
@@ -105,6 +121,54 @@ export function acquireRenewalLock(
       if (error?.code !== 'ENOENT') throw error;
     }
   };
+}
+
+export function acquireRenewalLock(user, options = {}) {
+  try {
+    return acquireAccountLock(user, 'renewal', {
+      ...options,
+      lockMessage: '该账号已有续签任务正在执行，请稍后重试',
+    });
+  } catch (error) {
+    if (error instanceof AccountLockError) {
+      throw new RenewalLockError(error.message);
+    }
+    throw error;
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function withAccountLockWait(
+  user,
+  purpose,
+  operation,
+  {
+    pollMs = 200,
+    waitMs = 90_000,
+    ...lockOptions
+  } = {},
+) {
+  const deadline = Date.now() + waitMs;
+  while (true) {
+    let release;
+    try {
+      release = acquireAccountLock(user, purpose, lockOptions);
+    } catch (error) {
+      if (!(error instanceof AccountLockError) || Date.now() >= deadline) {
+        throw error;
+      }
+      await delay(pollMs);
+      continue;
+    }
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
+  }
 }
 
 export async function withRenewalLock(user, operation, options) {

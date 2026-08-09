@@ -135,6 +135,7 @@ export function registerInitCommand(program) {
           name: accountName,
           auth: token,
           bjt_phone: phone,
+          bjt_pwd: password,
           entry_type: entryType,
           notify_urls: notifyUrls,
           preferred_vehicle: existingUser?.preferred_vehicle || '',

@@ -111,7 +111,7 @@ function sanitizeAuditValue(
 ) {
   if (value === null || value === undefined) return value;
   if (
-    /^(auth|token|password|bjt_pwd|secret|notify_urls?|url|payload|address|location|longitude|latitude)$/i.test(
+    /^(auth|token|password|bjt_pwd)(?:_encrypted)?$|^(secret|notify_urls?|url|payload|address|location|longitude|latitude)$/i.test(
       key,
     )
   ) {
