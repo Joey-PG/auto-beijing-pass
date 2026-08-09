@@ -51,6 +51,7 @@ export interface AMapNamespace {
     container: HTMLElement,
     options: { center: [number, number]; resizeEnable: boolean; zoom: number },
   ) => AMapMap;
+  plugin: (plugin: string | string[], callback: () => void) => void;
 }
 
 declare global {
@@ -76,7 +77,20 @@ export function loadAMap(config: MapConfig): Promise<AMapNamespace> {
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.key)}&plugin=AMap.Geocoder`;
     script.onload = () => {
       if (window.AMap) {
-        resolve(window.AMap);
+        const AMap = window.AMap;
+        const timeout = window.setTimeout(() => {
+          loaderPromise = null;
+          reject(new Error('高德地图服务加载超时，请稍后重试'));
+        }, 10_000);
+        AMap.plugin('AMap.Geocoder', () => {
+          window.clearTimeout(timeout);
+          if (typeof AMap.Geocoder === 'function') {
+            resolve(AMap);
+          } else {
+            loaderPromise = null;
+            reject(new Error('高德地址解析服务加载失败'));
+          }
+        });
       } else {
         loaderPromise = null;
         reject(new Error('高德地图加载失败'));
