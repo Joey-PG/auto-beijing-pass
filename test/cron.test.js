@@ -280,40 +280,6 @@ test('cron tick lock prevents concurrent scheduler processes', () => {
   }
 });
 
-test('cron setup refuses enabled accounts without trip profiles', async () => {
-  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-trip-'));
-  const originalLog = console.log;
-  const originalError = console.error;
-  const messages = [];
-  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
-
-  try {
-    saveConfig({
-      users: [{
-        name: '待配置账号',
-        bjt_phone: '13800000001',
-        auth: 'token',
-        auto_renew: true,
-      }],
-    });
-    console.log = (message) => messages.push(String(message));
-    console.error = (message) => messages.push(String(message));
-
-    const program = new Command();
-    registerCronCommand(program);
-    await program.parseAsync(['node', 'test', 'cron', 'setup']);
-
-    assert.equal(process.exitCode, 1);
-    assert.match(messages.join('\n'), /尚未配置完整出行信息：待配置账号/);
-  } finally {
-    console.log = originalLog;
-    console.error = originalError;
-    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
-    process.exitCode = undefined;
-    rmSync(configDir, { recursive: true, force: true });
-  }
-});
-
 test('failed cron execution stays retryable instead of being marked completed', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-fail-'));
   const fakeBin = join(configDir, 'fake-auto-bj-pass');

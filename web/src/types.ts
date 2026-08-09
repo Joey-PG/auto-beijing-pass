@@ -68,8 +68,8 @@ export interface TripProfileInput {
   purposeName: string;
 }
 
-export type TripProfileMode = 'default' | 'custom' | 'unconfigured';
-export type SelectableTripProfileMode = Exclude<TripProfileMode, 'unconfigured'>;
+export type TripProfileMode = 'default' | 'custom';
+export type SelectableTripProfileMode = TripProfileMode;
 
 export interface TripProfileUpdateInput extends Partial<TripProfileInput> {
   tripProfileMode: SelectableTripProfileMode;

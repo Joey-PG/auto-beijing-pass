@@ -206,9 +206,7 @@ export function AccountPage({
       key: 'tripProfile',
       render: (_, account) => account.tripProfileMode === 'default'
         ? <Tag color="blue">系统默认</Tag>
-        : account.tripProfileConfigured
-          ? <Tag color="success">自定义</Tag>
-          : <Tag color="warning">待配置</Tag>,
+        : <Tag color="success">自定义</Tag>,
       title: '出行配置',
       width: 110,
     },

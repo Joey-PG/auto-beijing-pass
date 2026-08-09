@@ -152,14 +152,13 @@ export function isCompleteTripProfile(profile) {
 export function getTripProfileMode(user) {
   if (user?.trip_profile_mode === 'default') return 'default';
   if (isCompleteTripProfile(user?.trip_profile)) return 'custom';
-  return 'unconfigured';
+  return 'default';
 }
 
 export function resolveUserTripProfile(user) {
   const mode = getTripProfileMode(user);
   if (mode === 'default') return DEFAULT_TRIP_PROFILE;
-  if (mode === 'custom') return user.trip_profile;
-  return null;
+  return user.trip_profile;
 }
 
 export function isUserTripProfileConfigured(user) {

@@ -463,7 +463,7 @@ test('status always displays each account auto-renew state', async () => {
     );
     assert.match(
       rendered,
-      /\[关闭账号\][\s\S]*出行配置: 未配置（自动续签不会执行）/,
+      /\[关闭账号\][\s\S]*在京地址: 王辛庄镇放光村村委会 \(117\.082463, 40\.180804\)/,
     );
   } finally {
     globalThis.fetch = originalFetch;

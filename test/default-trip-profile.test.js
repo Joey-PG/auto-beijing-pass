@@ -31,16 +31,25 @@ test('creates and requires a complete account trip profile', () => {
   assert.throws(() => requireTripProfile(null), /未配置完整的出行信息/);
 });
 
-test('resolves the explicit system default without changing legacy accounts', () => {
+test('uses the system default for explicit and legacy accounts', () => {
   const defaultUser = { trip_profile_mode: 'default' };
   const legacyUser = {};
+  const incompleteCustomUser = {
+    trip_profile_mode: 'custom',
+    trip_profile: { destination: {} },
+  };
 
   assert.equal(getTripProfileMode(defaultUser), 'default');
   assert.equal(resolveUserTripProfile(defaultUser), DEFAULT_TRIP_PROFILE);
   assert.equal(isUserTripProfileConfigured(defaultUser), true);
-  assert.equal(getTripProfileMode(legacyUser), 'unconfigured');
-  assert.equal(resolveUserTripProfile(legacyUser), null);
-  assert.equal(isUserTripProfileConfigured(legacyUser), false);
+  assert.equal(getTripProfileMode(legacyUser), 'default');
+  assert.equal(resolveUserTripProfile(legacyUser), DEFAULT_TRIP_PROFILE);
+  assert.equal(isUserTripProfileConfigured(legacyUser), true);
+  assert.equal(getTripProfileMode(incompleteCustomUser), 'default');
+  assert.equal(
+    resolveUserTripProfile(incompleteCustomUser),
+    DEFAULT_TRIP_PROFILE,
+  );
   assert.equal(DEFAULT_TRIP_PROFILE.destination.area, '平谷区');
 });
 
