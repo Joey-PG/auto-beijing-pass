@@ -290,7 +290,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
 
   const handleUpdateAccount = async (
     accountId: string,
-    values: Record<string, boolean | string>,
+    values: AccountUpdateInput | Record<string, boolean | string>,
     successMessage: string,
   ) => {
     await handleMutation(

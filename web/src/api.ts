@@ -1,5 +1,6 @@
 import type {
   AccountCreateInput,
+  AccountUpdateInput,
   ApiResponse,
   AuditPageData,
   AuditQuery,
@@ -90,7 +91,7 @@ export const dashboardApi = {
     ),
   updateAccount: (
     accountId: string,
-    body: Record<string, boolean | string>,
+    body: AccountUpdateInput | Record<string, boolean | string>,
   ) =>
     request<{ updated: boolean }>(`/api/accounts/${encodeURIComponent(accountId)}`, {
       body: JSON.stringify(body),
