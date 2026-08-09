@@ -11,7 +11,6 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Switch,
@@ -48,6 +47,7 @@ export function AccountPage({
   const [editForm] = Form.useForm<AccountUpdateInput>();
   const [loginForm] = Form.useForm<{ password: string }>();
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [loginAccount, setLoginAccount] = useState<Account | null>(null);
 
@@ -112,18 +112,16 @@ export function AccountPage({
           >
             重新登录
           </Button>
-          <Popconfirm
-            description="删除后，该账号及关联车辆将从本管理后台移除，但不会删除北京交管平台中的车辆和进京证记录。重新添加账号后，车辆会再次显示。"
+          <Button
+            danger
             disabled={loading}
-            okButtonProps={{ danger: true, loading }}
-            okText="确认删除"
-            onConfirm={() => onDelete(account)}
-            title={`删除账号 ${account.name}？`}
+            icon={<DeleteOutlined />}
+            onClick={() => setDeleteAccount(account)}
+            size="small"
+            type="text"
           >
-            <Button danger icon={<DeleteOutlined />} size="small" type="text">
-              删除
-            </Button>
-          </Popconfirm>
+            删除
+          </Button>
         </Space>
       ),
       title: '操作',
@@ -158,6 +156,57 @@ export function AccountPage({
           scroll={{ x: 1050 }}
         />
       </Card>
+
+      <Modal
+        cancelButtonProps={{ disabled: loading }}
+        cancelText="取消"
+        centered
+        className="account-delete-modal"
+        closable={!loading}
+        destroyOnClose
+        keyboard={!loading}
+        maskClosable={!loading}
+        okButtonProps={{ danger: true, loading }}
+        okText="确认删除账号"
+        onCancel={() => setDeleteAccount(null)}
+        onOk={async () => {
+          if (!deleteAccount) return;
+          await onDelete(deleteAccount);
+          setDeleteAccount(null);
+        }}
+        open={Boolean(deleteAccount)}
+        title={(
+          <Space size={10}>
+            <DeleteOutlined className="account-delete-modal-icon" />
+            <span>确认删除账号？</span>
+          </Space>
+        )}
+        width={520}
+      >
+        <Alert
+          description="删除后，该账号的自动续签将立即停止。"
+          message="这是一个重要操作，请确认账号信息"
+          showIcon
+          type="error"
+        />
+        <div className="account-delete-summary">
+          <div>
+            <span>账号名称</span>
+            <strong>{deleteAccount?.name || '—'}</strong>
+          </div>
+          <div>
+            <span>手机号</span>
+            <strong>{deleteAccount?.phone || '—'}</strong>
+          </div>
+          <div>
+            <span>关联车辆</span>
+            <strong>{deleteAccount?.vehicles.length || 0} 辆</strong>
+          </div>
+        </div>
+        <p className="account-delete-note">
+          账号及关联车辆会从本管理后台移除，但不会删除北京交管平台中的车辆和进京证记录。重新添加账号后，车辆会再次显示。
+        </p>
+      </Modal>
 
       <Modal
         centered

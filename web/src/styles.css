@@ -297,6 +297,16 @@ button, input, select { font: inherit; }
 .drawer-danger-zone { display: flex; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #edf0f5; }
 
 .modal-description { margin: 0 0 18px; color: #667085; font-size: 13px; }
+.account-delete-modal-icon { color: #d92d20; }
+.account-delete-modal .ant-alert { margin: 4px 0 18px; }
+.account-delete-summary { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 16px; border: 1px solid #eaecf0; border-radius: 8px; background: #fafafa; }
+.account-delete-summary > div { min-width: 0; padding: 14px 16px; border-right: 1px solid #eaecf0; }
+.account-delete-summary > div:last-child { border-right: 0; }
+.account-delete-summary span,
+.account-delete-summary strong { display: block; }
+.account-delete-summary span { margin-bottom: 5px; color: #98a2b3; font-size: 11px; }
+.account-delete-summary strong { overflow: hidden; color: #344054; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.account-delete-note { margin: 0; color: #667085; font-size: 13px; line-height: 1.65; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .vehicle-form .ant-form-item { margin-bottom: 18px; }
 .vehicle-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }
@@ -355,6 +365,9 @@ button, input, select { font: inherit; }
   .system-card-grid { grid-template-columns: 1fr; }
   .system-card-grid .ant-card:last-child { grid-column: auto; }
   .form-grid { grid-template-columns: 1fr; }
+  .account-delete-summary { grid-template-columns: 1fr; }
+  .account-delete-summary > div { border-right: 0; border-bottom: 1px solid #eaecf0; }
+  .account-delete-summary > div:last-child { border-bottom: 0; }
   .vehicle-detail-drawer .ant-drawer-content-wrapper { width: 100% !important; }
 }
 
