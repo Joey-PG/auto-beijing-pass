@@ -404,11 +404,11 @@ export function AccountPage({
           {addStep === 'account' ? (
             <>
               <Form.Item
-                extra="留空时使用北京通手机号作为账号名称。"
+                extra="填写账号使用人的姓名，留空时使用北京通手机号。"
                 label="账号名称（选填）"
                 name="name"
               >
-                <Input maxLength={40} placeholder="例如：家庭账号" />
+                <Input maxLength={40} placeholder="例如：张三" />
               </Form.Item>
               <Form.Item
                 label="北京通手机号"
