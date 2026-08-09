@@ -113,7 +113,7 @@ export function AccountPage({
             重新登录
           </Button>
           <Popconfirm
-            description="仅删除本机管理配置，不会删除北京交管平台中的车辆。"
+            description="删除后，该账号及关联车辆将从本管理后台移除，但不会删除北京交管平台中的车辆和进京证记录。重新添加账号后，车辆会再次显示。"
             disabled={loading}
             okButtonProps={{ danger: true, loading }}
             okText="确认删除"
