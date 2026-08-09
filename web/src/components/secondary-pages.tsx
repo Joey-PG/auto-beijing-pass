@@ -147,19 +147,19 @@ interface AuditPageProps {
 }
 
 export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) {
-  const [account, setAccount] = useState('');
-  const [event, setEvent] = useState('');
+  const [account, setAccount] = useState<string>();
+  const [event, setEvent] = useState<string>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [since, setSince] = useState('30d');
-  const [status, setStatus] = useState<AuditOutcome | ''>('');
+  const [since, setSince] = useState<string | undefined>('30d');
+  const [status, setStatus] = useState<AuditOutcome>();
 
   const query: AuditQuery = {
     account: account || undefined,
     event: event || undefined,
     page,
     pageSize,
-    since,
+    since: since || '30d',
     status: status || undefined,
   };
 
@@ -246,17 +246,20 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
       <Card styles={{ body: { padding: 0 } }}>
         <div className="table-toolbar">
           <Select
+            allowClear
             className="audit-account-filter"
-            onChange={(value) => resetPage(() => setAccount(value))}
+            onChange={(value) => resetPage(() => setAccount(value || undefined))}
             options={[
               { label: '全部账号', value: '' },
               ...accounts.map((item) => ({ label: item.name, value: item.name })),
             ]}
+            placeholder="全部账号"
             popupMatchSelectWidth={220}
             value={account}
           />
           <Select
-            onChange={(value) => resetPage(() => setStatus(value))}
+            allowClear
+            onChange={(value) => resetPage(() => setStatus(value || undefined))}
             options={[
               { label: '全部结果', value: '' },
               { label: '成功', value: 'success' },
@@ -265,11 +268,13 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
               { label: '已跳过', value: 'skipped' },
               { label: '进行中', value: 'in_progress' },
             ]}
+            placeholder="全部结果"
             value={status}
           />
           <Select
+            allowClear
             className="audit-event-filter"
-            onChange={(value) => resetPage(() => setEvent(value))}
+            onChange={(value) => resetPage(() => setEvent(value || undefined))}
             options={[
               { label: '全部事件', value: '' },
               ...Object.entries(eventLabels).map(([value, label]) => ({
@@ -278,17 +283,20 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
               })),
             ]}
             optionFilterProp="label"
+            placeholder="全部事件"
             popupMatchSelectWidth={280}
             showSearch
             value={event}
           />
           <Select
-            onChange={(value) => resetPage(() => setSince(value))}
+            allowClear
+            onChange={(value) => resetPage(() => setSince(value || undefined))}
             options={[
               { label: '最近 7 天', value: '7d' },
               { label: '最近 30 天', value: '30d' },
               { label: '最近 90 天', value: '90d' },
             ]}
+            placeholder="最近 30 天"
             value={since}
           />
         </div>

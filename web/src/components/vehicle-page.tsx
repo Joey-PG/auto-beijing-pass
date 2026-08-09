@@ -43,9 +43,9 @@ export function VehiclePage({
   onToggleAutoRenew,
   selectedVehicleId,
 }: VehiclePageProps) {
-  const [accountFilter, setAccountFilter] = useState('');
+  const [accountFilter, setAccountFilter] = useState<string>();
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>();
   const vehicles = useMemo(
     () => dashboard.accounts.flatMap((account) => account.vehicles),
     [dashboard.accounts],
@@ -230,7 +230,8 @@ export function VehiclePage({
             value={query}
           />
           <Select
-            onChange={setAccountFilter}
+            allowClear
+            onChange={(value) => setAccountFilter(value || undefined)}
             options={[
               { label: '全部账号', value: '' },
               ...dashboard.accounts.map((account) => ({
@@ -238,23 +239,26 @@ export function VehiclePage({
                 value: account.id,
               })),
             ]}
+            placeholder="全部账号"
             value={accountFilter}
           />
           <Select
-            onChange={setStatusFilter}
+            allowClear
+            onChange={(value) => setStatusFilter(value || undefined)}
             options={[
               { label: '全部状态', value: '' },
               { label: '证件有效', value: 'active' },
               { label: '待生效 / 审核中', value: 'pending' },
               { label: '需要处理', value: 'attention' },
             ]}
+            placeholder="全部状态"
             value={statusFilter}
           />
           <Button
             onClick={() => {
               setQuery('');
-              setAccountFilter('');
-              setStatusFilter('');
+              setAccountFilter(undefined);
+              setStatusFilter(undefined);
             }}
           >
             重置
