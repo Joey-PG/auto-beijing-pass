@@ -20,10 +20,15 @@ export const BEIJING_DISTRICTS: TripOption[] = [
   { code: '014', name: '平谷区' },
   { code: '015', name: '密云区' },
   { code: '016', name: '延庆区' },
+  { code: '017', name: '开发区' },
 ];
 
 export const TRIP_PURPOSES: TripOption[] = [
   { code: '01', name: '自驾旅游' },
+  { code: '02', name: '看病就医' },
+  { code: '03', name: '探亲访友' },
+  { code: '04', name: '学习培训' },
+  { code: '05', name: '公务差旅' },
   { code: '06', name: '其它' },
 ];
 
