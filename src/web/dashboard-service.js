@@ -38,6 +38,7 @@ import {
   isUserTripProfileConfigured,
   resolveUserTripProfile,
 } from '../lib/trip-profile.js';
+import { RenewalLockError, withRenewalLock } from '../lib/renewal-lock.js';
 
 const ENTRY_TYPES = new Set(['六环内', '六环外']);
 const PLATE_TYPES = new Set(['01', '02', '06', '13', '51', '52']);
@@ -767,13 +768,16 @@ export async function runDashboardRenewal(
     const tripProfile = input.tripProfile
       ? createTripProfile(input.tripProfile)
       : null;
-    const result = await applyPermit(
+    const operation = () => applyPermit(
       api,
       user,
       plate,
       input.entryType || undefined,
       { dryRun, tripProfile },
     );
+    const result = dryRun
+      ? await operation()
+      : await withRenewalLock(user, operation);
     writeAuditEvent(
       result.applied
         ? 'renewal_submitted'
@@ -787,6 +791,11 @@ export async function runDashboardRenewal(
         reason: result.reason,
         plate,
         apply_date: result.applyDate || null,
+        confirmation: result.applied
+          ? result.confirmed
+            ? 'confirmed'
+            : 'pending'
+          : null,
         source: 'web',
       },
     );
@@ -796,6 +805,7 @@ export async function runDashboardRenewal(
       reason: result.reason,
       message: result.message,
       applyDate: result.applyDate || null,
+      confirmed: result.confirmed === true,
     };
   } catch (error) {
     if (!error?.auditHandled) {
@@ -805,6 +815,9 @@ export async function runDashboardRenewal(
         plate: plate || null,
         user,
       });
+    }
+    if (error instanceof RenewalLockError) {
+      throw new WebServiceError(error.message, 409);
     }
     throw error;
   }

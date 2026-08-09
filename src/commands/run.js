@@ -17,6 +17,7 @@ import {
 } from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
 import { getMembershipInfo } from '../lib/membership.js';
+import { withRenewalLock } from '../lib/renewal-lock.js';
 import { output, success, error } from '../output.js';
 
 const ACTIVE_STATUSES = ['审核通过(生效中)', '审核中', '审核通过(待生效)'];
@@ -151,12 +152,41 @@ export async function applyPermit(
     };
   }
   await api.submitApply(payload);
+  let confirmedVehicle = null;
+  let confirmedRecord = null;
+  let confirmationError = null;
+  try {
+    const { state: confirmationState } = await api.loadHomePageData();
+    confirmedVehicle = (parseStateData(confirmationState).vehicles || [])
+      .find((candidate) => candidate.licenseNumber === vehicle.licenseNumber) || null;
+    confirmedRecord = getLatestRecord(confirmedVehicle);
+  } catch (error) {
+    confirmationError = error instanceof Error ? error.message : String(error);
+  }
+  const previousRecordKey = record
+    ? [record.applyId, record.applyTime, record.validFrom, record.statusCode].join('|')
+    : '';
+  const confirmedRecordKey = confirmedRecord
+    ? [
+        confirmedRecord.applyId,
+        confirmedRecord.applyTime,
+        confirmedRecord.validFrom,
+        confirmedRecord.statusCode,
+      ].join('|')
+    : '';
+  const confirmed = Boolean(
+    confirmedRecord && confirmedRecordKey !== previousRecordKey,
+  );
   return {
     applied: true,
+    confirmed,
+    confirmationError,
     reason: 'submitted',
-    message: `已提交续签申请 - ${vehicle.licenseNumber} 申请日期: ${applyDate} 类型: ${entryType}`,
-    record,
-    vehicle,
+    message: confirmed
+      ? `续签申请已提交并查询到最新状态 - ${vehicle.licenseNumber}`
+      : `续签申请已提交，交管状态同步中 - ${vehicle.licenseNumber}`,
+    record: confirmedRecord || record,
+    vehicle: confirmedVehicle || vehicle,
     applyDate,
   };
 }
@@ -204,7 +234,7 @@ async function runForUser(
     );
     return;
   }
-  const msg = applyResult.applied ? '续签成功' : '无需续签';
+  const msg = applyResult.applied ? '申请已提交' : '无需续签';
   const record = applyResult.record;
   const vehicle = applyResult.vehicle;
   writeAuditEvent(
@@ -219,6 +249,11 @@ async function runForUser(
       remaining_days: record ? calcRemainingDays(record) : null,
       remaining_times: vehicle?.remainingTimes ?? null,
       apply_date: applyResult.applyDate || null,
+      confirmation: applyResult.applied
+        ? applyResult.confirmed
+          ? 'confirmed'
+          : 'pending'
+        : null,
     },
   );
 
@@ -353,11 +388,16 @@ export async function runCommand({
         result: 'started',
         dry_run: dryRun,
       });
-      await runForUser(
+      const operation = () => runForUser(
         user,
         { plate, entryType, noNotify, dryRun },
         includeLabel,
       );
+      if (dryRun) {
+        await operation();
+      } else {
+        await withRenewalLock(user, operation);
+      }
     } catch (err) {
       writeAuditEvent(
         'renewal_failed',

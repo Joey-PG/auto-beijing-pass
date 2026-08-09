@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { loadConfig, saveConfig } from '../src/lib/config-manager.js';
+import { acquireRenewalLock } from '../src/lib/renewal-lock.js';
 import {
   readAuditEvents,
   writeAuditEvent,
@@ -345,6 +346,32 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
     assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
     assert.match(auditText, /zhaochunxu/);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard rejects a concurrent renewal for the same account', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-lock-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const user = {
+    name: '互斥账号',
+    auth: 'test-token',
+    bjt_phone: '13800000008',
+    membership_permanent: true,
+  };
+  try {
+    saveConfig({ users: [user] });
+    const release = acquireRenewalLock(user);
+    try {
+      await assert.rejects(
+        runDashboardRenewal('1', { licenseNumber: '京A12345' }),
+        (error) => error?.statusCode === 409 && /正在执行/.test(error.message),
+      );
+    } finally {
+      release();
+    }
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

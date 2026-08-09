@@ -71,6 +71,7 @@ test('refuses to build a production payload without a trip profile', () => {
 
 test('manual renewal accepts a one-time trip profile without saving it', async () => {
   let submittedPayload = null;
+  let submitted = false;
   const tripProfile = createTripProfile({
     inBeijingAddress: '本次在京地址',
     inBeijingLongitude: '116.40',
@@ -92,7 +93,12 @@ test('manual renewal accepts a one-time trip profile without saving it', async (
           cllx: '01',
           sycs: 8,
           syts: 20,
-          bzxx: [],
+          bzxx: submitted ? [{
+            applyId: 'new-application',
+            blzt: '0',
+            blztmc: '审核中',
+            sqsj: '2026-08-09 12:00:00',
+          }] : [],
         }],
       },
     }),
@@ -108,6 +114,7 @@ test('manual renewal accepts a one-time trip profile without saving it', async (
     }),
     submitApply: async (payload) => {
       submittedPayload = payload;
+      submitted = true;
     },
   };
 
@@ -120,6 +127,8 @@ test('manual renewal accepts a one-time trip profile without saving it', async (
   );
 
   assert.equal(result.applied, true);
+  assert.equal(result.confirmed, true);
+  assert.match(result.message, /已提交并查询到最新状态/);
   assert.equal(submittedPayload.zjxxdz, '本次在京地址');
   assert.equal(submittedPayload.xxdz, '本次进京目的地');
 });
