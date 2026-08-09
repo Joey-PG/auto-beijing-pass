@@ -28,6 +28,7 @@ const USER_AGENT =
 
 const MAX_ATTEMPTS = 3;
 const REQUEST_TIMEOUT_MS = 20_000;
+export const MAX_CAPTCHA_BYTES = 2 * 1024 * 1024;
 
 async function fetchWithTimeout(fetchImpl, url, options = {}) {
   const controller = new AbortController();
@@ -37,6 +38,48 @@ async function fetchWithTimeout(fetchImpl, url, options = {}) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function readLimitedResponseBody(
+  response,
+  maxBytes = MAX_CAPTCHA_BYTES,
+) {
+  const contentLength = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(`Captcha response exceeds ${maxBytes} bytes`);
+  }
+  const contentType = String(response.headers?.get?.('content-type') || '')
+    .toLowerCase();
+  if (contentType && !contentType.startsWith('image/')) {
+    throw new Error(`Captcha response is not an image: ${contentType}`);
+  }
+
+  if (!response.body?.getReader) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) {
+      throw new Error(`Captcha response exceeds ${maxBytes} bytes`);
+    }
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        throw new Error(`Captcha response exceeds ${maxBytes} bytes`);
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, size);
 }
 
 /**
@@ -202,7 +245,7 @@ async function attemptLogin(phone, password) {
     throw new Error(`Captcha request failed: HTTP ${captchaResp.status}`);
   }
   jar.addFromResponse(captchaResp);
-  const imageBuffer = Buffer.from(await captchaResp.arrayBuffer());
+  const imageBuffer = await readLimitedResponseBody(captchaResp);
   const captcha = await recognizeCaptcha(imageBuffer);
 
   // Step 3: Encrypt credentials

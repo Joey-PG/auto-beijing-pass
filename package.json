@@ -7,7 +7,7 @@
     "auto-bj-pass": "bin/auto-bj-pass.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
     "test": "node --test",
@@ -36,8 +36,8 @@
     "@inquirer/prompts": "^8.3.2",
     "antd": "5.29.3",
     "commander": "^14.0.3",
-    "jimp": "^1.6.0",
-    "onnxruntime-node": "^1.24.3",
+    "jimp": "^1.6.1",
+    "onnxruntime-node": "^1.27.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -45,8 +45,11 @@
     "@types/react": "18.3.28",
     "@types/react-dom": "18.3.7",
     "@types/node": "22.19.15",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "6.0.5",
     "typescript": "5.9.3",
-    "vite": "5.4.21"
+    "vite": "8.2.1"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0"
   }
 }

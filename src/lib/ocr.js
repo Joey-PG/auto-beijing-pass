@@ -12,6 +12,10 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODELS_DIR = join(__dirname, '..', '..', 'models');
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 4096;
+const MAX_IMAGE_PIXELS = 4 * 1024 * 1024;
+const MAX_TARGET_WIDTH = 512;
 
 let _session = null;
 let _charset = null;
@@ -43,16 +47,37 @@ function getCharset() {
  * @returns {Promise<string>} Recognized digits (0-9 only)
  */
 export async function recognizeCaptcha(imageBuffer) {
-  const session = await getSession();
-  const charset = getCharset();
+  if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+    throw new Error('验证码图片为空或格式无效');
+  }
+  if (imageBuffer.length > MAX_IMAGE_BYTES) {
+    throw new Error(`验证码图片超过 ${MAX_IMAGE_BYTES} 字节限制`);
+  }
 
   // 1. Decode image with jimp
   const image = await Jimp.read(imageBuffer);
+  if (
+    !Number.isInteger(image.width) ||
+    !Number.isInteger(image.height) ||
+    image.width <= 0 ||
+    image.height <= 0 ||
+    image.width > MAX_IMAGE_DIMENSION ||
+    image.height > MAX_IMAGE_DIMENSION ||
+    image.width * image.height > MAX_IMAGE_PIXELS
+  ) {
+    throw new Error('验证码图片尺寸超出安全限制');
+  }
 
   // 2. Resize to height=64, maintain aspect ratio
   const targetHeight = 64;
   const targetWidth = Math.round(image.width * (targetHeight / image.height));
+  if (targetWidth <= 0 || targetWidth > MAX_TARGET_WIDTH) {
+    throw new Error('验证码图片宽高比超出安全限制');
+  }
   image.resize({ w: targetWidth, h: targetHeight });
+
+  const session = await getSession();
+  const charset = getCharset();
 
   // 3. Convert to grayscale float32 tensor, normalized to [0, 1]
   //    Shape: [1, 1, 64, width]  (batch, channels, height, width)

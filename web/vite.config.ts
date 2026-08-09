@@ -13,9 +13,17 @@ export default defineConfig({
     outDir: resolve(webRoot, '../src/web/public'),
     rollupOptions: {
       output: {
-        manualChunks: {
-          antd: ['antd', '@ant-design/icons'],
-          react: ['react', 'react-dom'],
+        codeSplitting: {
+          groups: [
+            {
+              name: 'antd',
+              test: /node_modules\/(?:antd|@ant-design)\//,
+            },
+            {
+              name: 'react',
+              test: /node_modules\/(?:react|react-dom|scheduler)\//,
+            },
+          ],
         },
       },
     },
