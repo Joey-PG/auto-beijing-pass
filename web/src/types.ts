@@ -61,6 +61,20 @@ export interface Account {
   vehicles: Vehicle[];
 }
 
+export interface AccountCreateInput {
+  autoRenew: boolean;
+  entryType: string;
+  name: string;
+  password: string;
+  phone: string;
+}
+
+export interface AccountUpdateInput {
+  autoRenew: boolean;
+  entryType: string;
+  name: string;
+}
+
 export interface ScheduleInfo {
   active: boolean;
   catchUpEnabled?: boolean;

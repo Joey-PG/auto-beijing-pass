@@ -5,6 +5,7 @@ import type { Account } from '../types';
 
 interface AddVehicleModalProps {
   accounts: Account[];
+  initialAccountId?: string | null;
   loading: boolean;
   onCancel: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void>;
@@ -13,6 +14,7 @@ interface AddVehicleModalProps {
 
 export function AddVehicleModal({
   accounts,
+  initialAccountId,
   loading,
   onCancel,
   onSubmit,
@@ -22,9 +24,9 @@ export function AddVehicleModal({
 
   useEffect(() => {
     if (open && accounts[0]) {
-      form.setFieldValue('accountId', accounts[0].id);
+      form.setFieldValue('accountId', initialAccountId || accounts[0].id);
     }
-  }, [accounts, form, open]);
+  }, [accounts, form, initialAccountId, open]);
 
   const handleFinish = async (values: Record<string, string>) => {
     await onSubmit(values);

@@ -1,4 +1,10 @@
-import type { ApiResponse, AuditPageData, AuditQuery, Dashboard } from './types';
+import type {
+  AccountCreateInput,
+  ApiResponse,
+  AuditPageData,
+  AuditQuery,
+  Dashboard,
+} from './types';
 
 export interface SessionState {
   authenticated: boolean;
@@ -30,6 +36,11 @@ async function request<T>(path: string, options: RequestInit = {}) {
 }
 
 export const dashboardApi = {
+  addAccount: (body: AccountCreateInput) =>
+    request<{ id: string; name: string; phone: string }>('/api/accounts', {
+      body: JSON.stringify(body),
+      method: 'POST',
+    }),
   getSession: () => request<SessionState>('/api/auth/session'),
   login: (username: string, password: string) =>
     request<SessionState>('/api/auth/login', {
@@ -48,6 +59,10 @@ export const dashboardApi = {
       `/api/vehicles/${encodeURIComponent(accountId)}/${encodeURIComponent(vehicleId)}`,
       { method: 'DELETE' },
     ),
+  deleteAccount: (accountId: string) =>
+    request<{ removed: boolean }>(`/api/accounts/${encodeURIComponent(accountId)}`, {
+      method: 'DELETE',
+    }),
   getAudit: (query: AuditQuery) => {
     const search = new URLSearchParams({
       page: String(query.page),
@@ -65,6 +80,14 @@ export const dashboardApi = {
       body: JSON.stringify({ accountId, licenseNumber }),
       method: 'POST',
     }),
+  reloginAccount: (accountId: string, password: string) =>
+    request<{ updated: boolean }>(
+      `/api/accounts/${encodeURIComponent(accountId)}/login`,
+      {
+        body: JSON.stringify({ password }),
+        method: 'POST',
+      },
+    ),
   updateAccount: (
     accountId: string,
     body: Record<string, boolean | string>,

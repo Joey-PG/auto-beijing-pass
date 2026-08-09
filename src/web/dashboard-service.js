@@ -2,11 +2,14 @@ import { getCronScheduleInfo } from '../commands/cron.js';
 import { applyPermit } from '../commands/run.js';
 import { API_BASE_URL } from '../constants.js';
 import { ApiManager } from '../lib/api-manager.js';
+import { login } from '../lib/bjt-login.js';
 import {
   getAccountLabel,
   getUsers,
+  removeUser,
   resolveUser,
   updateUser,
+  upsertUser,
 } from '../lib/config-manager.js';
 import {
   maskPlate,
@@ -25,6 +28,9 @@ import { resolveTripProfile } from '../lib/trip-profile.js';
 const ENTRY_TYPES = new Set(['六环内', '六环外']);
 const PLATE_TYPES = new Set(['01', '02', '06', '13', '51', '52']);
 const VEHICLE_TYPES = new Set(['01', '02']);
+const PHONE_PATTERN = /^1\d{10}$/;
+const MAX_ACCOUNT_NAME_LENGTH = 40;
+const MAX_PASSWORD_LENGTH = 256;
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
@@ -49,7 +55,12 @@ function getAccountById(accountId) {
     throw new WebServiceError('必须指定账号', 400);
   }
   const users = getUsers({ initializedOnly: true });
-  const user = resolveUser(users, accountId);
+  let user;
+  try {
+    user = resolveUser(users, accountId);
+  } catch {
+    throw new WebServiceError('账号不存在或尚未完成初始化', 404);
+  }
   if (!user) {
     throw new WebServiceError('账号不存在或尚未完成初始化', 404);
   }
@@ -62,6 +73,40 @@ function createApi(user) {
 
 function getDashboardAccountName(user, index) {
   return user?.name?.trim() || String(user?.bjt_phone || '') || `账号${index + 1}`;
+}
+
+function validateAccountName(value, fallback = '') {
+  const name = String(value || '').trim() || fallback;
+  if (!name) throw new WebServiceError('账号名称不能为空', 400);
+  if (name.length > MAX_ACCOUNT_NAME_LENGTH) {
+    throw new WebServiceError(`账号名称不能超过 ${MAX_ACCOUNT_NAME_LENGTH} 个字符`, 400);
+  }
+  return name;
+}
+
+function validatePhone(value) {
+  const phone = String(value || '').trim();
+  if (!PHONE_PATTERN.test(phone)) {
+    throw new WebServiceError('请输入有效的 11 位北京通手机号', 400);
+  }
+  return phone;
+}
+
+function validatePassword(value) {
+  const password = String(value || '');
+  if (!password) throw new WebServiceError('北京通密码不能为空', 400);
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new WebServiceError('北京通密码长度不正确', 400);
+  }
+  return password;
+}
+
+function validateEntryType(value, fallback = '六环外') {
+  const entryType = value || fallback;
+  if (!ENTRY_TYPES.has(entryType)) {
+    throw new WebServiceError('进京证类型只能是六环内或六环外', 400);
+  }
+  return entryType;
 }
 
 function maskEngine(value) {
@@ -210,6 +255,95 @@ export async function getDashboard() {
   };
 }
 
+export async function addDashboardAccount(input, { loginFn = login } = {}) {
+  let phone = '';
+  try {
+    phone = validatePhone(input?.phone);
+    const password = validatePassword(input?.password);
+    const name = validateAccountName(input?.name, phone);
+    const entryType = validateEntryType(input?.entryType);
+    const autoRenew = input?.autoRenew ?? true;
+    if (typeof autoRenew !== 'boolean') {
+      throw new WebServiceError('自动续签开关必须是布尔值', 400);
+    }
+    if (getUsers().some((user) => user.bjt_phone === phone)) {
+      throw new WebServiceError('该北京通手机号已存在，请使用重新登录', 409);
+    }
+    if (getUsers().some((user) => user.name?.trim() === name)) {
+      throw new WebServiceError('账号名称已存在，请使用其他名称', 409);
+    }
+
+    const token = await loginFn(phone, password);
+    const user = {
+      name,
+      auth: token,
+      bjt_phone: phone,
+      bjt_pwd: password,
+      entry_type: entryType,
+      notify_urls: [],
+      preferred_vehicle: '',
+      auto_renew: autoRenew,
+    };
+    const index = upsertUser(user);
+    writeAuditEvent('account_initialized', {
+      account: name,
+      phone,
+      result: 'success',
+      entry_type: entryType,
+      auto_renew: autoRenew,
+      source: 'web',
+    });
+    return { id: String(index + 1), name, phone };
+  } catch (error) {
+    writeWebFailure('account_initialized', error, { phone });
+    if (error instanceof WebServiceError) throw error;
+    throw new WebServiceError(`北京通登录失败：${getErrorMessage(error)}`, 400);
+  }
+}
+
+export async function reloginDashboardAccount(
+  accountId,
+  input,
+  { loginFn = login } = {},
+) {
+  let user = null;
+  try {
+    ({ user } = getAccountById(accountId));
+    const password = validatePassword(input?.password);
+    const token = await loginFn(user.bjt_phone, password);
+    updateUser({ auth: token, bjt_pwd: password }, user.bjt_phone);
+    writeAuditEvent('account_reauthenticated', {
+      account: getAccountLabel(user),
+      phone: user.bjt_phone,
+      result: 'success',
+      source: 'web',
+    });
+    return { updated: true };
+  } catch (error) {
+    writeWebFailure('account_reauthenticated', error, { user });
+    if (error instanceof WebServiceError) throw error;
+    throw new WebServiceError(`北京通登录失败：${getErrorMessage(error)}`, 400);
+  }
+}
+
+export function removeDashboardAccount(accountId) {
+  let user = null;
+  try {
+    ({ user } = getAccountById(accountId));
+    const removed = removeUser(user.bjt_phone);
+    writeAuditEvent('account_removed', {
+      account: getAccountLabel(removed),
+      phone: removed.bjt_phone,
+      result: 'success',
+      source: 'web',
+    });
+    return { removed: true };
+  } catch (error) {
+    writeWebFailure('account_removed', error, { account_id: accountId, user });
+    throw error;
+  }
+}
+
 function validateVehicleInput(input) {
   const plate = String(input.licenseNumber || '').trim().toUpperCase();
   const engine = String(input.engineNumber || '').trim();
@@ -317,8 +451,20 @@ export async function removeDashboardVehicle(accountId, vehicleId) {
 export function updateDashboardAccount(accountId, input) {
   let user = null;
   try {
-    ({ user } = getAccountById(accountId));
+    const account = getAccountById(accountId);
+    ({ user } = account);
     const updates = {};
+    if (Object.hasOwn(input, 'name')) {
+      const name = validateAccountName(input.name);
+      if (
+        account.users.some(
+          (candidate) => candidate !== user && candidate.name?.trim() === name,
+        )
+      ) {
+        throw new WebServiceError('账号名称已存在，请使用其他名称', 409);
+      }
+      updates.name = name;
+    }
     if (Object.hasOwn(input, 'autoRenew')) {
       if (typeof input.autoRenew !== 'boolean') {
         throw new WebServiceError('自动续签开关必须是布尔值', 400);
@@ -326,10 +472,7 @@ export function updateDashboardAccount(accountId, input) {
       updates.auto_renew = input.autoRenew;
     }
     if (Object.hasOwn(input, 'entryType')) {
-      if (!ENTRY_TYPES.has(input.entryType)) {
-        throw new WebServiceError('进京证类型只能是六环内或六环外', 400);
-      }
-      updates.entry_type = input.entryType;
+      updates.entry_type = validateEntryType(input.entryType);
     }
     if (Object.hasOwn(input, 'preferredVehicle')) {
       const preferredVehicle = String(input.preferredVehicle || '').trim();

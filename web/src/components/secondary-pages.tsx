@@ -7,14 +7,12 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import {
-  Alert,
   Button,
   Card,
   Descriptions,
   Empty,
   Select,
   Space,
-  Switch,
   Table,
   Tag,
 } from 'antd';
@@ -33,6 +31,7 @@ import type {
 
 const eventLabels: Record<string, string> = {
   account_removed: '删除账号',
+  account_reauthenticated: '账号重新登录',
   account_initialized: '账号初始化',
   account_updated: '账号更新',
   audit_queried: '查询审计日志',
@@ -253,67 +252,6 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
   );
 }
 
-interface AccountsPageProps {
-  accounts: Account[];
-  loading: boolean;
-  onToggle: (account: Account, checked: boolean) => Promise<void>;
-}
-
-export function AccountsPage({ accounts, loading, onToggle }: AccountsPageProps) {
-  const columns: ColumnsType<Account> = [
-    { dataIndex: 'name', key: 'name', title: '账号名称' },
-    { dataIndex: 'phone', key: 'phone', title: '手机号' },
-    {
-      key: 'login',
-      render: () => <Tag color="success">已登录</Tag>,
-      title: '登录状态',
-    },
-    { dataIndex: 'entryType', key: 'entryType', title: '进京证类型' },
-    {
-      key: 'vehicles',
-      render: (_, account) => `${account.vehicles.length} 辆`,
-      title: '关联车辆',
-    },
-    {
-      key: 'autoRenew',
-      render: (_, account) => (
-        <Switch
-          checked={account.autoRenew}
-          loading={loading}
-          onChange={(checked) => onToggle(account, checked)}
-          size="small"
-        />
-      ),
-      title: '自动续签',
-    },
-  ];
-  return (
-    <div className="page-shell">
-      <div className="page-heading">
-        <div>
-          <h1>账号配置</h1>
-          <p>查看已通过 CLI 初始化的北京通账号</p>
-        </div>
-      </div>
-      <Alert
-        className="page-alert"
-        message="新增或更新北京通登录信息，请继续使用 auto-bj-pass init 命令。"
-        showIcon
-        type="info"
-      />
-      <Card styles={{ body: { padding: 0 } }}>
-        <Table
-          columns={columns}
-          dataSource={accounts}
-          pagination={false}
-          rowKey="id"
-          scroll={{ x: 700 }}
-        />
-      </Card>
-    </div>
-  );
-}
-
 interface SystemPageProps {
   dashboard: Dashboard;
 }
@@ -358,8 +296,9 @@ export function SystemPage({ dashboard }: SystemPageProps) {
         </Card>
         <Card title={<Space><SafetyCertificateOutlined />安全状态</Space>}>
           <Space direction="vertical" size={12}>
-            <span><CheckCircleOutlined className="success-icon" /> 浏览器不接收账号 token 和密码</span>
-            <span><CheckCircleOutlined className="success-icon" /> 手机号与发动机号脱敏展示</span>
+            <span><CheckCircleOutlined className="success-icon" /> 北京通密码仅通过 HTTPS 提交</span>
+            <span><CheckCircleOutlined className="success-icon" /> 业务 token 不返回浏览器</span>
+            <span><CheckCircleOutlined className="success-icon" /> 磁盘日志保持敏感信息脱敏</span>
             <span><ExclamationCircleOutlined className="warning-icon" /> 公网访问必须配置 HTTPS</span>
           </Space>
         </Card>

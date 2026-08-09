@@ -5,9 +5,12 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  addDashboardAccount,
   addDashboardVehicle,
   getDashboard,
   getDashboardAudit,
+  reloginDashboardAccount,
+  removeDashboardAccount,
   removeDashboardVehicle,
   runDashboardRenewal,
   updateDashboardAccount,
@@ -307,6 +310,12 @@ async function handleApi(request, response, url) {
     sendJson(response, 200, { success: true, data });
     return true;
   }
+  if (request.method === 'POST' && url.pathname === '/api/accounts') {
+    const body = await readJsonBody(request);
+    const data = await addDashboardAccount(body);
+    sendJson(response, 201, { success: true, data });
+    return true;
+  }
   if (request.method === 'POST' && url.pathname === '/api/vehicles') {
     const body = await readJsonBody(request);
     const data = await addDashboardVehicle(body.accountId, body);
@@ -325,12 +334,29 @@ async function handleApi(request, response, url) {
     return true;
   }
   const accountMatch = url.pathname.match(/^\/api\/accounts\/([^/]+)$/);
+  const accountLoginMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/login$/,
+  );
+  if (request.method === 'POST' && accountLoginMatch) {
+    const body = await readJsonBody(request);
+    const data = await reloginDashboardAccount(
+      decodeURIComponent(accountLoginMatch[1]),
+      body,
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
   if (request.method === 'PATCH' && accountMatch) {
     const body = await readJsonBody(request);
     const data = updateDashboardAccount(
       decodeURIComponent(accountMatch[1]),
       body,
     );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
+  if (request.method === 'DELETE' && accountMatch) {
+    const data = removeDashboardAccount(decodeURIComponent(accountMatch[1]));
     sendJson(response, 200, { success: true, data });
     return true;
   }

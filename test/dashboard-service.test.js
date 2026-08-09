@@ -10,8 +10,11 @@ import {
   writeAuditEvent,
 } from '../src/lib/audit-logger.js';
 import {
+  addDashboardAccount,
   getDashboard,
   getDashboardAudit,
+  reloginDashboardAccount,
+  removeDashboardAccount,
   updateDashboardAccount,
 } from '../src/web/dashboard-service.js';
 
@@ -133,6 +136,82 @@ test('dashboard updates only supported account renewal settings', () => {
     assert.equal(audit[1].source, 'web');
     assert.equal(audit[1].result, 'failure');
     assert.equal(audit[1].error, '进京证类型只能是六环内或六环外');
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard securely adds, edits, reauthenticates, and removes accounts', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-accounts-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    const created = await addDashboardAccount(
+      {
+        name: '新账号',
+        phone: '13800000001',
+        password: 'initial-secret',
+        entryType: '六环外',
+        autoRenew: true,
+      },
+      {
+        loginFn: async (phone, password) => {
+          assert.equal(phone, '13800000001');
+          assert.equal(password, 'initial-secret');
+          return 'first-token';
+        },
+      },
+    );
+    assert.equal(created.id, '1');
+    assert.deepEqual(loadConfig().users[0], {
+      name: '新账号',
+      auth: 'first-token',
+      bjt_phone: '13800000001',
+      bjt_pwd: 'initial-secret',
+      entry_type: '六环外',
+      notify_urls: [],
+      preferred_vehicle: '',
+      auto_renew: true,
+    });
+
+    updateDashboardAccount('1', {
+      name: '家庭账号',
+      entryType: '六环内',
+      autoRenew: false,
+    });
+    assert.equal(loadConfig().users[0].name, '家庭账号');
+    assert.equal(loadConfig().users[0].entry_type, '六环内');
+    assert.equal(loadConfig().users[0].auto_renew, false);
+
+    await assert.rejects(
+      reloginDashboardAccount(
+        '1',
+        { password: 'wrong-secret' },
+        { loginFn: async () => { throw new Error('密码错误'); } },
+      ),
+      /北京通登录失败：密码错误/,
+    );
+    assert.equal(loadConfig().users[0].auth, 'first-token');
+    assert.equal(loadConfig().users[0].bjt_pwd, 'initial-secret');
+
+    await reloginDashboardAccount(
+      '1',
+      { password: 'next-secret' },
+      { loginFn: async () => 'second-token' },
+    );
+    assert.equal(loadConfig().users[0].auth, 'second-token');
+    assert.equal(loadConfig().users[0].bjt_pwd, 'next-secret');
+
+    assert.throws(
+      () => removeDashboardAccount('2'),
+      /账号不存在/,
+    );
+    assert.deepEqual(removeDashboardAccount('1'), { removed: true });
+    assert.equal(loadConfig().users.length, 0);
+
+    const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
+    assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

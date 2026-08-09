@@ -24,9 +24,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { dashboardApi } from './api';
 import { AddVehicleModal } from './components/add-vehicle-modal';
+import { AccountPage } from './components/account-page';
 import { LoginPage } from './components/login-page';
 import {
-  AccountsPage,
   AuditPage,
   SystemPage,
 } from './components/secondary-pages';
@@ -34,6 +34,8 @@ import { VehicleDrawer } from './components/vehicle-drawer';
 import { VehiclePage } from './components/vehicle-page';
 import type {
   Account,
+  AccountCreateInput,
+  AccountUpdateInput,
   AppView,
   AuditPageData,
   AuditQuery,
@@ -139,6 +141,7 @@ interface DashboardApplicationProps {
 function DashboardApplication({ onLogout, username }: DashboardApplicationProps) {
   const { message } = AntApp.useApp();
   const [activeView, setActiveView] = useState<AppView>('vehicles');
+  const [addAccountId, setAddAccountId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [audit, setAudit] = useState<AuditPageData>({
     items: [],
@@ -248,6 +251,41 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       `车辆 ${values.licenseNumber} 添加成功`,
     );
     setAddOpen(false);
+    setAddAccountId(null);
+  };
+
+  const handleAddAccount = async (values: AccountCreateInput) => {
+    await handleMutation(
+      () => dashboardApi.addAccount(values),
+      `账号 ${values.name || values.phone} 添加成功`,
+    );
+  };
+
+  const handleEditAccount = async (
+    account: Account,
+    values: AccountUpdateInput,
+  ) => {
+    await handleUpdateAccount(account.id, values, '账号配置已更新');
+  };
+
+  const handleReloginAccount = async (account: Account, password: string) => {
+    await handleMutation(
+      () => dashboardApi.reloginAccount(account.id, password),
+      `账号 ${account.name} 已重新登录`,
+    );
+  };
+
+  const handleDeleteAccount = async (account: Account) => {
+    await handleMutation(
+      () => dashboardApi.deleteAccount(account.id),
+      `账号 ${account.name} 已从本机配置删除`,
+    );
+  };
+
+  const handleAddVehicleForAccount = (account: Account) => {
+    setAddAccountId(account.id);
+    setActiveView('vehicles');
+    setAddOpen(true);
   };
 
   const handleUpdateAccount = async (
@@ -297,7 +335,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const menuItems = [
     { icon: <CarOutlined />, key: 'vehicles', label: '车辆管理' },
     { icon: <FileTextOutlined />, key: 'audit', label: '运行记录' },
-    { icon: <TeamOutlined />, key: 'accounts', label: '账号配置' },
+    { icon: <TeamOutlined />, key: 'accounts', label: '账号管理' },
     { icon: <SettingOutlined />, key: 'system', label: '系统设置' },
   ];
 
@@ -321,10 +359,15 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     }
     if (activeView === 'accounts') {
       return (
-        <AccountsPage
+        <AccountPage
           accounts={dashboard.accounts}
           loading={mutationLoading}
+          onAdd={handleAddAccount}
+          onAddVehicle={handleAddVehicleForAccount}
+          onDelete={handleDeleteAccount}
+          onRelogin={handleReloginAccount}
           onToggle={handleToggleAutoRenew}
+          onUpdate={handleEditAccount}
         />
       );
     }
@@ -333,7 +376,10 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       <VehiclePage
         dashboard={dashboard}
         loading={loading}
-        onAdd={() => setAddOpen(true)}
+        onAdd={() => {
+          setAddAccountId(null);
+          setAddOpen(true);
+        }}
         onRefresh={() => loadData()}
         onSelect={setSelectedVehicle}
         onToggleAutoRenew={handleToggleAutoRenew}
@@ -426,8 +472,12 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       {dashboard ? (
         <AddVehicleModal
           accounts={dashboard.accounts}
+          initialAccountId={addAccountId}
           loading={mutationLoading}
-          onCancel={() => setAddOpen(false)}
+          onCancel={() => {
+            setAddOpen(false);
+            setAddAccountId(null);
+          }}
           onSubmit={handleAddVehicle}
           open={addOpen}
         />

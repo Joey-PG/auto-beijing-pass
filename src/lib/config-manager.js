@@ -4,6 +4,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
@@ -74,8 +76,19 @@ export function loadConfig() {
 export function saveConfig(config) {
   ensureConfigDir();
   const configPath = getConfigPath();
-  writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf-8');
-  chmodSync(configPath, 0o600);
+  const temporaryPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    writeFileSync(temporaryPath, JSON.stringify(config, null, 4), {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
+    chmodSync(temporaryPath, 0o600);
+    renameSync(temporaryPath, configPath);
+    chmodSync(configPath, 0o600);
+  } catch (error) {
+    if (existsSync(temporaryPath)) unlinkSync(temporaryPath);
+    throw error;
+  }
 }
 
 /**
