@@ -28,6 +28,7 @@ test('web server serves the dashboard with security headers', async () => {
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-security-policy'), /default-src 'self'/);
     assert.match(response.headers.get('content-security-policy'), /https:\/\/\*\.amap\.com/);
+    assert.match(response.headers.get('content-security-policy'), /script-src[^;]*'unsafe-eval'/);
     assert.equal(
       response.headers.get('referrer-policy'),
       'strict-origin-when-cross-origin',
