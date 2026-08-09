@@ -1,14 +1,28 @@
 import type { ApiResponse, AuditPageData, AuditQuery, Dashboard } from './types';
 
+export interface SessionState {
+  authenticated: boolean;
+  username: string;
+}
+
+export class AuthenticationError extends Error {}
+
 async function request<T>(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
     ...options,
+    credentials: 'same-origin',
     headers: {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });
   const payload = (await response.json()) as ApiResponse<T>;
+  if (response.status === 401) {
+    if (path !== '/api/auth/login') {
+      window.dispatchEvent(new CustomEvent('auto-bj-pass:unauthorized'));
+    }
+    throw new AuthenticationError(payload.message || '请重新登录');
+  }
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || `请求失败（HTTP ${response.status}）`);
   }
@@ -16,6 +30,14 @@ async function request<T>(path: string, options: RequestInit = {}) {
 }
 
 export const dashboardApi = {
+  getSession: () => request<SessionState>('/api/auth/session'),
+  login: (username: string, password: string) =>
+    request<SessionState>('/api/auth/login', {
+      body: JSON.stringify({ password, username }),
+      method: 'POST',
+    }),
+  logout: () =>
+    request<{ loggedOut: boolean }>('/api/auth/logout', { method: 'POST' }),
   addVehicle: (body: Record<string, string>) =>
     request<{ licenseNumber: string }>('/api/vehicles', {
       body: JSON.stringify(body),

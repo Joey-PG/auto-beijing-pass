@@ -1,6 +1,7 @@
 import {
   CarOutlined,
   FileTextOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
@@ -16,12 +17,14 @@ import {
   Menu,
   Skeleton,
   Space,
+  Spin,
   Typography,
 } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { dashboardApi } from './api';
 import { AddVehicleModal } from './components/add-vehicle-modal';
+import { LoginPage } from './components/login-page';
 import {
   AccountsPage,
   AuditPage,
@@ -49,6 +52,91 @@ export function App() {
 }
 
 function Application() {
+  const { message } = AntApp.useApp();
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    dashboardApi.getSession()
+      .then((session) => {
+        if (!active) return;
+        setUsername(session.username);
+        setAuthStatus(session.authenticated ? 'authenticated' : 'unauthenticated');
+      })
+      .catch(() => {
+        if (active) setAuthStatus('unauthenticated');
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUsername('');
+      setLoginError('登录状态已失效，请重新登录');
+      setAuthStatus('unauthenticated');
+    };
+    window.addEventListener('auto-bj-pass:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auto-bj-pass:unauthorized', handleUnauthorized);
+  }, []);
+
+  const handleLogin = async (nextUsername: string, password: string) => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const session = await dashboardApi.login(nextUsername, password);
+      setUsername(session.username);
+      setAuthStatus('authenticated');
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : '登录失败，请稍后重试');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await dashboardApi.logout();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '退出失败');
+      return;
+    }
+    setUsername('');
+    setLoginError('');
+    setAuthStatus('unauthenticated');
+  };
+
+  if (authStatus === 'checking') {
+    return (
+      <div className="auth-loading">
+        <div className="auth-loading-mark"><CarOutlined /></div>
+        <Spin size="large" />
+        <span>正在建立安全连接…</span>
+      </div>
+    );
+  }
+
+  if (authStatus === 'unauthenticated') {
+    return (
+      <LoginPage
+        error={loginError}
+        loading={loginLoading}
+        onSubmit={handleLogin}
+      />
+    );
+  }
+
+  return <DashboardApplication onLogout={handleLogout} username={username} />;
+}
+
+interface DashboardApplicationProps {
+  onLogout: () => Promise<void>;
+  username: string;
+}
+
+function DashboardApplication({ onLogout, username }: DashboardApplicationProps) {
   const { message } = AntApp.useApp();
   const [activeView, setActiveView] = useState<AppView>('vehicles');
   const [addOpen, setAddOpen] = useState(false);
@@ -310,9 +398,19 @@ function Application() {
           </Space>
           <Space size={20}>
             <Badge status="success" text="服务在线" />
-            <Space size={8}>
+            <Space className="operator-profile" size={8}>
               <Avatar icon={<UserOutlined />} size="small" />
-              <span className="operator-name">运营管理员</span>
+              <span className="operator-name">{username || '运营管理员'}</span>
+              <Button
+                aria-label="退出登录"
+                className="logout-button"
+                icon={<LogoutOutlined />}
+                onClick={() => void onLogout()}
+                size="small"
+                type="text"
+              >
+                退出
+              </Button>
             </Space>
           </Space>
         </Header>

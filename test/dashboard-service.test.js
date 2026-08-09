@@ -5,9 +5,13 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { loadConfig, saveConfig } from '../src/lib/config-manager.js';
-import { readAuditEvents } from '../src/lib/audit-logger.js';
+import {
+  readAuditEvents,
+  writeAuditEvent,
+} from '../src/lib/audit-logger.js';
 import {
   getDashboard,
+  getDashboardAudit,
   updateDashboardAccount,
 } from '../src/web/dashboard-service.js';
 
@@ -26,7 +30,6 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
   try {
     saveConfig({
       users: [{
-        name: '家庭账号',
         auth: 'test-token',
         bjt_phone: '13800000001',
         entry_type: '六环外',
@@ -65,15 +68,28 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
       }
       return apiResponse({});
     };
+    writeAuditEvent('renewal_submitted', {
+      account: '13800000001',
+      plate: '京A12345',
+      result: 'success',
+      source: 'cron',
+    });
 
     const dashboard = await getDashboard();
+    const audit = getDashboardAudit({ since: '30d' });
 
     assert.equal(dashboard.summary.accountCount, 1);
     assert.equal(dashboard.summary.vehicleCount, 1);
-    assert.equal(dashboard.accounts[0].phone, '138****0001');
+    assert.equal(dashboard.accounts[0].name, '13800000001');
+    assert.equal(dashboard.accounts[0].phone, '13800000001');
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');
     assert.equal(dashboard.accounts[0].vehicles[0].preferred, true);
     assert.equal(dashboard.accounts[0].vehicles[0].records[0].applyId, 'apply-1');
+    assert.equal(
+      dashboard.accounts[0].vehicles[0].lastExecution.event,
+      'renewal_submitted',
+    );
+    assert.equal(audit.items[0].account, '13800000001');
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;

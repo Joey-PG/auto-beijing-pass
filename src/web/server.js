@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { timingSafeEqual } from 'node:crypto';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +16,12 @@ import {
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), 'public');
 const MAX_BODY_BYTES = 64 * 1024;
+const SESSION_COOKIE = 'auto_bj_pass_session';
+const SESSION_TTL_SECONDS = 12 * 60 * 60;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+const MAX_LOGIN_FAILURES = 5;
+const PASSWORD_HASH_BYTES = 64;
 const CONTENT_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -23,11 +29,12 @@ const CONTENT_TYPES = {
   '.svg': 'image/svg+xml',
 };
 
-function sendJson(response, statusCode, data) {
+function sendJson(response, statusCode, data, headers = {}) {
   response.writeHead(statusCode, {
     'Cache-Control': 'no-store',
     'Content-Type': 'application/json; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
+    ...headers,
   });
   response.end(JSON.stringify(data));
 }
@@ -39,8 +46,51 @@ function safeEqual(left, right) {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function isAuthenticated(request, username, password) {
-  if (!username && !password) return true;
+function normalizeAuthenticators({ password = '', username = '', users = [] }) {
+  const authenticators = [];
+  const names = new Set();
+  for (const user of users) {
+    const name = String(user.username || '').trim();
+    if (!name || names.has(name)) {
+      throw new Error('Web 登录账号配置包含空用户名或重复用户名');
+    }
+    const salt = String(user.salt || '');
+    const passwordHash = String(user.passwordHash || '');
+    if (!/^[a-f0-9]{32}$/i.test(salt) || !/^[a-f0-9]{128}$/i.test(passwordHash)) {
+      throw new Error(`Web 登录账号 ${name} 的密码哈希配置无效`);
+    }
+    names.add(name);
+    authenticators.push({ name, passwordHash, salt });
+  }
+  if (authenticators.length === 0 && (username || password)) {
+    authenticators.push({ name: String(username), password: String(password) });
+  }
+  return authenticators;
+}
+
+function verifyCredentials(username, password, authenticators) {
+  const authenticator = authenticators.find((candidate) =>
+    safeEqual(candidate.name, username),
+  );
+  if (!authenticator) {
+    if (authenticators.some((candidate) => candidate.passwordHash)) {
+      scryptSync(String(password), Buffer.alloc(16), PASSWORD_HASH_BYTES);
+    }
+    return null;
+  }
+  if (authenticator.passwordHash) {
+    const actual = scryptSync(
+      String(password),
+      Buffer.from(authenticator.salt, 'hex'),
+      PASSWORD_HASH_BYTES,
+    );
+    const expected = Buffer.from(authenticator.passwordHash, 'hex');
+    return timingSafeEqual(actual, expected) ? authenticator.name : null;
+  }
+  return safeEqual(authenticator.password, password) ? authenticator.name : null;
+}
+
+function isBasicAuthenticated(request, authenticators) {
   const authorization = request.headers.authorization || '';
   if (!authorization.startsWith('Basic ')) return false;
   let credentials;
@@ -51,10 +101,169 @@ function isAuthenticated(request, username, password) {
   }
   const separator = credentials.indexOf(':');
   if (separator < 0) return false;
-  return (
-    safeEqual(credentials.slice(0, separator), username) &&
-    safeEqual(credentials.slice(separator + 1), password)
-  );
+  return Boolean(verifyCredentials(
+    credentials.slice(0, separator),
+    credentials.slice(separator + 1),
+    authenticators,
+  ));
+}
+
+function parseCookies(request) {
+  const cookies = {};
+  for (const part of String(request.headers.cookie || '').split(';')) {
+    const separator = part.indexOf('=');
+    if (separator < 0) continue;
+    const name = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+    if (name) cookies[name] = value;
+  }
+  return cookies;
+}
+
+function getSession(request, sessions) {
+  const token = parseCookies(request)[SESSION_COOKIE];
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return { ...session, token };
+}
+
+function isAuthenticated(request, authenticators, sessions) {
+  if (authenticators.length === 0) return true;
+  return Boolean(getSession(request, sessions)) ||
+    isBasicAuthenticated(request, authenticators);
+}
+
+function getClientAddress(request) {
+  const forwarded = String(request.headers['x-real-ip'] || '').trim();
+  return forwarded || request.socket.remoteAddress || 'unknown';
+}
+
+function isSecureRequest(request) {
+  const forwarded = String(request.headers['x-forwarded-proto'] || '')
+    .split(',')[0]
+    .trim();
+  return forwarded === 'https' || Boolean(request.socket.encrypted);
+}
+
+function createSessionCookie(token, request) {
+  const secure = isSecureRequest(request) ? '; Secure' : '';
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
+}
+
+function clearSessionCookie(request) {
+  const secure = isSecureRequest(request) ? '; Secure' : '';
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+}
+
+function pruneSessions(sessions) {
+  const now = Date.now();
+  for (const [token, session] of sessions) {
+    if (session.expiresAt <= now) sessions.delete(token);
+  }
+}
+
+async function handleAuth(request, response, url, context) {
+  const { authenticators, loginAttempts, sessions } = context;
+  const authenticationEnabled = authenticators.length > 0;
+
+  if (request.method === 'GET' && url.pathname === '/api/auth/session') {
+    const session = getSession(request, sessions);
+    sendJson(response, 200, {
+      success: true,
+      data: {
+        authenticated: !authenticationEnabled || Boolean(session),
+        username: session?.username || (!authenticationEnabled ? '本机管理员' : ''),
+      },
+    });
+    return true;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/login') {
+    if (!isSafeOrigin(request)) {
+      throw new WebServiceError('请求来源校验失败', 403);
+    }
+    if (!authenticationEnabled) {
+      sendJson(response, 200, {
+        success: true,
+        data: { authenticated: true, username: '本机管理员' },
+      });
+      return true;
+    }
+
+    const address = getClientAddress(request);
+    const now = Date.now();
+    const attempt = loginAttempts.get(address);
+    if (attempt?.blockedUntil > now) {
+      sendJson(response, 429, {
+        success: false,
+        message: '登录失败次数过多，请稍后再试',
+      });
+      return true;
+    }
+
+    const body = await readJsonBody(request);
+    const authenticatedUsername = verifyCredentials(
+      body.username || '',
+      body.password || '',
+      authenticators,
+    );
+    if (!authenticatedUsername) {
+      const withinWindow = attempt && now - attempt.startedAt < LOGIN_WINDOW_MS;
+      const failures = withinWindow ? attempt.failures + 1 : 1;
+      const blockedUntil = failures >= MAX_LOGIN_FAILURES
+        ? now + LOGIN_BLOCK_MS
+        : 0;
+      loginAttempts.set(address, {
+        blockedUntil,
+        failures,
+        startedAt: withinWindow ? attempt.startedAt : now,
+      });
+      sendJson(response, 401, {
+        success: false,
+        message: blockedUntil
+          ? '登录失败次数过多，请稍后再试'
+          : '用户名或密码不正确',
+      });
+      return true;
+    }
+
+    loginAttempts.delete(address);
+    pruneSessions(sessions);
+    const token = randomBytes(32).toString('base64url');
+    sessions.set(token, {
+      expiresAt: now + SESSION_TTL_SECONDS * 1000,
+      username: authenticatedUsername,
+    });
+    sendJson(
+      response,
+      200,
+      { success: true, data: { authenticated: true, username: authenticatedUsername } },
+      { 'Set-Cookie': createSessionCookie(token, request) },
+    );
+    return true;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/logout') {
+    if (!isSafeOrigin(request)) {
+      throw new WebServiceError('请求来源校验失败', 403);
+    }
+    const session = getSession(request, sessions);
+    if (session) sessions.delete(session.token);
+    sendJson(
+      response,
+      200,
+      { success: true, data: { loggedOut: true } },
+      { 'Set-Cookie': clearSessionCookie(request) },
+    );
+    return true;
+  }
+
+  return false;
 }
 
 function isSafeOrigin(request) {
@@ -159,18 +368,27 @@ async function serveStatic(response, pathname) {
   }
 }
 
-export function createDashboardServer({ username = '', password = '' } = {}) {
+export function createDashboardServer({ username = '', password = '', users = [] } = {}) {
+  const sessions = new Map();
+  const loginAttempts = new Map();
+  const authenticators = normalizeAuthenticators({ password, username, users });
   return createServer(async (request, response) => {
     try {
-      if (!isAuthenticated(request, username, password)) {
-        response.writeHead(401, {
-          'WWW-Authenticate': 'Basic realm="auto-beijing-pass"',
-        });
-        response.end('需要登录');
-        return;
-      }
       const url = new URL(request.url || '/', `http://${request.headers.host}`);
       if (url.pathname.startsWith('/api/')) {
+        const authHandled = await handleAuth(request, response, url, {
+          authenticators,
+          loginAttempts,
+          sessions,
+        });
+        if (authHandled) return;
+        if (!isAuthenticated(request, authenticators, sessions)) {
+          sendJson(response, 401, {
+            success: false,
+            message: '登录状态已失效，请重新登录',
+          });
+          return;
+        }
         const handled = await handleApi(request, response, url);
         if (!handled) sendJson(response, 404, { success: false, message: '接口不存在' });
         return;
@@ -203,15 +421,33 @@ export async function startDashboardServer({
     process.env.AUTO_BJ_PASS_WEB_PASSWORD ||
     process.env.CROSS_BJ_WEB_PASSWORD ||
     '',
+  users = [],
+  usersFile = process.env.AUTO_BJ_PASS_WEB_USERS_FILE || '',
 } = {}) {
+  let configuredUsers = users;
+  if (configuredUsers.length === 0 && usersFile) {
+    let payload;
+    try {
+      payload = JSON.parse(await readFile(usersFile, 'utf8'));
+    } catch (error) {
+      throw new Error(
+        `无法读取 Web 登录账号文件 ${usersFile}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+    if (!Array.isArray(payload.users) || payload.users.length === 0) {
+      throw new Error('Web 登录账号文件必须包含至少一个账号');
+    }
+    configuredUsers = payload.users;
+    normalizeAuthenticators({ users: configuredUsers });
+  }
   const localHosts = new Set(['127.0.0.1', '::1', 'localhost']);
-  if (!localHosts.has(host) && (!username || !password)) {
+  if (!localHosts.has(host) && configuredUsers.length === 0 && (!username || !password)) {
     throw new Error(
       '监听非本机地址时必须设置 ' +
-      'AUTO_BJ_PASS_WEB_USERNAME 和 AUTO_BJ_PASS_WEB_PASSWORD',
+      'AUTO_BJ_PASS_WEB_USERS_FILE，或设置 AUTO_BJ_PASS_WEB_USERNAME 和 AUTO_BJ_PASS_WEB_PASSWORD',
     );
   }
-  const server = createDashboardServer({ username, password });
+  const server = createDashboardServer({ username, password, users: configuredUsers });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, resolve);

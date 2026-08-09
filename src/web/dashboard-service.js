@@ -10,6 +10,7 @@ import {
 } from '../lib/config-manager.js';
 import {
   maskPlate,
+  maskPhone,
   queryAuditEvents,
   readAuditEvents,
   writeAuditEvent,
@@ -59,8 +60,8 @@ function createApi(user) {
   return new ApiManager(API_BASE_URL, user.auth);
 }
 
-function maskPhone(value) {
-  return String(value || '').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+function getDashboardAccountName(user, index) {
+  return user?.name?.trim() || String(user?.bjt_phone || '') || `账号${index + 1}`;
 }
 
 function maskEngine(value) {
@@ -123,8 +124,8 @@ async function loadAccountDashboard(user, index) {
   const api = createApi(user);
   const account = {
     id: String(index + 1),
-    name: getAccountLabel(user, index),
-    phone: maskPhone(user.bjt_phone),
+    name: getDashboardAccountName(user, index),
+    phone: String(user.bjt_phone || ''),
     entryType: user.entry_type || '六环外',
     autoRenew: user.auto_renew !== false,
     preferredVehicle: user.preferred_vehicle || '',
@@ -167,11 +168,15 @@ export async function getDashboard() {
   );
   const auditEvents = readAuditEvents({ since: '30d', limit: 500 }).reverse();
   for (const account of accounts) {
+    const auditAccountNames = new Set(
+      [account.name, account.phone, maskPhone(account.name), maskPhone(account.phone)]
+        .filter(Boolean),
+    );
     for (const vehicle of account.vehicles) {
       const maskedPlate = maskPlate(vehicle.licenseNumber);
       const lastExecution = auditEvents.find(
         (event) =>
-          event.account === account.name &&
+          auditAccountNames.has(event.account) &&
           event.plate === maskedPlate &&
           String(event.event || '').startsWith('renewal_'),
       );
@@ -409,8 +414,23 @@ export async function runDashboardRenewal(accountId, input) {
   }
 }
 
+function getAuditAccountDisplayNames() {
+  const accountNames = new Map();
+  for (const [index, user] of getUsers({ initializedOnly: true }).entries()) {
+    const label = getAccountLabel(user, index);
+    const phone = String(user.bjt_phone || '');
+    for (const key of [label, maskPhone(label)]) {
+      if (key) accountNames.set(key, label);
+    }
+    for (const key of [phone, maskPhone(phone)]) {
+      if (key) accountNames.set(key, phone);
+    }
+  }
+  return accountNames;
+}
+
 export function getDashboardAudit(options = {}) {
-  return queryAuditEvents({
+  const data = queryAuditEvents({
     since: options.since || '30d',
     account: options.account || null,
     event: options.event || null,
@@ -418,6 +438,14 @@ export function getDashboardAudit(options = {}) {
     page: options.page || 1,
     pageSize: options.pageSize || options.limit || 20,
   });
+  const accountNames = getAuditAccountDisplayNames();
+  return {
+    ...data,
+    items: data.items.map((item) => ({
+      ...item,
+      account: accountNames.get(item.account) || item.account,
+    })),
+  };
 }
 
 export class WebServiceError extends Error {
