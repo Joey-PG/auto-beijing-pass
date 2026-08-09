@@ -9,6 +9,7 @@ import { getConfigDir } from '../lib/config-manager.js';
 
 import {
   addDashboardAccount,
+  extendDashboardMembership,
   addDashboardVehicle,
   getDashboard,
   getDashboardAudit,
@@ -167,6 +168,20 @@ function isSecureRequest(request) {
     .split(',')[0]
     .trim();
   return forwarded === 'https' || Boolean(request.socket.encrypted);
+}
+
+function isLocalRequest(request) {
+  try {
+    const forwardedHost = String(
+      request.headers['x-forwarded-host'] || '',
+    ).split(',')[0].trim();
+    const hostname = new URL(
+      `http://${forwardedHost || request.headers.host || 'localhost'}`,
+    ).hostname;
+    return ['127.0.0.1', '::1', 'localhost'].includes(hostname);
+  } catch {
+    return false;
+  }
 }
 
 function createSessionCookie(token, request) {
@@ -342,7 +357,15 @@ async function handleApi(request, response, url, { actor = null } = {}) {
     throw new WebServiceError('请求来源校验失败', 403);
   }
   if (request.method === 'GET' && url.pathname === '/api/dashboard') {
-    sendJson(response, 200, { success: true, data: await getDashboard() });
+    sendJson(response, 200, {
+      success: true,
+      data: await getDashboard({
+        securityContext: {
+          localRequest: isLocalRequest(request),
+          secureRequest: isSecureRequest(request),
+        },
+      }),
+    });
     return true;
   }
   if (request.method === 'GET' && url.pathname === '/api/audit') {
@@ -378,9 +401,22 @@ async function handleApi(request, response, url, { actor = null } = {}) {
   const accountLoginMatch = url.pathname.match(
     /^\/api\/accounts\/([^/]+)\/login$/,
   );
+  const accountMembershipMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/membership$/,
+  );
   const accountTripProfileMatch = url.pathname.match(
     /^\/api\/accounts\/([^/]+)\/trip-profile$/,
   );
+  if (request.method === 'POST' && accountMembershipMatch) {
+    const body = await readJsonBody(request);
+    const data = extendDashboardMembership(
+      decodeURIComponent(accountMembershipMatch[1]),
+      body,
+      { actor },
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
   if (request.method === 'POST' && accountLoginMatch) {
     const body = await readJsonBody(request);
     const data = await reloginDashboardAccount(

@@ -11,10 +11,12 @@ import {
 } from '../src/lib/audit-logger.js';
 import {
   addDashboardAccount,
+  extendDashboardMembership,
   getDashboard,
   getDashboardAudit,
   reloginDashboardAccount,
   removeDashboardAccount,
+  runDashboardRenewal,
   updateDashboardAccount,
   updateDashboardTripProfile,
 } from '../src/web/dashboard-service.js';
@@ -81,7 +83,9 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
       source: 'cron',
     });
 
-    const dashboard = await getDashboard();
+    const dashboard = await getDashboard({
+      securityContext: { localRequest: false, secureRequest: true },
+    });
     const audit = getDashboardAudit({ since: '30d' });
 
     assert.equal(dashboard.summary.accountCount, 1);
@@ -91,6 +95,18 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
       key: 'test-map-key',
       securityCode: 'test-security-code',
     });
+    assert.equal(dashboard.scheduler.counts.eligible, 1);
+    assert.equal(
+      dashboard.runtime.businessApiLastSuccessAt,
+      dashboard.generatedAt,
+    );
+    assert.ok(dashboard.runtime.timeZone);
+    assert.equal(dashboard.security.connection, 'https');
+    assert.equal(
+      dashboard.security.checks.find((check) => check.id === 'public_https')
+        .status,
+       'pass',
+    );
     assert.equal(dashboard.accounts[0].name, '13800000001');
     assert.equal(dashboard.accounts[0].phone, '13800000001');
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');
@@ -248,6 +264,9 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       notify_urls: [],
       preferred_vehicle: '',
       auto_renew: false,
+      membership_started_on: '2026-08-09',
+      membership_expires_on: '2027-08-09',
+      membership_permanent: false,
     });
 
     updateDashboardAccount(
@@ -262,6 +281,13 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     assert.equal(loadConfig().users[0].name, '家庭账号');
     assert.equal(loadConfig().users[0].entry_type, '六环内');
     assert.equal(loadConfig().users[0].auto_renew, false);
+
+    const extended = extendDashboardMembership(
+      '1',
+      { membershipTerm: '1y' },
+      { actor: 'zhaochunxu' },
+    );
+    assert.equal(extended.expiresOn, '2028-08-09');
 
     await assert.rejects(
       reloginDashboardAccount(
@@ -298,6 +324,38 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
     assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
     assert.match(auditText, /zhaochunxu/);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard blocks actual renewal for an expired membership', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-expired-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '到期账号',
+        auth: 'test-token',
+        bjt_phone: '13800000009',
+        membership_started_on: '2025-01-01',
+        membership_expires_on: '2026-01-01',
+        membership_permanent: false,
+      }],
+    });
+    await assert.rejects(
+      runDashboardRenewal(
+        '1',
+        { licenseNumber: '京A12345' },
+        { actor: 'zhaoyue' },
+      ),
+      /服务有效期已到期/,
+    );
+    const events = readAuditEvents({ since: '1d', limit: 10 });
+    assert.equal(events.at(-1).event, 'renewal_skipped');
+    assert.equal(events.at(-1).reason, 'membership_expired');
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

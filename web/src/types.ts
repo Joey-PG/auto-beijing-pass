@@ -74,6 +74,11 @@ export interface Account {
   error: string | null;
   id: string;
   name: string;
+  membershipExpiresOn: string | null;
+  membershipPermanent: boolean;
+  membershipRemainingDays: number | null;
+  membershipStartedOn: string | null;
+  membershipStatus: MembershipStatus;
   phone: string;
   preferredVehicle: string;
   tripProfile: TripProfile | null;
@@ -81,12 +86,22 @@ export interface Account {
   vehicles: Vehicle[];
 }
 
+export type MembershipStatus = 'active' | 'expired' | 'expiring_soon' | 'permanent';
+export type MembershipTerm = '1m' | '3m' | '1y' | 'custom' | 'permanent';
+
 export interface AccountCreateInput {
   autoRenew: boolean;
   entryType: string;
   name: string;
   password: string;
   phone: string;
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
+}
+
+export interface MembershipUpdateInput {
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
 }
 
 export interface AccountUpdateInput {
@@ -110,11 +125,64 @@ export interface MapConfig {
   securityCode: string;
 }
 
+export type SchedulerAccountStatus =
+  | 'completed'
+  | 'disabled'
+  | 'expired'
+  | 'overdue'
+  | 'pending'
+  | 'retrying'
+  | 'scheduled';
+
+export interface SchedulerAccountInfo {
+  completedAt: string | null;
+  id: string;
+  lastAttemptAt: string | null;
+  lastError: string | null;
+  name: string;
+  nextRetryAt: string | null;
+  plannedAt: string | null;
+  plannedTime: string | null;
+  retryCount: number;
+  status: SchedulerAccountStatus;
+}
+
+export interface SchedulerRuntimeInfo {
+  accounts: SchedulerAccountInfo[];
+  counts: Record<SchedulerAccountStatus, number> & {
+    eligible: number;
+    total: number;
+  };
+  health: 'healthy' | 'inactive' | 'warning';
+  healthMessage: string;
+  lastTickAt: string | null;
+  lastTickCompletedAt: string | null;
+  lastTickResult: string | null;
+}
+
+export interface SecurityCheck {
+  detail: string;
+  id: string;
+  label: string;
+  status: 'info' | 'pass' | 'warning';
+}
+
+export interface SecurityInfo {
+  checks: SecurityCheck[];
+  connection: 'http' | 'https' | 'local';
+}
+
 export interface Dashboard {
   accounts: Account[];
   generatedAt: string;
   mapConfig: MapConfig;
+  runtime: {
+    businessApiLastSuccessAt: string | null;
+    timeZone: string;
+  };
   schedule: ScheduleInfo;
+  scheduler: SchedulerRuntimeInfo;
+  security: SecurityInfo;
   summary: {
     accountCount: number;
     failedAccountCount: number;

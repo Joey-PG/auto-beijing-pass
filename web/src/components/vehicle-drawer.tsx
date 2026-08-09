@@ -113,6 +113,7 @@ export function VehicleDrawer({
           </div>
           <Switch
             checked={account.autoRenew}
+            disabled={account.membershipStatus === 'expired'}
             loading={loading}
             onChange={(checked) =>
               onUpdate(
@@ -122,6 +123,17 @@ export function VehicleDrawer({
               )
             }
           />
+        </div>
+        <div className="setting-row">
+          <div>
+            <strong>服务有效期</strong>
+            <span>{account.membershipPermanent
+              ? '长期有效'
+              : `至 ${account.membershipExpiresOn || '—'}`}</span>
+          </div>
+          <Tag color={account.membershipStatus === 'expired' ? 'error' : 'success'}>
+            {account.membershipStatus === 'expired' ? '已到期' : '有效'}
+          </Tag>
         </div>
         <div className="setting-row">
           <div>
@@ -249,13 +261,14 @@ export function VehicleDrawer({
       <div className="drawer-primary-action">
         <Button
           block
+          disabled={account.membershipStatus === 'expired'}
           icon={<ThunderboltOutlined />}
           loading={loading}
           onClick={() => setRenewOpen(true)}
           size="large"
           type="primary"
         >
-          立即检查 / 续签
+          {account.membershipStatus === 'expired' ? '服务已到期' : '立即检查 / 续签'}
         </Button>
       </div>
       <Tabs

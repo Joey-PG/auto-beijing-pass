@@ -15,6 +15,7 @@ import {
   requireTripProfile,
 } from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import { getMembershipInfo } from '../lib/membership.js';
 import { output, success, error } from '../output.js';
 
 const ACTIVE_STATUSES = ['审核通过(生效中)', '审核中', '审核通过(待生效)'];
@@ -292,6 +293,26 @@ export async function runCommand({
 
   const includeLabel = users.length > 1 || Boolean(account);
   for (const user of users) {
+    const membership = getMembershipInfo(user);
+    if (!membership.active && !dryRun) {
+      writeAuditEvent('renewal_skipped', {
+        account: getAccountLabel(user),
+        result: 'skipped',
+        reason: 'membership_expired',
+        membership_expires_on: membership.expiresOn,
+      });
+      output(
+        success(
+          {
+            account: getAccountLabel(user),
+            skipped: true,
+            reason: 'membership_expired',
+          },
+          `[${getAccountLabel(user)}] 服务已于 ${membership.expiresOn || '未知日期'} 到期，跳过`,
+        ),
+      );
+      continue;
+    }
     if (user.auto_renew === false && !dryRun) {
       writeAuditEvent('renewal_skipped', {
         account: getAccountLabel(user),

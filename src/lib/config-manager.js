@@ -11,6 +11,7 @@ import {
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { COMMAND_NAME, CONFIG_DIR, CONFIG_FILE } from '../constants.js';
+import { migrateMembershipConfig } from './membership.js';
 
 const LEGACY_CONFIG_DIRS = ['.cross-bj-next', '.cross-bj'];
 
@@ -67,13 +68,19 @@ export function loadConfig() {
     return null;
   }
   const raw = readFileSync(configPath, 'utf-8');
-  return JSON.parse(raw);
+  const migrated = migrateMembershipConfig(JSON.parse(raw));
+  if (migrated.changed) writeConfigFile(migrated.config);
+  return migrated.config;
 }
 
 /**
  * Writes config object to config.json (ensures dir exists first).
  */
 export function saveConfig(config) {
+  writeConfigFile(config);
+}
+
+function writeConfigFile(config) {
   ensureConfigDir();
   const configPath = getConfigPath();
   const temporaryPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;

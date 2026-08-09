@@ -5,6 +5,7 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  MembershipUpdateInput,
   TripProfileInput,
 } from './types';
 
@@ -87,6 +88,14 @@ export const dashboardApi = {
       body: JSON.stringify({ accountId, licenseNumber, tripProfile }),
       method: 'POST',
     }),
+  extendMembership: (accountId: string, body: MembershipUpdateInput) =>
+    request<{ expiresOn: string | null; permanent: boolean; updated: boolean }>(
+      `/api/accounts/${encodeURIComponent(accountId)}/membership`,
+      {
+        body: JSON.stringify(body),
+        method: 'POST',
+      },
+    ),
   reloginAccount: (accountId: string, password: string) =>
     request<{ updated: boolean }>(
       `/api/accounts/${encodeURIComponent(accountId)}/login`,

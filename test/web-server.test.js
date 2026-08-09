@@ -39,6 +39,29 @@ test('web server serves the dashboard with security headers', async () => {
   }
 });
 
+test('dashboard reports the effective HTTPS state behind a reverse proxy', async () => {
+  const server = createDashboardServer();
+  const baseUrl = await listen(server);
+  try {
+    const response = await fetch(`${baseUrl}/api/dashboard`, {
+      headers: {
+        'X-Forwarded-Host': 'pass.picfix.top',
+        'X-Forwarded-Proto': 'https',
+      },
+    });
+    const dashboard = (await response.json()).data;
+    assert.equal(dashboard.security.connection, 'https');
+    assert.equal(
+      dashboard.security.checks.find((check) => check.id === 'public_https')
+        .status,
+      'pass',
+    );
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
 test('web server serves the dashboard entry for every menu route', async () => {
   const server = createDashboardServer();
   const baseUrl = await listen(server);
