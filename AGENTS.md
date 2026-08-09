@@ -18,6 +18,19 @@
 - 默认不执行 `git push`；只有用户明确要求推送时，才同步到远端仓库。
 - 修改尚未完成或验证失败时不要提交，应先修复；如果无法修复，向用户说明阻塞原因。
 
+## Code synchronization and source flow
+
+- GitHub `main` 是最终应收敛到的代码基线，但 ECS 也可能包含尚未回收到 Git 的有效修改，不能默认把 ECS 仅视为单向部署目标。
+- 开始涉及功能修改、推送、部署或 ECS 同步的任务时，先检查本地 HEAD 和工作树；涉及 GitHub 时再检查远端 `main`，涉及 ECS 时再检查 ECS HEAD 和工作树，明确三方差异后再决定同步方向。
+- 正常开发流程为：本地功能分支或 worktree 修改 → 本地验证 → Commit → 推送并合入 GitHub `main` → ECS 从 `main` 快进部署。
+- 如果 ECS 存在本地和 GitHub 都没有的有效修改，先只读盘点并备份 ECS 差异，再把代码同步到本地功能分支或 worktree；在本地审查、合并、构建和测试后 Commit、推送 GitHub，最后让 ECS 对齐该 Commit。
+- 如果本地和 ECS 同时有独有修改，必须先在本地完成合并和验证；禁止用任一方直接覆盖另一方。
+- 只有用户明确要求直接在线修复时，才可以在 ECS 修改业务代码；紧急修复完成后必须尽快回收到本地并提交 GitHub，再让 ECS 对齐 Git 中的 Commit，不能长期保留仅在线上存在的代码。
+- 从 ECS 回收代码时，不同步密码、令牌、运行配置、日志、`node_modules`、部署备份、构建临时文件或 `._*` AppleDouble 文件；不得读取或复制 `~/.auto-bj-pass` 中的敏感内容。
+- ECS 工作树不干净时不得直接执行覆盖式部署。先查明改动来源并做可恢复备份；确认改动已回收到 Git 或确定可以舍弃后，再使用快进方式同步。
+- 推荐在 ECS 使用 `git fetch origin` 后执行 `git merge --ff-only origin/main`，避免隐式合并提交；若 ECS 无法直接访问 GitHub，应先解决 Deploy Key 或网络问题，或使用经过校验的 Git bundle 传递同一 Commit。
+- 同步完成后，应确认本地、GitHub `main` 和 ECS 的 Commit 一致；需要严格核验时同时比较 tree hash，并确认 ECS 工作树不存在未说明的代码改动。
+
 ## Verification
 
 修改前端后依次运行：
