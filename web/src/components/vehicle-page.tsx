@@ -45,7 +45,7 @@ function NextRenewalCell({
   vehicle: Vehicle;
 }) {
   const record = getLatestRecord(vehicle);
-  let detail = '暂无有效期';
+  let detail = '暂无进京证有效期';
   let value = '待检查';
   if (!account.autoRenew) {
     detail = '自动续签已关闭';
@@ -176,7 +176,7 @@ export function VehiclePage({
           '—'
         );
       },
-      title: '有效期',
+      title: '进京证有效期',
       width: 120,
     },
     {
@@ -224,7 +224,7 @@ export function VehiclePage({
         );
       },
       title: (
-        <Tooltip title="按当前证件有效期结束日和自动调度时段估算；系统会先检查状态，仅在符合条件时提交续签">
+        <Tooltip title="按当前进京证有效期结束日和自动调度时段估算；系统会先检查状态，仅在符合条件时提交续签">
           预计下次续签
         </Tooltip>
       ),

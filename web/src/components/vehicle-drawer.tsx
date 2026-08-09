@@ -81,7 +81,7 @@ export function VehicleDrawer({
           <Tag color={status.color}>{status.label}</Tag>
         </div>
         <Descriptions column={2} colon={false} size="small">
-          <Descriptions.Item label="有效期">
+          <Descriptions.Item label="进京证有效期">
             {record ? `${record.validFrom || '—'} 至 ${record.validTo || '—'}` : '—'}
           </Descriptions.Item>
           <Descriptions.Item label="剩余申请次数">
