@@ -182,7 +182,7 @@ export function AccountPage({
           preserve={false}
         >
           <Form.Item label="账号名称" name="name">
-            <Input maxLength={40} placeholder="例如：家庭账号（留空使用手机号）" />
+            <Input maxLength={40} placeholder="例如：赵xx（留空使用手机号）" />
           </Form.Item>
           <Form.Item
             label="北京通手机号"
