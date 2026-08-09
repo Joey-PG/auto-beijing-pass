@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { scryptSync } from 'node:crypto';
 import { once } from 'node:events';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
+import { readAuditEvents } from '../src/lib/audit-logger.js';
+import { saveConfig } from '../src/lib/config-manager.js';
 import {
   createDashboardServer,
   startDashboardServer,
@@ -30,7 +35,9 @@ test('web server serves the dashboard with security headers', async () => {
 });
 
 test('web server uses a login session without triggering browser basic auth', async () => {
+  const auditEvents = [];
   const server = createDashboardServer({
+    auditWriter: (event, fields) => auditEvents.push({ event, ...fields }),
     username: 'operator',
     password: 'secret-value',
   });
@@ -87,6 +94,14 @@ test('web server uses a login session without triggering browser basic auth', as
       headers: { Cookie: cookie },
     });
     assert.equal(expired.status, 401);
+    assert.deepEqual(
+      auditEvents.map(({ event, actor, result }) => ({ event, actor, result })),
+      [
+        { event: 'web_login_failed', actor: 'operator', result: 'failure' },
+        { event: 'web_login_succeeded', actor: 'operator', result: 'success' },
+        { event: 'web_logout', actor: 'operator', result: 'success' },
+      ],
+    );
   } finally {
     server.close();
     await once(server, 'close');
@@ -102,7 +117,11 @@ test('web server accepts multiple hashed login accounts', async () => {
     salt,
     username,
   }));
-  const server = createDashboardServer({ users });
+  const auditEvents = [];
+  const server = createDashboardServer({
+    auditWriter: (event, fields) => auditEvents.push({ event, ...fields }),
+    users,
+  });
   const baseUrl = await listen(server);
   try {
     for (const [username, password] of [
@@ -128,9 +147,62 @@ test('web server accepts multiple hashed login accounts', async () => {
       method: 'POST',
     });
     assert.equal(removedAccount.status, 401);
+    assert.deepEqual(
+      auditEvents.map(({ event, actor }) => ({ event, actor })),
+      [
+        { event: 'web_login_succeeded', actor: 'zhaochunxu' },
+        { event: 'web_login_succeeded', actor: 'zhaoyue' },
+        { event: 'web_login_failed', actor: 'admin' },
+      ],
+    );
   } finally {
     server.close();
     await once(server, 'close');
+  }
+});
+
+test('web mutations write the authenticated administrator to audit logs', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-actor-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  saveConfig({
+    users: [{
+      auth: 'test-token',
+      auto_renew: true,
+      bjt_phone: '13800000001',
+      entry_type: '六环外',
+      name: '测试账号',
+    }],
+  });
+  const server = createDashboardServer({
+    auditWriter: () => {},
+    password: 'secret-value',
+    username: 'zhaoyue',
+  });
+  const baseUrl = await listen(server);
+  try {
+    const login = await fetch(`${baseUrl}/api/auth/login`, {
+      body: JSON.stringify({ username: 'zhaoyue', password: 'secret-value' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+    const response = await fetch(`${baseUrl}/api/accounts/1`, {
+      body: JSON.stringify({ autoRenew: false }),
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: login.headers.get('set-cookie'),
+      },
+      method: 'PATCH',
+    });
+    assert.equal(response.status, 200);
+    const [event] = readAuditEvents({ since: '1d', limit: 10 });
+    assert.equal(event.event, 'config_changed');
+    assert.equal(event.actor, 'zhaoyue');
+    assert.equal(event.account, '测试账号');
+  } finally {
+    server.close();
+    await once(server, 'close');
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
   }
 });
 

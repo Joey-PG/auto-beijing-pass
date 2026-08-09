@@ -36,12 +36,17 @@ function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function writeWebFailure(event, error, { user = null, ...fields } = {}) {
+function writeWebFailure(
+  event,
+  error,
+  { actor = null, user = null, ...fields } = {},
+) {
   writeAuditEvent(
     event,
     {
       ...fields,
       account: user ? getAccountLabel(user) : null,
+      actor,
       error: getErrorMessage(error),
       result: 'failure',
       source: 'web',
@@ -222,7 +227,7 @@ export async function getDashboard() {
       const lastExecution = auditEvents.find(
         (event) =>
           auditAccountNames.has(event.account) &&
-          event.plate === maskedPlate &&
+          [vehicle.licenseNumber, maskedPlate].includes(event.plate) &&
           String(event.event || '').startsWith('renewal_'),
       );
       vehicle.lastExecution = lastExecution
@@ -255,7 +260,10 @@ export async function getDashboard() {
   };
 }
 
-export async function addDashboardAccount(input, { loginFn = login } = {}) {
+export async function addDashboardAccount(
+  input,
+  { actor = null, loginFn = login } = {},
+) {
   let phone = '';
   try {
     phone = validatePhone(input?.phone);
@@ -287,6 +295,7 @@ export async function addDashboardAccount(input, { loginFn = login } = {}) {
     const index = upsertUser(user);
     writeAuditEvent('account_initialized', {
       account: name,
+      actor,
       phone,
       result: 'success',
       entry_type: entryType,
@@ -295,7 +304,7 @@ export async function addDashboardAccount(input, { loginFn = login } = {}) {
     });
     return { id: String(index + 1), name, phone };
   } catch (error) {
-    writeWebFailure('account_initialized', error, { phone });
+    writeWebFailure('account_initialized', error, { actor, phone });
     if (error instanceof WebServiceError) throw error;
     throw new WebServiceError(`北京通登录失败：${getErrorMessage(error)}`, 400);
   }
@@ -304,7 +313,7 @@ export async function addDashboardAccount(input, { loginFn = login } = {}) {
 export async function reloginDashboardAccount(
   accountId,
   input,
-  { loginFn = login } = {},
+  { actor = null, loginFn = login } = {},
 ) {
   let user = null;
   try {
@@ -314,32 +323,38 @@ export async function reloginDashboardAccount(
     updateUser({ auth: token, bjt_pwd: password }, user.bjt_phone);
     writeAuditEvent('account_reauthenticated', {
       account: getAccountLabel(user),
+      actor,
       phone: user.bjt_phone,
       result: 'success',
       source: 'web',
     });
     return { updated: true };
   } catch (error) {
-    writeWebFailure('account_reauthenticated', error, { user });
+    writeWebFailure('account_reauthenticated', error, { actor, user });
     if (error instanceof WebServiceError) throw error;
     throw new WebServiceError(`北京通登录失败：${getErrorMessage(error)}`, 400);
   }
 }
 
-export function removeDashboardAccount(accountId) {
+export function removeDashboardAccount(accountId, { actor = null } = {}) {
   let user = null;
   try {
     ({ user } = getAccountById(accountId));
     const removed = removeUser(user.bjt_phone);
     writeAuditEvent('account_removed', {
       account: getAccountLabel(removed),
+      actor,
       phone: removed.bjt_phone,
       result: 'success',
       source: 'web',
     });
     return { removed: true };
   } catch (error) {
-    writeWebFailure('account_removed', error, { account_id: accountId, user });
+    writeWebFailure('account_removed', error, {
+      account_id: accountId,
+      actor,
+      user,
+    });
     throw error;
   }
 }
@@ -381,7 +396,11 @@ function validateVehicleInput(input) {
   };
 }
 
-export async function addDashboardVehicle(accountId, input) {
+export async function addDashboardVehicle(
+  accountId,
+  input,
+  { actor = null } = {},
+) {
   let user = null;
   try {
     ({ user } = getAccountById(accountId));
@@ -394,6 +413,7 @@ export async function addDashboardVehicle(accountId, input) {
     }
     writeAuditEvent('vehicle_added', {
       account: getAccountLabel(user),
+      actor,
       result: 'success',
       plate: vehicle.licenseNumber,
       plate_type: vehicle.licensePlateType,
@@ -404,6 +424,7 @@ export async function addDashboardVehicle(accountId, input) {
   } catch (error) {
     writeWebFailure('vehicle_added', error, {
       account_id: accountId,
+      actor,
       plate: input?.licenseNumber || null,
       user,
     });
@@ -411,7 +432,11 @@ export async function addDashboardVehicle(accountId, input) {
   }
 }
 
-export async function removeDashboardVehicle(accountId, vehicleId) {
+export async function removeDashboardVehicle(
+  accountId,
+  vehicleId,
+  { actor = null } = {},
+) {
   let user = null;
   let vehicle = null;
   try {
@@ -432,6 +457,7 @@ export async function removeDashboardVehicle(accountId, vehicleId) {
     }
     writeAuditEvent('vehicle_removed', {
       account: getAccountLabel(user),
+      actor,
       result: 'success',
       plate: vehicle.licenseNumber,
       source: 'web',
@@ -440,6 +466,7 @@ export async function removeDashboardVehicle(accountId, vehicleId) {
   } catch (error) {
     writeWebFailure('vehicle_removed', error, {
       account_id: accountId,
+      actor,
       plate: vehicle?.licenseNumber || null,
       user,
       vehicle_id: vehicleId,
@@ -448,7 +475,11 @@ export async function removeDashboardVehicle(accountId, vehicleId) {
   }
 }
 
-export function updateDashboardAccount(accountId, input) {
+export function updateDashboardAccount(
+  accountId,
+  input,
+  { actor = null } = {},
+) {
   let user = null;
   try {
     const account = getAccountById(accountId);
@@ -490,6 +521,7 @@ export function updateDashboardAccount(accountId, input) {
     updateUser(updates, user.bjt_phone);
     writeAuditEvent('config_changed', {
       account: getAccountLabel(user),
+      actor,
       result: 'success',
       changed_fields: Object.keys(updates),
       source: 'web',
@@ -498,6 +530,7 @@ export function updateDashboardAccount(accountId, input) {
   } catch (error) {
     writeWebFailure('config_changed', error, {
       account_id: accountId,
+      actor,
       attempted_fields: Object.keys(input || {}),
       user,
     });
@@ -505,7 +538,11 @@ export function updateDashboardAccount(accountId, input) {
   }
 }
 
-export async function runDashboardRenewal(accountId, input) {
+export async function runDashboardRenewal(
+  accountId,
+  input,
+  { actor = null } = {},
+) {
   let user = null;
   const plate = String(input.licenseNumber || '').trim();
   try {
@@ -533,6 +570,7 @@ export async function runDashboardRenewal(accountId, input) {
           : 'renewal_skipped',
       {
         account: getAccountLabel(user),
+        actor,
         result: 'success',
         reason: result.reason,
         plate,
@@ -550,6 +588,7 @@ export async function runDashboardRenewal(accountId, input) {
   } catch (error) {
     writeWebFailure('renewal_failed', error, {
       account_id: accountId,
+      actor,
       plate: plate || null,
       user,
     });

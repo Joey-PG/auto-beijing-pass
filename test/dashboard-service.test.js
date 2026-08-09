@@ -119,21 +119,27 @@ test('dashboard updates only supported account renewal settings', () => {
       autoRenew: false,
       entryType: '六环内',
       preferredVehicle: '京B12345',
-    });
+    }, { actor: 'zhaoyue' });
 
     const user = loadConfig().users[0];
     assert.equal(user.auto_renew, false);
     assert.equal(user.entry_type, '六环内');
     assert.equal(user.preferred_vehicle, '京B12345');
     assert.throws(
-      () => updateDashboardAccount('1', { entryType: '不限区域' }),
+      () => updateDashboardAccount(
+        '1',
+        { entryType: '不限区域' },
+        { actor: 'zhaoyue' },
+      ),
       /只能是六环内或六环外/,
     );
     const audit = readAuditEvents({ since: '1d', limit: 10 });
     assert.equal(audit.length, 2);
     assert.equal(audit[0].source, 'web');
+    assert.equal(audit[0].actor, 'zhaoyue');
     assert.equal(audit[0].result, 'success');
     assert.equal(audit[1].source, 'web');
+    assert.equal(audit[1].actor, 'zhaoyue');
     assert.equal(audit[1].result, 'failure');
     assert.equal(audit[1].error, '进京证类型只能是六环内或六环外');
   } finally {
@@ -156,6 +162,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
         autoRenew: true,
       },
       {
+        actor: 'zhaochunxu',
         loginFn: async (phone, password) => {
           assert.equal(phone, '13800000001');
           assert.equal(password, 'initial-secret');
@@ -175,11 +182,15 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       auto_renew: true,
     });
 
-    updateDashboardAccount('1', {
-      name: '家庭账号',
-      entryType: '六环内',
-      autoRenew: false,
-    });
+    updateDashboardAccount(
+      '1',
+      {
+        name: '家庭账号',
+        entryType: '六环内',
+        autoRenew: false,
+      },
+      { actor: 'zhaochunxu' },
+    );
     assert.equal(loadConfig().users[0].name, '家庭账号');
     assert.equal(loadConfig().users[0].entry_type, '六环内');
     assert.equal(loadConfig().users[0].auto_renew, false);
@@ -188,7 +199,10 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       reloginDashboardAccount(
         '1',
         { password: 'wrong-secret' },
-        { loginFn: async () => { throw new Error('密码错误'); } },
+        {
+          actor: 'zhaochunxu',
+          loginFn: async () => { throw new Error('密码错误'); },
+        },
       ),
       /北京通登录失败：密码错误/,
     );
@@ -198,20 +212,24 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     await reloginDashboardAccount(
       '1',
       { password: 'next-secret' },
-      { loginFn: async () => 'second-token' },
+      { actor: 'zhaochunxu', loginFn: async () => 'second-token' },
     );
     assert.equal(loadConfig().users[0].auth, 'second-token');
     assert.equal(loadConfig().users[0].bjt_pwd, 'next-secret');
 
     assert.throws(
-      () => removeDashboardAccount('2'),
+      () => removeDashboardAccount('2', { actor: 'zhaochunxu' }),
       /账号不存在/,
     );
-    assert.deepEqual(removeDashboardAccount('1'), { removed: true });
+    assert.deepEqual(
+      removeDashboardAccount('1', { actor: 'zhaochunxu' }),
+      { removed: true },
+    );
     assert.equal(loadConfig().users.length, 0);
 
     const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
     assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
+    assert.match(auditText, /zhaochunxu/);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

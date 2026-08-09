@@ -333,9 +333,9 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   };
 
   const menuItems = [
+    { icon: <TeamOutlined />, key: 'accounts', label: '账号管理' },
     { icon: <CarOutlined />, key: 'vehicles', label: '车辆管理' },
     { icon: <FileTextOutlined />, key: 'audit', label: '运行记录' },
-    { icon: <TeamOutlined />, key: 'accounts', label: '账号管理' },
     { icon: <SettingOutlined />, key: 'system', label: '系统设置' },
   ];
 

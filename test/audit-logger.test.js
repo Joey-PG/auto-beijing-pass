@@ -59,10 +59,9 @@ test('writes persistent logs with restrictive permissions and masks secrets', ()
     );
     assert.match(appLog, /139\*{4}4105/);
     assert.match(appLog, /津G\*{5}/);
-    assert.doesNotMatch(
-      auditLog,
-      /13901224105|津G835S0|private-token|放光村/,
-    );
+    assert.match(auditLog, /13901224105/);
+    assert.match(auditLog, /津G835S0/);
+    assert.doesNotMatch(auditLog, /private-token|放光村/);
     assert.equal(statSync(getLogDir()).mode & 0o777, 0o700);
     assert.equal(statSync(getAppLogPath(date)).mode & 0o777, 0o600);
     assert.equal(statSync(getAuditLogPath(date)).mode & 0o777, 0o600);
@@ -109,7 +108,7 @@ test('queries audit events by time, account and event', () => {
       now: new Date('2026-07-31T00:00:00.000Z'),
     });
     assert.equal(rows.length, 1);
-    assert.equal(rows[0].account, '139****4105');
+    assert.equal(rows[0].account, '13901224105');
     assert.equal(rows[0].event, 'renewal_skipped');
     assert.equal(rows[0].run_id, 'run-1');
   } finally {
@@ -160,6 +159,7 @@ test('classifies outcomes and paginates audit events newest first', () => {
       ['renewal_submitted', 'renewal_failed'],
     );
     assert.equal(firstPage.items[0].source, 'web');
+    assert.equal(firstPage.items[0].actor, null);
     assert.equal(failures.total, 1);
     assert.equal(getAuditOutcome({ result: 'partial_failure' }), 'partial_failure');
     assert.equal(getAuditOutcome({ result: 'skipped' }), 'skipped');

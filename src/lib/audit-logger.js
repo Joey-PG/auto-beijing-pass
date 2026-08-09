@@ -104,7 +104,11 @@ export function sanitizeLogText(value) {
     .replace(/^(\s*发动机号):.*$/gm, '$1: [已脱敏]');
 }
 
-function sanitizeAuditValue(value, key = '') {
+function sanitizeAuditValue(
+  value,
+  key = '',
+  { maskIdentifiers = true } = {},
+) {
   if (value === null || value === undefined) return value;
   if (
     /^(auth|token|password|bjt_pwd|secret|notify_urls?|url|payload|address|location|longitude|latitude)$/i.test(
@@ -114,21 +118,23 @@ function sanitizeAuditValue(value, key = '') {
     return '[已脱敏]';
   }
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeAuditValue(item));
+    return value.map((item) =>
+      sanitizeAuditValue(item, '', { maskIdentifiers }),
+    );
   }
   if (typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value).map(([childKey, childValue]) => [
         childKey,
-        sanitizeAuditValue(childValue, childKey),
+        sanitizeAuditValue(childValue, childKey, { maskIdentifiers }),
       ]),
     );
   }
   if (/phone|mobile|account/i.test(key)) {
-    return maskPhone(value);
+    return maskIdentifiers ? maskPhone(value) : String(value);
   }
   if (/plate|hphm/i.test(key)) {
-    return maskPlate(value);
+    return maskIdentifiers ? maskPlate(value) : String(value);
   }
   return typeof value === 'string' ? sanitizeLogText(value) : value;
 }
@@ -166,7 +172,16 @@ export function writeAuditEvent(
   fields = {},
   { level = 'info', date = new Date(), runId = null } = {},
 ) {
-  const { source: fieldSource, ...safeFields } = sanitizeAuditValue(fields);
+  const {
+    actor: fieldActor,
+    source: fieldSource,
+    ...safeFields
+  } = sanitizeAuditValue(fields, '', { maskIdentifiers: false });
+  const source =
+    fieldSource ||
+    process.env.AUTO_BJ_PASS_RUN_SOURCE ||
+    process.env.CROSS_BJ_RUN_SOURCE ||
+    'manual';
   const entry = {
     ...safeFields,
     timestamp: localIsoTimestamp(date),
@@ -177,11 +192,14 @@ export function writeAuditEvent(
       process.env.AUTO_BJ_PASS_RUN_ID ||
       process.env.CROSS_BJ_RUN_ID ||
       randomUUID(),
-    source:
-      fieldSource ||
-      process.env.AUTO_BJ_PASS_RUN_SOURCE ||
-      process.env.CROSS_BJ_RUN_SOURCE ||
-      'manual',
+    source,
+    actor:
+      fieldActor ||
+      process.env.AUTO_BJ_PASS_RUN_ACTOR ||
+      process.env.CROSS_BJ_RUN_ACTOR ||
+      (source === 'manual'
+        ? process.env.SUDO_USER || process.env.USER || null
+        : null),
     version:
       process.env.AUTO_BJ_PASS_VERSION ||
       process.env.CROSS_BJ_VERSION ||
@@ -230,7 +248,9 @@ export function readAuditEvents({
   const dir = getLogDir();
   if (!existsSync(dir)) return [];
   const sinceDate = parseSince(since, now);
-  const safeAccount = account ? maskPhone(account) : null;
+  const accountFilters = account
+    ? new Set([String(account), maskPhone(account)])
+    : null;
   const files = readdirSync(dir)
     .filter((name) => /^audit-\d{4}-\d{2}\.jsonl$/.test(name))
     .sort();
@@ -244,8 +264,10 @@ export function readAuditEvents({
         if (new Date(row.timestamp) < sinceDate) continue;
         if (event && row.event !== event) continue;
         if (
-          safeAccount &&
-          !String(row.account || '').includes(safeAccount)
+          accountFilters &&
+          ![...accountFilters].some((candidate) =>
+            String(row.account || '').includes(candidate),
+          )
         ) {
           continue;
         }

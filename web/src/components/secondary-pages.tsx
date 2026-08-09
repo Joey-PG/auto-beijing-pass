@@ -61,6 +61,10 @@ const eventLabels: Record<string, string> = {
   vehicle_added: '添加车辆',
   vehicle_plate_swapped: '车辆换牌',
   vehicle_removed: '删除车辆',
+  web_login_blocked: '后台登录已拦截',
+  web_login_failed: '后台登录失败',
+  web_login_succeeded: '后台登录成功',
+  web_logout: '退出后台',
   web_started: '管理后台启动',
 };
 
@@ -70,6 +74,15 @@ const reasonLabels: Record<string, string> = {
   auto_renew_disabled: '账号未开启自动续签',
   not_due: '当前证件暂不需要续签',
   outside_random_window: '当前不在随机执行时段内',
+  invalid_credentials: '用户名或密码不正确',
+  too_many_attempts: '登录失败次数过多',
+};
+
+const sourceLabels: Record<string, string> = {
+  cron: '定时任务',
+  cron_tick: '定时调度',
+  manual: '命令行',
+  web: '管理后台',
 };
 
 const outcomePresentation: Record<
@@ -96,6 +109,34 @@ function getOutcome(item: AuditEvent): AuditOutcome {
 function getAuditDescription(item: AuditEvent) {
   const description = item.reason || item.error;
   return description ? reasonLabels[description] || description : '—';
+}
+
+function maskPlateForLookup(value: string) {
+  return value.replace(
+    /([京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川贵云藏陕甘青宁新使领警学港澳][A-Z])[A-Z0-9]{5,6}/g,
+    '$1*****',
+  );
+}
+
+function getAuditActor(item: AuditEvent) {
+  if (item.actor) return item.actor;
+  if (item.source === 'cron' || item.source === 'cron_tick') {
+    return '系统定时任务';
+  }
+  if (item.source === 'web') return '历史记录（未记录）';
+  return '系统任务';
+}
+
+function getAuditVehicle(item: AuditEvent, accounts: Account[]) {
+  if (!item.plate) return '—';
+  if (!item.plate.includes('*')) return item.plate;
+  const matchingAccounts = accounts.filter((account) =>
+    [account.name, account.phone].includes(item.account || ''),
+  );
+  const candidates = (matchingAccounts.length > 0 ? matchingAccounts : accounts)
+    .flatMap((account) => account.vehicles)
+    .filter((vehicle) => maskPlateForLookup(vehicle.licenseNumber) === item.plate);
+  return candidates.length === 1 ? candidates[0].licenseNumber : item.plate;
 }
 
 interface AuditPageProps {
@@ -140,11 +181,25 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
       width: 150,
     },
     {
+      dataIndex: 'actor',
+      key: 'actor',
+      render: (_, item) => getAuditActor(item),
+      title: '操作人',
+      width: 150,
+    },
+    {
       dataIndex: 'account',
       key: 'account',
       render: (value?: string) => value || '系统任务',
-      title: '账号',
+      title: '业务账号',
       width: 150,
+    },
+    {
+      dataIndex: 'plate',
+      key: 'plate',
+      render: (_, item) => getAuditVehicle(item, accounts),
+      title: '车辆',
+      width: 120,
     },
     {
       dataIndex: 'event',
@@ -152,6 +207,13 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
       render: (event: string) => eventLabels[event] || event,
       title: '事件',
       width: 220,
+    },
+    {
+      dataIndex: 'source',
+      key: 'source',
+      render: (source?: string) => sourceLabels[source || ''] || source || '未知',
+      title: '来源',
+      width: 110,
     },
     {
       dataIndex: 'reason',
@@ -245,7 +307,7 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
           rowKey={(item) =>
             `${item.run_id || 'event'}-${item.timestamp}-${item.event}-${item.account || ''}`
           }
-          scroll={{ x: 760 }}
+          scroll={{ x: 1280 }}
         />
       </Card>
     </div>

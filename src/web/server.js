@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { writeAuditEvent } from '../lib/audit-logger.js';
+
 import {
   addDashboardAccount,
   addDashboardVehicle,
@@ -93,22 +95,22 @@ function verifyCredentials(username, password, authenticators) {
   return safeEqual(authenticator.password, password) ? authenticator.name : null;
 }
 
-function isBasicAuthenticated(request, authenticators) {
+function getBasicAuthenticatedUsername(request, authenticators) {
   const authorization = request.headers.authorization || '';
-  if (!authorization.startsWith('Basic ')) return false;
+  if (!authorization.startsWith('Basic ')) return null;
   let credentials;
   try {
     credentials = Buffer.from(authorization.slice(6), 'base64').toString();
   } catch {
-    return false;
+    return null;
   }
   const separator = credentials.indexOf(':');
-  if (separator < 0) return false;
-  return Boolean(verifyCredentials(
+  if (separator < 0) return null;
+  return verifyCredentials(
     credentials.slice(0, separator),
     credentials.slice(separator + 1),
     authenticators,
-  ));
+  );
 }
 
 function parseCookies(request) {
@@ -138,7 +140,7 @@ function getSession(request, sessions) {
 function isAuthenticated(request, authenticators, sessions) {
   if (authenticators.length === 0) return true;
   return Boolean(getSession(request, sessions)) ||
-    isBasicAuthenticated(request, authenticators);
+    Boolean(getBasicAuthenticatedUsername(request, authenticators));
 }
 
 function getClientAddress(request) {
@@ -171,7 +173,7 @@ function pruneSessions(sessions) {
 }
 
 async function handleAuth(request, response, url, context) {
-  const { authenticators, loginAttempts, sessions } = context;
+  const { auditWriter, authenticators, loginAttempts, sessions } = context;
   const authenticationEnabled = authenticators.length > 0;
 
   if (request.method === 'GET' && url.pathname === '/api/auth/session') {
@@ -191,6 +193,11 @@ async function handleAuth(request, response, url, context) {
       throw new WebServiceError('请求来源校验失败', 403);
     }
     if (!authenticationEnabled) {
+      auditWriter('web_login_succeeded', {
+        actor: '本机管理员',
+        result: 'success',
+        source: 'web',
+      });
       sendJson(response, 200, {
         success: true,
         data: { authenticated: true, username: '本机管理员' },
@@ -201,7 +208,16 @@ async function handleAuth(request, response, url, context) {
     const address = getClientAddress(request);
     const now = Date.now();
     const attempt = loginAttempts.get(address);
+    const body = await readJsonBody(request);
+    const attemptedUsername = String(body.username || '').trim();
     if (attempt?.blockedUntil > now) {
+      auditWriter('web_login_blocked', {
+        actor: attemptedUsername || null,
+        address,
+        reason: 'too_many_attempts',
+        result: 'failure',
+        source: 'web',
+      }, { level: 'warning' });
       sendJson(response, 429, {
         success: false,
         message: '登录失败次数过多，请稍后再试',
@@ -209,9 +225,8 @@ async function handleAuth(request, response, url, context) {
       return true;
     }
 
-    const body = await readJsonBody(request);
     const authenticatedUsername = verifyCredentials(
-      body.username || '',
+      attemptedUsername,
       body.password || '',
       authenticators,
     );
@@ -226,6 +241,13 @@ async function handleAuth(request, response, url, context) {
         failures,
         startedAt: withinWindow ? attempt.startedAt : now,
       });
+      auditWriter('web_login_failed', {
+        actor: attemptedUsername || null,
+        address,
+        reason: 'invalid_credentials',
+        result: 'failure',
+        source: 'web',
+      }, { level: 'warning' });
       sendJson(response, 401, {
         success: false,
         message: blockedUntil
@@ -242,6 +264,12 @@ async function handleAuth(request, response, url, context) {
       expiresAt: now + SESSION_TTL_SECONDS * 1000,
       username: authenticatedUsername,
     });
+    auditWriter('web_login_succeeded', {
+      actor: authenticatedUsername,
+      address,
+      result: 'success',
+      source: 'web',
+    });
     sendJson(
       response,
       200,
@@ -256,6 +284,12 @@ async function handleAuth(request, response, url, context) {
       throw new WebServiceError('请求来源校验失败', 403);
     }
     const session = getSession(request, sessions);
+    auditWriter('web_logout', {
+      actor: session?.username || null,
+      address: getClientAddress(request),
+      result: 'success',
+      source: 'web',
+    });
     if (session) sessions.delete(session.token);
     sendJson(
       response,
@@ -297,7 +331,7 @@ async function readJsonBody(request) {
   }
 }
 
-async function handleApi(request, response, url) {
+async function handleApi(request, response, url, { actor = null } = {}) {
   if (request.method !== 'GET' && !isSafeOrigin(request)) {
     throw new WebServiceError('请求来源校验失败', 403);
   }
@@ -312,13 +346,13 @@ async function handleApi(request, response, url) {
   }
   if (request.method === 'POST' && url.pathname === '/api/accounts') {
     const body = await readJsonBody(request);
-    const data = await addDashboardAccount(body);
+    const data = await addDashboardAccount(body, { actor });
     sendJson(response, 201, { success: true, data });
     return true;
   }
   if (request.method === 'POST' && url.pathname === '/api/vehicles') {
     const body = await readJsonBody(request);
-    const data = await addDashboardVehicle(body.accountId, body);
+    const data = await addDashboardVehicle(body.accountId, body, { actor });
     sendJson(response, 201, { success: true, data });
     return true;
   }
@@ -329,6 +363,7 @@ async function handleApi(request, response, url) {
     const data = await removeDashboardVehicle(
       decodeURIComponent(vehicleMatch[1]),
       decodeURIComponent(vehicleMatch[2]),
+      { actor },
     );
     sendJson(response, 200, { success: true, data });
     return true;
@@ -342,6 +377,7 @@ async function handleApi(request, response, url) {
     const data = await reloginDashboardAccount(
       decodeURIComponent(accountLoginMatch[1]),
       body,
+      { actor },
     );
     sendJson(response, 200, { success: true, data });
     return true;
@@ -351,18 +387,22 @@ async function handleApi(request, response, url) {
     const data = updateDashboardAccount(
       decodeURIComponent(accountMatch[1]),
       body,
+      { actor },
     );
     sendJson(response, 200, { success: true, data });
     return true;
   }
   if (request.method === 'DELETE' && accountMatch) {
-    const data = removeDashboardAccount(decodeURIComponent(accountMatch[1]));
+    const data = removeDashboardAccount(
+      decodeURIComponent(accountMatch[1]),
+      { actor },
+    );
     sendJson(response, 200, { success: true, data });
     return true;
   }
   if (request.method === 'POST' && url.pathname === '/api/renewals') {
     const body = await readJsonBody(request);
-    const data = await runDashboardRenewal(body.accountId, body);
+    const data = await runDashboardRenewal(body.accountId, body, { actor });
     sendJson(response, 200, { success: true, data });
     return true;
   }
@@ -394,7 +434,12 @@ async function serveStatic(response, pathname) {
   }
 }
 
-export function createDashboardServer({ username = '', password = '', users = [] } = {}) {
+export function createDashboardServer({
+  auditWriter = writeAuditEvent,
+  username = '',
+  password = '',
+  users = [],
+} = {}) {
   const sessions = new Map();
   const loginAttempts = new Map();
   const authenticators = normalizeAuthenticators({ password, username, users });
@@ -403,6 +448,7 @@ export function createDashboardServer({ username = '', password = '', users = []
       const url = new URL(request.url || '/', `http://${request.headers.host}`);
       if (url.pathname.startsWith('/api/')) {
         const authHandled = await handleAuth(request, response, url, {
+          auditWriter,
           authenticators,
           loginAttempts,
           sessions,
@@ -415,7 +461,11 @@ export function createDashboardServer({ username = '', password = '', users = []
           });
           return;
         }
-        const handled = await handleApi(request, response, url);
+        const session = getSession(request, sessions);
+        const actor = session?.username ||
+          getBasicAuthenticatedUsername(request, authenticators) ||
+          (authenticators.length === 0 ? '本机管理员' : null);
+        const handled = await handleApi(request, response, url, { actor });
         if (!handled) sendJson(response, 404, { success: false, message: '接口不存在' });
         return;
       }

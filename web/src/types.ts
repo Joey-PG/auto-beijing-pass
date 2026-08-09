@@ -97,9 +97,11 @@ export interface Dashboard {
 
 export interface AuditEvent {
   account?: string;
+  actor?: string;
   error?: string;
   event: string;
   level: string;
+  plate?: string;
   reason?: string;
   result?: string;
   run_id?: string;
