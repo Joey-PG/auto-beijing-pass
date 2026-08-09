@@ -1,6 +1,7 @@
 import {
   getAccountLabel,
   getMutationUser,
+  getSystemDefaultTripProfile,
   updateUser,
 } from '../lib/config-manager.js';
 import { output, success, error } from '../output.js';
@@ -20,7 +21,10 @@ function normalizeCoordinate(value, label, min, max) {
 }
 
 function formatTripProfile(user) {
-  const profile = resolveUserTripProfile(user);
+  const profile = resolveUserTripProfile(
+    user,
+    getSystemDefaultTripProfile(),
+  );
   if (!profile) {
     return (
       `账号: ${getAccountLabel(user)}\n` +
@@ -73,7 +77,10 @@ export function registerTripCommand(program) {
           return;
         }
 
-        const previousProfile = resolveUserTripProfile(user);
+        const previousProfile = resolveUserTripProfile(
+          user,
+          getSystemDefaultTripProfile(),
+        );
         const inBeijingAddress = (
           options.inBeijingAddress ??
           options.address ??
@@ -216,9 +223,15 @@ export function registerTripCommand(program) {
           success(
             {
               account: getAccountLabel(user),
-              tripProfile: resolveUserTripProfile(user),
+              tripProfile: resolveUserTripProfile(
+                user,
+                getSystemDefaultTripProfile(),
+              ),
               tripProfileMode: getTripProfileMode(user),
-              configured: Boolean(resolveUserTripProfile(user)),
+              configured: Boolean(resolveUserTripProfile(
+                user,
+                getSystemDefaultTripProfile(),
+              )),
             },
             formatTripProfile(user),
           ),

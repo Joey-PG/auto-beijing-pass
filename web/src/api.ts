@@ -6,6 +6,7 @@ import type {
   AuditQuery,
   Dashboard,
   MembershipUpdateInput,
+  TripProfile,
   TripProfileInput,
   TripProfileUpdateInput,
 } from './types';
@@ -116,6 +117,14 @@ export const dashboardApi = {
   updateTripProfile: (accountId: string, body: TripProfileUpdateInput) =>
     request<{ updated: boolean }>(
       `/api/accounts/${encodeURIComponent(accountId)}/trip-profile`,
+      {
+        body: JSON.stringify(body),
+        method: 'PUT',
+      },
+    ),
+  updateDefaultTripProfile: (body: TripProfileInput) =>
+    request<{ defaultTripProfile: TripProfile; updated: boolean }>(
+      '/api/system/default-trip-profile',
       {
         body: JSON.stringify(body),
         method: 'PUT',

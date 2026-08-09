@@ -19,6 +19,7 @@ import {
   removeDashboardAccount,
   runDashboardRenewal,
   updateDashboardAccount,
+  updateDashboardDefaultTripProfile,
   updateDashboardTripProfile,
 } from '../src/web/dashboard-service.js';
 
@@ -229,13 +230,22 @@ test('dashboard saves and validates account trip profiles', () => {
       { actor: 'zhaoyue' },
     ));
 
+    const systemDefaultResult = updateDashboardDefaultTripProfile(input, {
+      actor: 'zhaoyue',
+    });
+    assert.equal(systemDefaultResult.updated, true);
+    assert.equal(
+      loadConfig().default_trip_profile.destination.address,
+      input.destinationAddress,
+    );
+
     const defaultResult = updateDashboardTripProfile(
       '1',
       { tripProfileMode: 'default' },
       { actor: 'zhaoyue' },
     );
     assert.equal(defaultResult.tripProfileMode, 'default');
-    assert.equal(defaultResult.tripProfile.destination.area, '平谷区');
+    assert.equal(defaultResult.tripProfile.destination.area, '海淀区');
     assert.equal(loadConfig().users[0].trip_profile_mode, 'default');
     assert.equal(loadConfig().users[0].trip_profile, null);
     assert.doesNotThrow(() => updateDashboardAccount(

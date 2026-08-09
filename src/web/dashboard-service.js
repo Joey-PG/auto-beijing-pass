@@ -8,9 +8,11 @@ import { ApiManager } from '../lib/api-manager.js';
 import { login } from '../lib/bjt-login.js';
 import {
   getAccountLabel,
+  getSystemDefaultTripProfile,
   getUsers,
   removeUser,
   resolveUser,
+  setSystemDefaultTripProfile,
   updateUser,
   upsertUser,
 } from '../lib/config-manager.js';
@@ -33,7 +35,6 @@ import {
 } from '../lib/membership.js';
 import {
   createTripProfile,
-  DEFAULT_TRIP_PROFILE,
   getTripProfileMode,
   isUserTripProfileConfigured,
   resolveUserTripProfile,
@@ -226,7 +227,7 @@ function mergeVehicle(fullVehicle, stateVehicle, user, account) {
   };
 }
 
-async function loadAccountDashboard(user, index) {
+async function loadAccountDashboard(user, index, defaultTripProfile) {
   const api = createApi(user);
   const membership = getMembershipInfo(user);
   const account = {
@@ -236,9 +237,12 @@ async function loadAccountDashboard(user, index) {
     entryType: user.entry_type || '六环外',
     autoRenew: user.auto_renew !== false,
     preferredVehicle: user.preferred_vehicle || '',
-    tripProfile: resolveUserTripProfile(user),
+    tripProfile: resolveUserTripProfile(user, defaultTripProfile),
     tripProfileMode: getTripProfileMode(user),
-    tripProfileConfigured: isUserTripProfileConfigured(user),
+    tripProfileConfigured: isUserTripProfileConfigured(
+      user,
+      defaultTripProfile,
+    ),
     membershipStartedOn: membership.startedOn,
     membershipExpiresOn: membership.expiresOn,
     membershipPermanent: membership.permanent,
@@ -277,8 +281,10 @@ async function loadAccountDashboard(user, index) {
 
 export async function getDashboard({ securityContext = {} } = {}) {
   const users = getUsers({ initializedOnly: true });
+  const defaultTripProfile = getSystemDefaultTripProfile();
   const accounts = await Promise.all(
-    users.map((user, index) => loadAccountDashboard(user, index)),
+    users.map((user, index) =>
+      loadAccountDashboard(user, index, defaultTripProfile)),
   );
   const auditEvents = readAuditEvents({ since: '30d', limit: 500 }).reverse();
   for (const account of accounts) {
@@ -313,7 +319,7 @@ export async function getDashboard({ securityContext = {} } = {}) {
   const generatedAt = new Date().toISOString();
   return {
     generatedAt,
-    defaultTripProfile: DEFAULT_TRIP_PROFILE,
+    defaultTripProfile,
     mapConfig: {
       enabled: Boolean(
         process.env.AMAP_JS_KEY && process.env.AMAP_JS_SECURITY_CODE,
@@ -702,7 +708,7 @@ export function updateDashboardTripProfile(
       throw new WebServiceError('请选择使用系统默认或自定义出行配置', 400);
     }
     const tripProfile = tripProfileMode === 'default'
-      ? DEFAULT_TRIP_PROFILE
+      ? getSystemDefaultTripProfile()
       : createTripProfile(input);
     updateUser({
       trip_profile_mode: tripProfileMode,
@@ -727,6 +733,32 @@ export function updateDashboardTripProfile(
     });
     if (error instanceof WebServiceError) throw error;
     throw new WebServiceError(getErrorMessage(error), 400);
+  }
+}
+
+export function updateDashboardDefaultTripProfile(
+  input,
+  { actor = null } = {},
+) {
+  let tripProfile;
+  try {
+    tripProfile = { ...createTripProfile(input), source: 'default' };
+    setSystemDefaultTripProfile(tripProfile);
+    writeAuditEvent('default_trip_profile_changed', {
+      actor,
+      result: 'success',
+      area: tripProfile.destination.area,
+      district_code: tripProfile.destination.district_code,
+      purpose_code: tripProfile.purpose.code,
+      source: 'web',
+    });
+    return { defaultTripProfile: tripProfile, updated: true };
+  } catch (error) {
+    const serviceError = error instanceof WebServiceError
+      ? error
+      : new WebServiceError(getErrorMessage(error), 400);
+    writeWebFailure('default_trip_profile_changed', serviceError, { actor });
+    throw serviceError;
   }
 }
 

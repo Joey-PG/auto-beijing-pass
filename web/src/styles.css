@@ -369,7 +369,9 @@ button, input, select { font: inherit; }
 .system-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .system-card-grid > .ant-card { min-width: 0; }
 .system-schedule-card,
-.system-account-plan-card { grid-column: 1 / -1; }
+.system-account-plan-card,
+.system-default-trip-card { grid-column: 1 / -1; }
+.system-default-trip-alert { margin-bottom: 18px; }
 .system-schedule-card .ant-card-head-wrapper { flex-wrap: wrap; gap: 8px; }
 .system-schedule-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
 .system-schedule-heading > div { display: flex; align-items: center; gap: 8px; color: #475467; }

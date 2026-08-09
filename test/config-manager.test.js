@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
+  getSystemDefaultTripProfile,
   getMutationUser,
   getSelectedUsers,
   loadConfig,
@@ -20,9 +21,15 @@ import {
   removeUser,
   resolveUser,
   saveConfig,
+  setSystemDefaultTripProfile,
   updateUser,
   upsertUser,
 } from '../src/lib/config-manager.js';
+import {
+  createTripProfile,
+  DEFAULT_TRIP_PROFILE,
+  resolveUserTripProfile,
+} from '../src/lib/trip-profile.js';
 
 function makeUser(name, phone, auth) {
   return {
@@ -35,6 +42,48 @@ function makeUser(name, phone, auth) {
     preferred_vehicle: '',
   };
 }
+
+test('persists one system trip profile without copying it into accounts', () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-default-trip-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({ users: [makeUser('默认账号', '13800000001', 'token')] });
+    assert.equal(getSystemDefaultTripProfile(), DEFAULT_TRIP_PROFILE);
+
+    const profile = createTripProfile({
+      inBeijingAddress: '管理员设置的在京地址',
+      inBeijingLongitude: '116.40',
+      inBeijingLatitude: '39.90',
+      destinationAddress: '管理员设置的目的地',
+      destinationLongitude: '116.41',
+      destinationLatitude: '39.91',
+      destinationArea: '朝阳区',
+      districtCode: '003',
+      purposeName: '其它',
+      purposeCode: '06',
+    });
+    setSystemDefaultTripProfile(profile);
+
+    const config = loadConfig();
+    assert.equal(
+      getSystemDefaultTripProfile().destination.address,
+      '管理员设置的目的地',
+    );
+    assert.equal(
+      resolveUserTripProfile(
+        { trip_profile_mode: 'default' },
+        getSystemDefaultTripProfile(),
+      ).destination.address,
+      '管理员设置的目的地',
+    );
+    assert.equal(config.users[0].trip_profile, undefined);
+    assert.equal(config.default_trip_profile.destination.area, '朝阳区');
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
 
 test('supports selecting, updating, and removing multiple accounts', () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-config-'));

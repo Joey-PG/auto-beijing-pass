@@ -1,5 +1,6 @@
 import {
   getAccountLabel,
+  getSystemDefaultTripProfile,
   getSelectedUsers,
 } from '../lib/config-manager.js';
 import { ApiManager } from '../lib/api-manager.js';
@@ -163,7 +164,10 @@ async function getStatusForUser(
     `自动续签: ${autoRenewText}` +
     (nextRenewTime ? `（下次：${nextRenewTime}）` : '') +
     '\n';
-  const tripProfile = resolveUserTripProfile(user);
+  const tripProfile = resolveUserTripProfile(
+    user,
+    getSystemDefaultTripProfile(),
+  );
   if (tripProfile) {
     const { destination, in_beijing_address: inBeijingAddress } = tripProfile;
     body +=

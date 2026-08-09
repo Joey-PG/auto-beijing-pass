@@ -413,6 +413,44 @@ test('web server saves an account trip profile', async () => {
   }
 });
 
+test('web server updates the administrator-managed default trip profile', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-default-trip-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  saveConfig({ users: [] });
+  const server = createDashboardServer();
+  const baseUrl = await listen(server);
+  try {
+    const response = await fetch(`${baseUrl}/api/system/default-trip-profile`, {
+      body: JSON.stringify({
+        inBeijingAddress: '北京市朝阳区默认在京地址',
+        inBeijingLongitude: '116.40',
+        inBeijingLatitude: '39.90',
+        destinationAddress: '北京市海淀区默认目的地',
+        destinationLongitude: '116.30',
+        destinationLatitude: '39.95',
+        destinationArea: '海淀区',
+        districtCode: '006',
+        purposeName: '其它',
+        purposeCode: '06',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT',
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).data.updated, true);
+    assert.equal(
+      loadConfig().default_trip_profile.destination.address,
+      '北京市海淀区默认目的地',
+    );
+  } finally {
+    server.close();
+    await once(server, 'close');
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('remote bind requires explicit dashboard credentials', async () => {
   await assert.rejects(
     startDashboardServer({ host: '0.0.0.0', port: 3751 }),

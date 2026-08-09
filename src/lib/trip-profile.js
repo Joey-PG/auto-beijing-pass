@@ -155,14 +155,22 @@ export function getTripProfileMode(user) {
   return 'default';
 }
 
-export function resolveUserTripProfile(user) {
+export function resolveUserTripProfile(
+  user,
+  defaultTripProfile = DEFAULT_TRIP_PROFILE,
+) {
   const mode = getTripProfileMode(user);
-  if (mode === 'default') return DEFAULT_TRIP_PROFILE;
+  if (mode === 'default') return defaultTripProfile;
   return user.trip_profile;
 }
 
-export function isUserTripProfileConfigured(user) {
-  return isCompleteTripProfile(resolveUserTripProfile(user));
+export function isUserTripProfileConfigured(
+  user,
+  defaultTripProfile = DEFAULT_TRIP_PROFILE,
+) {
+  return isCompleteTripProfile(
+    resolveUserTripProfile(user, defaultTripProfile),
+  );
 }
 
 export function requireTripProfile(profile) {

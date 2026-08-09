@@ -3,16 +3,21 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloudServerOutlined,
+  EditOutlined,
+  EnvironmentOutlined,
   InfoCircleOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import {
+  Alert,
   Button,
   Card,
   Descriptions,
   Empty,
+  Form,
+  Modal,
   Select,
   Space,
   Table,
@@ -31,7 +36,12 @@ import type {
   Dashboard,
   SchedulerAccountInfo,
   SchedulerAccountStatus,
+  TripProfileInput,
 } from '../types';
+import {
+  TripProfileFields,
+  tripProfileToInput,
+} from './trip-profile-fields';
 
 const eventLabels: Record<string, string> = {
   account_removed: '删除账号',
@@ -64,6 +74,7 @@ const eventLabels: Record<string, string> = {
   renewal_skipped: '续签检查完成（无需提交）',
   renewal_submitted: '续签申请已提交',
   trip_profile_changed: '出行配置变更',
+  default_trip_profile_changed: '系统默认出行配置变更',
   vehicle_added: '添加车辆',
   vehicle_plate_swapped: '车辆换牌',
   vehicle_removed: '删除车辆',
@@ -433,7 +444,9 @@ interface SystemPageProps {
   dashboard: Dashboard;
   loading: boolean;
   onRefresh: () => void;
+  onUpdateDefaultTripProfile: (values: TripProfileInput) => Promise<void>;
   onViewLogs: () => void;
+  saving: boolean;
 }
 
 const schedulerAccountStatus: Record<
@@ -453,8 +466,12 @@ export function SystemPage({
   dashboard,
   loading,
   onRefresh,
+  onUpdateDefaultTripProfile,
   onViewLogs,
+  saving,
 }: SystemPageProps) {
+  const [defaultTripForm] = Form.useForm<TripProfileInput>();
+  const [defaultTripOpen, setDefaultTripOpen] = useState(false);
   const { schedule } = dashboard;
   const { scheduler, security } = dashboard;
   const health = scheduler.health === 'healthy'
@@ -517,6 +534,44 @@ export function SystemPage({
         </Button>
       </div>
       <div className="system-card-grid">
+        <Card
+          className="system-default-trip-card"
+          extra={(
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                defaultTripForm.setFieldsValue(
+                  tripProfileToInput(dashboard.defaultTripProfile),
+                );
+                setDefaultTripOpen(true);
+              }}
+            >
+              修改默认地址
+            </Button>
+          )}
+          title={<Space><EnvironmentOutlined />系统默认出行配置</Space>}
+        >
+          <Alert
+            className="system-default-trip-alert"
+            message="使用系统默认配置的账号，会在每次检查或续签时读取这里的最新配置；账号和车辆不会保存地址副本。"
+            showIcon
+            type="info"
+          />
+          <Descriptions column={{ xs: 1, sm: 2 }} colon={false}>
+            <Descriptions.Item label="在京地址">
+              {dashboard.defaultTripProfile.in_beijing_address.address}
+            </Descriptions.Item>
+            <Descriptions.Item label="进京目的地">
+              {dashboard.defaultTripProfile.destination.address}
+            </Descriptions.Item>
+            <Descriptions.Item label="目的地区县">
+              {dashboard.defaultTripProfile.destination.area}
+            </Descriptions.Item>
+            <Descriptions.Item label="进京目的">
+              {dashboard.defaultTripProfile.purpose.name}
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
         <Card
           className="system-schedule-card"
           extra={<Button onClick={onViewLogs} type="link">查看调度日志</Button>}
@@ -604,6 +659,37 @@ export function SystemPage({
           />
         </Card>
       </div>
+      <Modal
+        centered
+        destroyOnClose
+        maskClosable={!saving}
+        okButtonProps={{ loading: saving }}
+        okText="保存默认配置"
+        onCancel={() => setDefaultTripOpen(false)}
+        onOk={() => defaultTripForm.submit()}
+        open={defaultTripOpen}
+        title="修改系统默认出行配置"
+        width={720}
+      >
+        <Alert
+          className="modal-inline-alert"
+          message="保存后，所有使用系统默认配置的账号会从下一次检查或续签开始使用新地址；自定义账号不受影响。"
+          showIcon
+          type="warning"
+        />
+        <Form
+          className="trip-profile-form"
+          form={defaultTripForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            await onUpdateDefaultTripProfile(values);
+            setDefaultTripOpen(false);
+          }}
+          preserve={false}
+        >
+          <TripProfileFields mapConfig={dashboard.mapConfig} />
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   removeDashboardVehicle,
   runDashboardRenewal,
   updateDashboardAccount,
+  updateDashboardDefaultTripProfile,
   updateDashboardTripProfile,
   WebServiceError,
 } from './dashboard-service.js';
@@ -380,6 +381,15 @@ async function handleApi(
   }
   if (request.method === 'GET' && url.pathname === '/api/audit') {
     const data = getDashboardAudit(Object.fromEntries(url.searchParams));
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
+  if (
+    request.method === 'PUT' &&
+    url.pathname === '/api/system/default-trip-profile'
+  ) {
+    const body = await readJsonBody(request);
+    const data = updateDashboardDefaultTripProfile(body, { actor });
     sendJson(response, 200, { success: true, data });
     return true;
   }

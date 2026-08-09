@@ -17,6 +17,10 @@ import {
   unprotectConfig,
 } from './credential-store.js';
 import { migrateMembershipConfig } from './membership.js';
+import {
+  DEFAULT_TRIP_PROFILE,
+  isCompleteTripProfile,
+} from './trip-profile.js';
 
 const LEGACY_CONFIG_DIRS = ['.cross-bj-next', '.cross-bj'];
 
@@ -116,6 +120,28 @@ export function getUsers({ initializedOnly = false } = {}) {
   return initializedOnly
     ? users.filter((user) => typeof user.auth === 'string' && user.auth.length > 0)
     : users;
+}
+
+/**
+ * Returns the administrator-managed system trip profile, falling back to the
+ * built-in preset for configurations created before this setting existed.
+ */
+export function getSystemDefaultTripProfile() {
+  const profile = loadConfig()?.default_trip_profile;
+  return isCompleteTripProfile(profile) ? profile : DEFAULT_TRIP_PROFILE;
+}
+
+/**
+ * Persists the system trip profile without copying it into individual users.
+ */
+export function setSystemDefaultTripProfile(profile) {
+  if (!isCompleteTripProfile(profile)) {
+    throw new Error('系统默认出行配置不完整');
+  }
+  const config = loadConfig() || { users: [] };
+  config.default_trip_profile = profile;
+  saveConfig(config);
+  return profile;
 }
 
 /**

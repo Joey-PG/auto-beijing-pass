@@ -1,5 +1,6 @@
 import {
   getAccountLabel,
+  getSystemDefaultTripProfile,
   getSelectedUsers,
 } from '../lib/config-manager.js';
 import { ApiManager } from '../lib/api-manager.js';
@@ -137,7 +138,12 @@ export async function applyPermit(
     userInfo,
     applyDate,
     entryType,
-    requireTripProfile(tripProfile || resolveUserTripProfile(user)),
+    requireTripProfile(
+      tripProfile || resolveUserTripProfile(
+        user,
+        getSystemDefaultTripProfile(),
+      ),
+    ),
   );
   if (dryRun) {
     return {
@@ -367,7 +373,9 @@ export async function runCommand({
       );
       continue;
     }
-    if (!isCompleteTripProfile(resolveUserTripProfile(user))) {
+    if (!isCompleteTripProfile(
+      resolveUserTripProfile(user, getSystemDefaultTripProfile()),
+    )) {
       const message = '未配置完整的出行信息，请先运行 trip set';
       writeAuditEvent(
         'renewal_failed',

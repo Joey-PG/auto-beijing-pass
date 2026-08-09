@@ -308,6 +308,15 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     );
   };
 
+  const handleUpdateDefaultTripProfile = async (
+    values: TripProfileInput,
+  ) => {
+    await handleMutation(
+      () => dashboardApi.updateDefaultTripProfile(values),
+      '系统默认出行配置已更新，使用系统默认的账号将在下次执行时使用新配置',
+    );
+  };
+
   const handleReloginAccount = async (account: Account, password: string) => {
     await handleMutation(
       () => dashboardApi.reloginAccount(account.id, password),
@@ -429,7 +438,9 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           dashboard={dashboard}
           loading={loading}
           onRefresh={() => loadData()}
+          onUpdateDefaultTripProfile={handleUpdateDefaultTripProfile}
           onViewLogs={() => navigateTo('audit')}
+          saving={mutationLoading}
         />
       );
     }
