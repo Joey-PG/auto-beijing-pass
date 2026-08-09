@@ -6,6 +6,10 @@ import {
 import { output, success, error } from '../output.js';
 import { COMMAND_NAME } from '../constants.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import {
+  getTripProfileMode,
+  resolveUserTripProfile,
+} from '../lib/trip-profile.js';
 
 function normalizeCoordinate(value, label, min, max) {
   const numeric = Number(value);
@@ -16,7 +20,7 @@ function normalizeCoordinate(value, label, min, max) {
 }
 
 function formatTripProfile(user) {
-  const profile = user.trip_profile;
+  const profile = resolveUserTripProfile(user);
   if (!profile) {
     return (
       `账号: ${getAccountLabel(user)}\n` +
@@ -26,7 +30,7 @@ function formatTripProfile(user) {
   }
   return (
     `账号: ${getAccountLabel(user)}\n` +
-    '地址来源: 账号配置\n' +
+    `地址来源: ${getTripProfileMode(user) === 'default' ? '系统默认' : '账号配置'}\n` +
     `是否已在京: ${profile.is_in_beijing ? '是' : '否'}\n` +
     `在京地址: ${profile.in_beijing_address.address} ` +
     `(${profile.in_beijing_address.longitude}, ${profile.in_beijing_address.latitude})\n` +
@@ -69,7 +73,7 @@ export function registerTripCommand(program) {
           return;
         }
 
-        const previousProfile = user.trip_profile;
+        const previousProfile = resolveUserTripProfile(user);
         const inBeijingAddress = (
           options.inBeijingAddress ??
           options.address ??
@@ -173,7 +177,7 @@ export function registerTripCommand(program) {
           confirmed_at: new Date().toISOString(),
         };
         const updated = updateUser(
-          { trip_profile: tripProfile },
+          { trip_profile: tripProfile, trip_profile_mode: 'custom' },
           user.bjt_phone,
         );
         writeAuditEvent('trip_profile_changed', {
@@ -212,8 +216,9 @@ export function registerTripCommand(program) {
           success(
             {
               account: getAccountLabel(user),
-              tripProfile: user.trip_profile || null,
-              configured: Boolean(user.trip_profile),
+              tripProfile: resolveUserTripProfile(user),
+              tripProfileMode: getTripProfileMode(user),
+              configured: Boolean(resolveUserTripProfile(user)),
             },
             formatTripProfile(user),
           ),

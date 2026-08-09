@@ -16,6 +16,31 @@ function normalizeCoordinate(value, label, min, max) {
   return text;
 }
 
+export const DEFAULT_TRIP_PROFILE = Object.freeze({
+  is_in_beijing: true,
+  current_location: Object.freeze({
+    longitude: '117.082463',
+    latitude: '40.180804',
+  }),
+  in_beijing_address: Object.freeze({
+    address: '王辛庄镇放光村村委会',
+    longitude: '117.082463',
+    latitude: '40.180804',
+  }),
+  destination: Object.freeze({
+    address: '王辛庄镇放光村村委会',
+    longitude: '117.082463',
+    latitude: '40.180804',
+    area: '平谷区',
+    district_code: '014',
+  }),
+  purpose: Object.freeze({
+    name: '其它',
+    code: '06',
+  }),
+  source: 'default',
+});
+
 export function createTripProfile(input) {
   const inBeijingAddress = normalizeRequiredText(
     input?.inBeijingAddress,
@@ -122,6 +147,23 @@ export function isCompleteTripProfile(profile) {
   } catch {
     return false;
   }
+}
+
+export function getTripProfileMode(user) {
+  if (user?.trip_profile_mode === 'default') return 'default';
+  if (isCompleteTripProfile(user?.trip_profile)) return 'custom';
+  return 'unconfigured';
+}
+
+export function resolveUserTripProfile(user) {
+  const mode = getTripProfileMode(user);
+  if (mode === 'default') return DEFAULT_TRIP_PROFILE;
+  if (mode === 'custom') return user.trip_profile;
+  return null;
+}
+
+export function isUserTripProfileConfigured(user) {
+  return isCompleteTripProfile(resolveUserTripProfile(user));
 }
 
 export function requireTripProfile(profile) {

@@ -30,7 +30,7 @@ import {
   MEMBERSHIP_REMINDER_DAYS,
 } from '../lib/membership.js';
 import { notify } from '../lib/notifier.js';
-import { isCompleteTripProfile } from '../lib/trip-profile.js';
+import { isUserTripProfileConfigured } from '../lib/trip-profile.js';
 
 const COMMAND_NAME =
   process.env.AUTO_BJ_PASS_COMMAND_NAME ||
@@ -591,7 +591,7 @@ export function registerCronCommand(program) {
           .filter(
             (user) =>
               user.auto_renew !== false &&
-              !isCompleteTripProfile(user.trip_profile),
+              !isUserTripProfileConfigured(user),
           )
           .map((user, index) => getAccountLabel(user, index));
         if (missingProfiles.length > 0) {
@@ -773,7 +773,7 @@ export function registerCronCommand(program) {
             disabledCount += 1;
             continue;
           }
-          if (!isCompleteTripProfile(user.trip_profile)) {
+          if (!isUserTripProfileConfigured(user)) {
             missingProfileCount += 1;
             writeAuditEvent('cron_account_skipped', {
               account: getAccountLabel(user, index),

@@ -33,7 +33,10 @@ import {
 } from '../lib/membership.js';
 import {
   createTripProfile,
-  isCompleteTripProfile,
+  DEFAULT_TRIP_PROFILE,
+  getTripProfileMode,
+  isUserTripProfileConfigured,
+  resolveUserTripProfile,
 } from '../lib/trip-profile.js';
 
 const ENTRY_TYPES = new Set(['六环内', '六环外']);
@@ -232,8 +235,9 @@ async function loadAccountDashboard(user, index) {
     entryType: user.entry_type || '六环外',
     autoRenew: user.auto_renew !== false,
     preferredVehicle: user.preferred_vehicle || '',
-    tripProfile: user.trip_profile || null,
-    tripProfileConfigured: isCompleteTripProfile(user.trip_profile),
+    tripProfile: resolveUserTripProfile(user),
+    tripProfileMode: getTripProfileMode(user),
+    tripProfileConfigured: isUserTripProfileConfigured(user),
     membershipStartedOn: membership.startedOn,
     membershipExpiresOn: membership.expiresOn,
     membershipPermanent: membership.permanent,
@@ -308,6 +312,7 @@ export async function getDashboard({ securityContext = {} } = {}) {
   const generatedAt = new Date().toISOString();
   return {
     generatedAt,
+    defaultTripProfile: DEFAULT_TRIP_PROFILE,
     mapConfig: {
       enabled: Boolean(
         process.env.AMAP_JS_KEY && process.env.AMAP_JS_SECURITY_CODE,
@@ -345,13 +350,21 @@ export async function addDashboardAccount(
     phone = validatePhone(input?.phone);
     const password = validatePassword(input?.password);
     const name = validateAccountName(input?.name, phone);
-    const entryType = validateEntryType(input?.entryType);
-    const autoRenew = input?.autoRenew ?? false;
-    if (typeof autoRenew !== 'boolean') {
-      throw new WebServiceError('自动续签开关必须是布尔值', 400);
+    const entryType = validateEntryType(input?.entryType || '六环外');
+    if (!Object.hasOwn(input || {}, 'membershipTerm')) {
+      throw new WebServiceError('请选择服务有效期', 400);
     }
-    if (autoRenew) {
-      throw new WebServiceError('请先添加账号并配置出行信息，再开启自动续签', 400);
+    const tripProfileMode = input?.tripProfileMode;
+    if (!['default', 'custom'].includes(tripProfileMode)) {
+      throw new WebServiceError('请选择使用系统默认或自定义出行配置', 400);
+    }
+    let tripProfile = null;
+    if (tripProfileMode === 'custom') {
+      try {
+        tripProfile = createTripProfile(input);
+      } catch (error) {
+        throw new WebServiceError(getErrorMessage(error), 400);
+      }
     }
     if (getUsers().some((user) => user.bjt_phone === phone)) {
       throw new WebServiceError('该北京通手机号已存在，请使用重新登录', 409);
@@ -376,7 +389,9 @@ export async function addDashboardAccount(
       entry_type: entryType,
       notify_urls: [],
       preferred_vehicle: '',
-      auto_renew: autoRenew,
+      auto_renew: true,
+      trip_profile_mode: tripProfileMode,
+      trip_profile: tripProfile,
       ...membership,
     };
     const index = upsertUser(user);
@@ -386,7 +401,8 @@ export async function addDashboardAccount(
       phone,
       result: 'success',
       entry_type: entryType,
-      auto_renew: autoRenew,
+      auto_renew: true,
+      profile_source: tripProfileMode,
       membership_expires_on: membership.membership_expires_on,
       membership_permanent: membership.membership_permanent,
       source: 'web',
@@ -589,7 +605,7 @@ export function updateDashboardAccount(
       if (typeof input.autoRenew !== 'boolean') {
         throw new WebServiceError('自动续签开关必须是布尔值', 400);
       }
-      if (input.autoRenew && !isCompleteTripProfile(user.trip_profile)) {
+      if (input.autoRenew && !isUserTripProfileConfigured(user)) {
         throw new WebServiceError('请先配置完整的出行信息，再开启自动续签', 400);
       }
       updates.auto_renew = input.autoRenew;
@@ -681,19 +697,28 @@ export function updateDashboardTripProfile(
   let user = null;
   try {
     ({ user } = getAccountById(accountId));
-    const tripProfile = createTripProfile(input);
-    updateUser({ trip_profile: tripProfile }, user.bjt_phone);
+    const tripProfileMode = input?.tripProfileMode || 'custom';
+    if (!['default', 'custom'].includes(tripProfileMode)) {
+      throw new WebServiceError('请选择使用系统默认或自定义出行配置', 400);
+    }
+    const tripProfile = tripProfileMode === 'default'
+      ? DEFAULT_TRIP_PROFILE
+      : createTripProfile(input);
+    updateUser({
+      trip_profile_mode: tripProfileMode,
+      trip_profile: tripProfileMode === 'custom' ? tripProfile : null,
+    }, user.bjt_phone);
     writeAuditEvent('trip_profile_changed', {
       account: getAccountLabel(user),
       actor,
       result: 'success',
-      profile_source: 'custom',
+      profile_source: tripProfileMode,
       area: tripProfile.destination.area,
       district_code: tripProfile.destination.district_code,
       purpose_code: tripProfile.purpose.code,
       source: 'web',
     });
-    return { tripProfile, updated: true };
+    return { tripProfile, tripProfileMode, updated: true };
   } catch (error) {
     writeWebFailure('trip_profile_changed', error, {
       account_id: accountId,

@@ -213,6 +213,7 @@ test('dashboard saves and validates account trip profiles', () => {
       loadConfig().users[0].trip_profile.current_location.longitude,
       input.inBeijingLongitude,
     );
+    assert.equal(loadConfig().users[0].trip_profile_mode, 'custom');
     assert.throws(
       () => updateDashboardTripProfile(
         '1',
@@ -221,6 +222,21 @@ test('dashboard saves and validates account trip profiles', () => {
       ),
       /目的地纬度无效/,
     );
+    assert.doesNotThrow(() => updateDashboardAccount(
+      '1',
+      { autoRenew: true },
+      { actor: 'zhaoyue' },
+    ));
+
+    const defaultResult = updateDashboardTripProfile(
+      '1',
+      { tripProfileMode: 'default' },
+      { actor: 'zhaoyue' },
+    );
+    assert.equal(defaultResult.tripProfileMode, 'default');
+    assert.equal(defaultResult.tripProfile.destination.area, '平谷区');
+    assert.equal(loadConfig().users[0].trip_profile_mode, 'default');
+    assert.equal(loadConfig().users[0].trip_profile, null);
     assert.doesNotThrow(() => updateDashboardAccount(
       '1',
       { autoRenew: true },
@@ -242,8 +258,8 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
         name: '新账号',
         phone: '13800000001',
         password: 'initial-secret',
-        entryType: '六环外',
-        autoRenew: false,
+        membershipTerm: '1y',
+        tripProfileMode: 'default',
       },
       {
         actor: 'zhaochunxu',
@@ -263,7 +279,9 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       entry_type: '六环外',
       notify_urls: [],
       preferred_vehicle: '',
-      auto_renew: false,
+      auto_renew: true,
+      trip_profile_mode: 'default',
+      trip_profile: null,
       membership_started_on: '2026-08-09',
       membership_expires_on: '2027-08-09',
       membership_permanent: false,
@@ -319,11 +337,53 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       removeDashboardAccount('1', { actor: 'zhaochunxu' }),
       { removed: true },
     );
-    assert.equal(loadConfig().users.length, 0);
+    assert.equal(loadConfig()?.users?.length ?? 0, 0);
 
     const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
     assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
     assert.match(auditText, /zhaochunxu/);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard requires membership and profile choices when adding accounts', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-add-validation-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const validCredentials = {
+    phone: '13800000001',
+    password: 'initial-secret',
+  };
+  const loginFn = async () => 'test-token';
+
+  try {
+    await assert.rejects(
+      addDashboardAccount(
+        { ...validCredentials, tripProfileMode: 'default' },
+        { loginFn },
+      ),
+      /请选择服务有效期/,
+    );
+    await assert.rejects(
+      addDashboardAccount(
+        { ...validCredentials, membershipTerm: '1y' },
+        { loginFn },
+      ),
+      /请选择使用系统默认或自定义出行配置/,
+    );
+    await assert.rejects(
+      addDashboardAccount(
+        {
+          ...validCredentials,
+          membershipTerm: '1y',
+          tripProfileMode: 'custom',
+        },
+        { loginFn },
+      ),
+      /在京地址不能为空/,
+    );
+    assert.equal(loadConfig()?.users?.length ?? 0, 0);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

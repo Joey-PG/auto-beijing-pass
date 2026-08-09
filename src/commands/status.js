@@ -13,7 +13,10 @@ import {
   getFutureDate,
 } from '../lib/models.js';
 import { notify } from '../lib/notifier.js';
-import { isCompleteTripProfile } from '../lib/trip-profile.js';
+import {
+  getTripProfileMode,
+  resolveUserTripProfile,
+} from '../lib/trip-profile.js';
 import { output, success, error } from '../output.js';
 import { getCronScheduleInfo } from './cron.js';
 
@@ -160,9 +163,7 @@ async function getStatusForUser(
     `自动续签: ${autoRenewText}` +
     (nextRenewTime ? `（下次：${nextRenewTime}）` : '') +
     '\n';
-  const tripProfile = isCompleteTripProfile(user.trip_profile)
-    ? user.trip_profile
-    : null;
+  const tripProfile = resolveUserTripProfile(user);
   if (tripProfile) {
     const { destination, in_beijing_address: inBeijingAddress } = tripProfile;
     body +=
@@ -192,6 +193,7 @@ async function getStatusForUser(
     body += `进京证类型: ${user.entry_type || '六环外'}\n`;
     body += `通知渠道数: ${(user.notify_urls || []).length}\n`;
     body += `首选车辆: ${user.preferred_vehicle || '未设置'}\n`;
+    body += `出行配置来源: ${getTripProfileMode(user) === 'default' ? '系统默认' : tripProfile ? '账号自定义' : '未配置'}\n`;
     body += `是否已在京: ${tripProfile ? '是' : '未配置'}\n`;
     if (tripProfile) {
       body +=

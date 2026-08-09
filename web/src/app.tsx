@@ -41,6 +41,7 @@ import type {
   Dashboard,
   MembershipUpdateInput,
   TripProfileInput,
+  TripProfileUpdateInput,
   Vehicle,
 } from './types';
 
@@ -286,7 +287,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const handleAddAccount = async (values: AccountCreateInput) => {
     await handleMutation(
       () => dashboardApi.addAccount(values),
-      `账号 ${values.name || values.phone} 添加成功，请继续配置出行信息`,
+      `账号 ${values.phone} 添加成功，已使用${values.tripProfileMode === 'default' ? '系统默认' : '自定义'}出行配置并开启自动续签`,
     );
   };
 
@@ -299,7 +300,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
 
   const handleUpdateTripProfile = async (
     account: Account,
-    values: TripProfileInput,
+    values: TripProfileUpdateInput,
   ) => {
     await handleMutation(
       () => dashboardApi.updateTripProfile(account.id, values),
@@ -358,7 +359,10 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     setMutationLoading(true);
     try {
       if (saveAsDefault) {
-        await dashboardApi.updateTripProfile(vehicle.accountId, tripProfile);
+        await dashboardApi.updateTripProfile(vehicle.accountId, {
+          ...tripProfile,
+          tripProfileMode: 'custom',
+        });
       }
       const result = await dashboardApi.renewVehicle(
         vehicle.accountId,
@@ -406,6 +410,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       return (
         <AccountPage
           accounts={dashboard.accounts}
+          defaultTripProfile={dashboard.defaultTripProfile}
           loading={mutationLoading}
           mapConfig={dashboard.mapConfig}
           onAdd={handleAddAccount}

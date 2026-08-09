@@ -1,4 +1,5 @@
 import {
+  ArrowLeftOutlined,
   CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -13,6 +14,7 @@ import {
   Form,
   Input,
   Modal,
+  Radio,
   Select,
   Space,
   Switch,
@@ -28,12 +30,15 @@ import type {
   AccountUpdateInput,
   MapConfig,
   MembershipUpdateInput,
-  TripProfileInput,
+  SelectableTripProfileMode,
+  TripProfile,
+  TripProfileUpdateInput,
 } from '../types';
 import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 
 interface AccountPageProps {
   accounts: Account[];
+  defaultTripProfile: TripProfile;
   loading: boolean;
   mapConfig: MapConfig;
   onAdd: (values: AccountCreateInput) => Promise<void>;
@@ -44,12 +49,64 @@ interface AccountPageProps {
   onUpdate: (account: Account, values: AccountUpdateInput) => Promise<void>;
   onUpdateTripProfile: (
     account: Account,
-    values: TripProfileInput,
+    values: TripProfileUpdateInput,
   ) => Promise<void>;
+}
+
+function DefaultTripProfileSummary({ profile }: { profile: TripProfile }) {
+  return (
+    <div className="default-trip-profile-summary">
+      <div>
+        <span>在京地址</span>
+        <strong>{profile.in_beijing_address.address}</strong>
+      </div>
+      <div>
+        <span>进京目的地</span>
+        <strong>{profile.destination.address}</strong>
+      </div>
+      <div>
+        <span>目的地区县 / 进京目的</span>
+        <strong>{profile.destination.area} · {profile.purpose.name}</strong>
+      </div>
+    </div>
+  );
+}
+
+function TripProfileModeSelector({
+  defaultTripProfile,
+}: {
+  defaultTripProfile: TripProfile;
+}) {
+  const form = Form.useFormInstance();
+  const mode = Form.useWatch('tripProfileMode', form) as SelectableTripProfileMode;
+  return (
+    <>
+      <Form.Item
+        label="出行配置"
+        name="tripProfileMode"
+        rules={[{ required: true, message: '请选择出行配置方式' }]}
+      >
+        <Radio.Group className="trip-profile-mode-group">
+          <Radio value="default">
+            <strong>使用系统默认配置（推荐）</strong>
+            <span>直接使用当前系统预设的在京地址、进京目的地和进京目的</span>
+          </Radio>
+          <Radio value="custom">
+            <strong>自定义出行配置</strong>
+            <span>为这个账号单独设置地址、目的地和进京目的</span>
+          </Radio>
+        </Radio.Group>
+      </Form.Item>
+      {mode === 'default' ? (
+        <DefaultTripProfileSummary profile={defaultTripProfile} />
+      ) : null}
+    </>
+  );
 }
 
 export function AccountPage({
   accounts,
+  defaultTripProfile,
   loading,
   mapConfig,
   onAdd,
@@ -64,15 +121,18 @@ export function AccountPage({
   const [editForm] = Form.useForm<AccountUpdateInput>();
   const [loginForm] = Form.useForm<{ password: string }>();
   const [membershipForm] = Form.useForm<MembershipUpdateInput>();
-  const [tripForm] = Form.useForm<TripProfileInput>();
+  const [tripForm] = Form.useForm<TripProfileUpdateInput>();
   const [addOpen, setAddOpen] = useState(false);
+  const [addStep, setAddStep] = useState<'account' | 'trip'>('account');
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [loginAccount, setLoginAccount] = useState<Account | null>(null);
   const [membershipAccount, setMembershipAccount] = useState<Account | null>(null);
   const [tripAccount, setTripAccount] = useState<Account | null>(null);
   const addMembershipTerm = Form.useWatch('membershipTerm', addForm);
+  const addTripProfileMode = Form.useWatch('tripProfileMode', addForm);
   const membershipTerm = Form.useWatch('membershipTerm', membershipForm);
+  const tripProfileMode = Form.useWatch('tripProfileMode', tripForm);
 
   const membershipMeta = {
     active: { color: 'success', label: '有效' },
@@ -93,9 +153,22 @@ export function AccountPage({
 
   useEffect(() => {
     if (tripAccount) {
-      tripForm.setFieldsValue(tripProfileToInput(tripAccount.tripProfile));
+      tripForm.setFieldsValue({
+        ...tripProfileToInput(
+          tripAccount.tripProfileMode === 'custom' ? tripAccount.tripProfile : null,
+        ),
+        tripProfileMode: tripAccount.tripProfileMode === 'default'
+          ? 'default'
+          : 'custom',
+      });
     }
   }, [tripAccount, tripForm]);
+
+  const closeAddModal = () => {
+    addForm.resetFields();
+    setAddStep('account');
+    setAddOpen(false);
+  };
 
   const columns: ColumnsType<Account> = [
     { dataIndex: 'name', key: 'name', title: '账号名称' },
@@ -109,9 +182,11 @@ export function AccountPage({
     { dataIndex: 'entryType', key: 'entryType', title: '进京证类型' },
     {
       key: 'tripProfile',
-      render: (_, account) => account.tripProfileConfigured
-        ? <Tag color="success">已配置</Tag>
-        : <Tag color="warning">待配置</Tag>,
+      render: (_, account) => account.tripProfileMode === 'default'
+        ? <Tag color="blue">系统默认</Tag>
+        : account.tripProfileConfigured
+          ? <Tag color="success">自定义</Tag>
+          : <Tag color="warning">待配置</Tag>,
       title: '出行配置',
     },
     {
@@ -299,72 +374,102 @@ export function AccountPage({
         destroyOnClose
         maskClosable={!loading}
         okButtonProps={{ loading }}
-        okText="登录并添加"
-        onCancel={() => setAddOpen(false)}
-        onOk={() => addForm.submit()}
+        okText={addStep === 'account' && addTripProfileMode === 'custom'
+          ? '下一步：填写出行信息'
+          : '登录并添加'}
+        onCancel={closeAddModal}
+        onOk={async () => {
+          if (addStep === 'account' && addTripProfileMode === 'custom') {
+            await addForm.validateFields();
+            addForm.setFieldsValue({ purposeCode: '06', purposeName: '其它' });
+            setAddStep('trip');
+            return;
+          }
+          addForm.submit();
+        }}
         open={addOpen}
-        title="添加北京通账号"
+        title={addStep === 'trip' ? '填写自定义出行信息' : '添加北京通账号'}
+        width={addStep === 'trip' ? 720 : 600}
       >
         <Form
+          className={addStep === 'trip' ? 'trip-profile-form' : undefined}
           form={addForm}
-          initialValues={{ autoRenew: false, entryType: '六环外', membershipTerm: '1y' }}
+          initialValues={{ tripProfileMode: 'default' }}
           layout="vertical"
           onFinish={async (values) => {
             await onAdd(values);
-            addForm.resetFields();
-            setAddOpen(false);
+            closeAddModal();
           }}
-          preserve={false}
         >
-          <Form.Item label="账号名称" name="name">
-            <Input maxLength={40} placeholder="例如：赵xx（留空使用手机号）" />
-          </Form.Item>
-          <Form.Item
-            label="北京通手机号"
-            name="phone"
-            normalize={(value) => String(value || '').trim()}
-            rules={[
-              { required: true, message: '请输入北京通手机号' },
-              { pattern: /^1\d{10}$/, message: '请输入有效的 11 位手机号' },
-            ]}
-          >
-            <Input autoComplete="username" inputMode="numeric" maxLength={11} />
-          </Form.Item>
-          <Form.Item
-            label="北京通密码"
-            name="password"
-            rules={[{ required: true, message: '请输入北京通密码' }]}
-          >
-            <Input.Password autoComplete="new-password" maxLength={256} />
-          </Form.Item>
-          <Form.Item label="进京证类型" name="entryType">
-            <Select options={['六环外', '六环内'].map((value) => ({ value }))} />
-          </Form.Item>
-          <Form.Item
-            extra="现有账号和新账号默认均为一年；到期日当天仍可使用。"
-            label="服务有效期"
-            name="membershipTerm"
-          >
-            <Select options={[
-              { label: '1 个月', value: '1m' },
-              { label: '3 个月', value: '3m' },
-              { label: '1 年（默认）', value: '1y' },
-              { label: '自定义到期日', value: 'custom' },
-              { label: '长期有效', value: 'permanent' },
-            ]} />
-          </Form.Item>
-          {addMembershipTerm === 'custom' ? (
-            <Form.Item
-              label="服务到期日"
-              name="membershipExpiresOn"
-              rules={[{ required: true, message: '请选择服务到期日' }]}
-            >
-              <Input min={new Date().toISOString().slice(0, 10)} type="date" />
-            </Form.Item>
-          ) : null}
-          <Form.Item label="自动续签" name="autoRenew" valuePropName="checked">
-            <Switch />
-          </Form.Item>
+          {addStep === 'account' ? (
+            <>
+              <Form.Item
+                label="北京通手机号"
+                name="phone"
+                normalize={(value) => String(value || '').trim()}
+                rules={[
+                  { required: true, message: '请输入北京通手机号' },
+                  { pattern: /^1\d{10}$/, message: '请输入有效的 11 位手机号' },
+                ]}
+              >
+                <Input autoComplete="username" inputMode="numeric" maxLength={11} />
+              </Form.Item>
+              <Form.Item
+                label="北京通密码"
+                name="password"
+                rules={[{ required: true, message: '请输入北京通密码' }]}
+              >
+                <Input.Password autoComplete="new-password" maxLength={256} />
+              </Form.Item>
+              <Form.Item
+                extra="到期日当天仍可使用；到期次日起停止自动续签。"
+                label="服务有效期"
+                name="membershipTerm"
+                rules={[{ required: true, message: '请选择服务有效期' }]}
+              >
+                <Select placeholder="请选择服务有效期" options={[
+                  { label: '1 个月', value: '1m' },
+                  { label: '3 个月', value: '3m' },
+                  { label: '1 年', value: '1y' },
+                  { label: '自定义到期日', value: 'custom' },
+                  { label: '长期有效', value: 'permanent' },
+                ]} />
+              </Form.Item>
+              {addMembershipTerm === 'custom' ? (
+                <Form.Item
+                  label="服务到期日"
+                  name="membershipExpiresOn"
+                  rules={[{ required: true, message: '请选择服务到期日' }]}
+                >
+                  <Input min={new Date().toISOString().slice(0, 10)} type="date" />
+                </Form.Item>
+              ) : null}
+              <TripProfileModeSelector defaultTripProfile={defaultTripProfile} />
+              <Alert
+                message="账号添加成功后将默认开启自动续签，进京证类型使用六环外；之后可在账号管理中修改。"
+                showIcon
+                type="info"
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                className="trip-profile-back"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => setAddStep('account')}
+                type="link"
+              >
+                返回账号信息
+              </Button>
+              <Alert
+                className="modal-inline-alert"
+                message="该出行信息仅用于当前账号，保存后仍可在账号管理中修改或恢复系统默认。"
+                showIcon
+                type="info"
+              />
+              <TripProfileFields mapConfig={mapConfig} />
+            </>
+          )}
         </Form>
       </Modal>
 
@@ -422,7 +527,7 @@ export function AccountPage({
         destroyOnClose
         maskClosable={!loading}
         okButtonProps={{ loading }}
-        okText="保存为默认配置"
+        okText="保存出行配置"
         onCancel={() => setTripAccount(null)}
         onOk={() => tripForm.submit()}
         open={Boolean(tripAccount)}
@@ -431,7 +536,7 @@ export function AccountPage({
       >
         <Alert
           className="modal-inline-alert"
-          message="定时续签会直接使用这里保存的信息；手动执行时仍可临时修改。"
+          message="定时续签会使用当前选择的配置；手动执行时仍可临时修改。"
           showIcon
           type={tripAccount?.tripProfileConfigured ? 'info' : 'warning'}
         />
@@ -446,7 +551,10 @@ export function AccountPage({
           }}
           preserve={false}
         >
-          <TripProfileFields mapConfig={mapConfig} />
+          <TripProfileModeSelector defaultTripProfile={defaultTripProfile} />
+          {tripProfileMode === 'custom' ? (
+            <TripProfileFields mapConfig={mapConfig} />
+          ) : null}
         </Form>
       </Modal>
 

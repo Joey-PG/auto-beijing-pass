@@ -68,6 +68,13 @@ export interface TripProfileInput {
   purposeName: string;
 }
 
+export type TripProfileMode = 'default' | 'custom' | 'unconfigured';
+export type SelectableTripProfileMode = Exclude<TripProfileMode, 'unconfigured'>;
+
+export interface TripProfileUpdateInput extends Partial<TripProfileInput> {
+  tripProfileMode: SelectableTripProfileMode;
+}
+
 export interface Account {
   autoRenew: boolean;
   entryType: string;
@@ -83,20 +90,20 @@ export interface Account {
   preferredVehicle: string;
   tripProfile: TripProfile | null;
   tripProfileConfigured: boolean;
+  tripProfileMode: TripProfileMode;
   vehicles: Vehicle[];
 }
 
 export type MembershipStatus = 'active' | 'expired' | 'expiring_soon' | 'permanent';
 export type MembershipTerm = '1m' | '3m' | '1y' | 'custom' | 'permanent';
 
-export interface AccountCreateInput {
-  autoRenew: boolean;
-  entryType: string;
-  name: string;
+export interface AccountCreateInput extends Partial<TripProfileInput> {
+  name?: string;
   password: string;
   phone: string;
   membershipExpiresOn?: string;
   membershipTerm: MembershipTerm;
+  tripProfileMode: SelectableTripProfileMode;
 }
 
 export interface MembershipUpdateInput {
@@ -174,6 +181,7 @@ export interface SecurityInfo {
 
 export interface Dashboard {
   accounts: Account[];
+  defaultTripProfile: TripProfile;
   generatedAt: string;
   mapConfig: MapConfig;
   runtime: {

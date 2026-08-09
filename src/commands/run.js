@@ -13,6 +13,7 @@ import { notify } from '../lib/notifier.js';
 import {
   isCompleteTripProfile,
   requireTripProfile,
+  resolveUserTripProfile,
 } from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
 import { getMembershipInfo } from '../lib/membership.js';
@@ -135,7 +136,7 @@ export async function applyPermit(
     userInfo,
     applyDate,
     entryType,
-    requireTripProfile(tripProfile || user.trip_profile),
+    requireTripProfile(tripProfile || resolveUserTripProfile(user)),
   );
   if (dryRun) {
     return {
@@ -331,7 +332,7 @@ export async function runCommand({
       );
       continue;
     }
-    if (!isCompleteTripProfile(user.trip_profile)) {
+    if (!isCompleteTripProfile(resolveUserTripProfile(user))) {
       const message = '未配置完整的出行信息，请先运行 trip set';
       writeAuditEvent(
         'renewal_failed',

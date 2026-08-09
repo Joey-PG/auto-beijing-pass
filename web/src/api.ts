@@ -7,6 +7,7 @@ import type {
   Dashboard,
   MembershipUpdateInput,
   TripProfileInput,
+  TripProfileUpdateInput,
 } from './types';
 
 export interface SessionState {
@@ -112,7 +113,7 @@ export const dashboardApi = {
       body: JSON.stringify(body),
       method: 'PATCH',
     }),
-  updateTripProfile: (accountId: string, body: TripProfileInput) =>
+  updateTripProfile: (accountId: string, body: TripProfileUpdateInput) =>
     request<{ updated: boolean }>(
       `/api/accounts/${encodeURIComponent(accountId)}/trip-profile`,
       {

@@ -306,6 +306,41 @@ button, input, select { font: inherit; }
 .account-delete-summary strong { overflow: hidden; color: #344054; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .account-delete-note { margin: 0; color: #667085; font-size: 13px; line-height: 1.65; }
 .modal-inline-alert { margin-bottom: 18px; }
+.trip-profile-mode-group { display: grid; width: 100%; gap: 10px; }
+.trip-profile-mode-group .ant-radio-wrapper {
+  align-items: flex-start;
+  width: 100%;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid #e1e6ed;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.trip-profile-mode-group .ant-radio-wrapper:hover { border-color: #9db8ff; }
+.trip-profile-mode-group .ant-radio-wrapper-checked {
+  border-color: #2f6bff;
+  background: #f5f8ff;
+  box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.08);
+}
+.trip-profile-mode-group .ant-radio { margin-top: 2px; }
+.trip-profile-mode-group strong,
+.trip-profile-mode-group span { display: block; }
+.trip-profile-mode-group strong { color: #344054; font-size: 13px; font-weight: 600; }
+.trip-profile-mode-group span { margin-top: 4px; color: #7b8497; font-size: 11px; line-height: 1.55; }
+.default-trip-profile-summary {
+  display: grid;
+  margin: -4px 0 18px;
+  padding: 12px 14px;
+  gap: 9px;
+  border: 1px solid #e7ebf2;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+.default-trip-profile-summary > div { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 12px; }
+.default-trip-profile-summary span { color: #98a2b3; font-size: 11px; }
+.default-trip-profile-summary strong { color: #475467; font-size: 12px; font-weight: 500; }
+.trip-profile-back { height: auto; margin: -4px 0 10px; padding-inline: 0; }
 .trip-profile-form .ant-divider { margin: 18px 0 14px; color: #344054; font-size: 13px; }
 .trip-profile-form .ant-form-item { margin-bottom: 16px; }
 .trip-profile-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }
@@ -407,6 +442,7 @@ button, input, select { font: inherit; }
   .scheduler-metric-grid { grid-template-columns: 1fr 1fr; }
   .system-account-plan-card .ant-card-body { overflow: hidden; }
   .form-grid { grid-template-columns: 1fr; }
+  .default-trip-profile-summary > div { grid-template-columns: 1fr; gap: 2px; }
   .account-delete-summary { grid-template-columns: 1fr; }
   .account-delete-summary > div { border-right: 0; border-bottom: 1px solid #eaecf0; }
   .account-delete-summary > div:last-child { border-bottom: 0; }
