@@ -68,6 +68,103 @@ const eventLabels: Record<string, string> = {
   web_started: '管理后台启动',
 };
 
+const eventGroups = [
+  {
+    events: [
+      'renewal_failed',
+      'cron_account_failed',
+      'cron_configuration_failed',
+      'cron_removal_failed',
+      'cron_tick_failed',
+      'notification_failed',
+      'web_login_failed',
+      'web_login_blocked',
+    ],
+    label: '异常事件',
+    value: 'group:attention',
+  },
+  {
+    events: [
+      'renewal_check_started',
+      'renewal_dry_run',
+      'renewal_failed',
+      'renewal_skipped',
+      'renewal_submitted',
+    ],
+    label: '续签结果',
+    value: 'group:renewal',
+  },
+  {
+    events: [
+      'cron_account_selected',
+      'cron_account_completed',
+      'cron_account_failed',
+    ],
+    label: '自动检查',
+    value: 'group:auto-check',
+  },
+  {
+    events: [
+      'account_updated',
+      'config_changed',
+      'trip_profile_changed',
+      'preferred_vehicle_changed',
+      'cron_configured',
+      'cron_removed',
+      'notification_channel_added',
+      'notification_channel_removed',
+    ],
+    label: '配置变更',
+    value: 'group:configuration',
+  },
+  {
+    events: [
+      'account_removed',
+      'account_reauthenticated',
+      'account_initialized',
+      'vehicle_added',
+      'vehicle_plate_swapped',
+      'vehicle_removed',
+    ],
+    label: '账号与车辆操作',
+    value: 'group:account-vehicle',
+  },
+] as const;
+
+const priorityEventKeys = [
+  'renewal_failed',
+  'renewal_submitted',
+  'cron_account_failed',
+  'renewal_skipped',
+  'cron_account_completed',
+  'web_login_failed',
+  'config_changed',
+  'account_removed',
+  'vehicle_removed',
+];
+
+const priorityEventKeySet = new Set(priorityEventKeys);
+
+const eventFilterOptions = [
+  {
+    label: '常用分类',
+    options: eventGroups.map(({ label, value }) => ({ label, value })),
+  },
+  {
+    label: '重点事件',
+    options: priorityEventKeys.map((value) => ({
+      label: eventLabels[value],
+      value,
+    })),
+  },
+  {
+    label: '更多事件',
+    options: Object.entries(eventLabels)
+      .filter(([value]) => !priorityEventKeySet.has(value))
+      .map(([value, label]) => ({ label, value })),
+  },
+];
+
 const reasonLabels: Record<string, string> = {
   already_run_today: '今天已经完成检查',
   another_tick_is_running: '已有定时检查正在运行',
@@ -154,9 +251,11 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
   const [since, setSince] = useState<string | undefined>('30d');
   const [status, setStatus] = useState<AuditOutcome>();
 
+  const selectedEventGroup = eventGroups.find((group) => group.value === event);
   const query: AuditQuery = {
     account: account || undefined,
-    event: event || undefined,
+    event: selectedEventGroup ? undefined : event || undefined,
+    events: selectedEventGroup ? [...selectedEventGroup.events] : undefined,
     page,
     pageSize,
     since: since || '30d',
@@ -275,13 +374,7 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
             allowClear
             className="audit-event-filter"
             onChange={(value) => resetPage(() => setEvent(value || undefined))}
-            options={[
-              { label: '全部事件', value: '' },
-              ...Object.entries(eventLabels).map(([value, label]) => ({
-                label,
-                value,
-              })),
-            ]}
+            options={eventFilterOptions}
             optionFilterProp="label"
             placeholder="全部事件"
             popupMatchSelectWidth={280}

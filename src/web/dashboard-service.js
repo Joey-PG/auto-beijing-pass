@@ -616,6 +616,9 @@ export function getDashboardAudit(options = {}) {
     since: options.since || '30d',
     account: options.account || null,
     event: options.event || null,
+    events: options.events
+      ? String(options.events).split(',').filter(Boolean)
+      : null,
     status: options.status || null,
     page: options.page || 1,
     pageSize: options.pageSize || options.limit || 20,

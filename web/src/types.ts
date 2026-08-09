@@ -126,6 +126,7 @@ export interface AuditPageData {
 export interface AuditQuery {
   account?: string;
   event?: string;
+  events?: string[];
   page: number;
   pageSize: number;
   since: string;

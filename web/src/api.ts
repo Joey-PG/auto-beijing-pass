@@ -71,6 +71,7 @@ export const dashboardApi = {
     });
     if (query.account) search.set('account', query.account);
     if (query.event) search.set('event', query.event);
+    if (query.events?.length) search.set('events', query.events.join(','));
     if (query.status) search.set('status', query.status);
     return request<AuditPageData>(`/api/audit?${search}`);
   },
