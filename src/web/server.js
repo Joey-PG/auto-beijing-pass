@@ -441,9 +441,9 @@ async function serveStatic(response, pathname) {
     response.writeHead(200, {
       'Cache-Control': normalized === 'index.html' ? 'no-cache' : 'public, max-age=3600',
       'Content-Security-Policy':
-        "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+        "default-src 'self'; style-src 'self' 'unsafe-inline' https://*.amap.com; script-src 'self' https://*.amap.com; img-src 'self' data: blob: https://*.amap.com https://*.autonavi.com; connect-src 'self' https://*.amap.com https://*.autonavi.com; worker-src 'self' blob:; frame-ancestors 'none'",
       'Content-Type': CONTENT_TYPES[extname(path)] || 'application/octet-stream',
-      'Referrer-Policy': 'no-referrer',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
     });

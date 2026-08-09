@@ -251,6 +251,13 @@ export async function getDashboard() {
   }
   return {
     generatedAt: new Date().toISOString(),
+    mapConfig: {
+      enabled: Boolean(
+        process.env.AMAP_JS_KEY && process.env.AMAP_JS_SECURITY_CODE,
+      ),
+      key: process.env.AMAP_JS_KEY || '',
+      securityCode: process.env.AMAP_JS_SECURITY_CODE || '',
+    },
     schedule,
     accounts,
     summary: {

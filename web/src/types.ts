@@ -104,9 +104,16 @@ export interface ScheduleInfo {
   schedule?: string | null;
 }
 
+export interface MapConfig {
+  enabled: boolean;
+  key: string;
+  securityCode: string;
+}
+
 export interface Dashboard {
   accounts: Account[];
   generatedAt: string;
+  mapConfig: MapConfig;
   schedule: ScheduleInfo;
   summary: {
     accountCount: number;

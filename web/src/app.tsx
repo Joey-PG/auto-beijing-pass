@@ -396,6 +396,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         <AccountPage
           accounts={dashboard.accounts}
           loading={mutationLoading}
+          mapConfig={dashboard.mapConfig}
           onAdd={handleAddAccount}
           onDelete={handleDeleteAccount}
           onRelogin={handleReloginAccount}
@@ -501,6 +502,11 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       <VehicleDrawer
         account={selectedAccount}
         loading={mutationLoading}
+        mapConfig={dashboard?.mapConfig || {
+          enabled: false,
+          key: '',
+          securityCode: '',
+        }}
         onClose={() => setSelectedVehicle(null)}
         onRenew={handleRenewVehicle}
         onUpdate={handleUpdateAccount}

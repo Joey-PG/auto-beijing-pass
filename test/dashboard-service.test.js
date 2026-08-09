@@ -30,6 +30,8 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-dashboard-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
   const originalFetch = globalThis.fetch;
+  process.env.AMAP_JS_KEY = 'test-map-key';
+  process.env.AMAP_JS_SECURITY_CODE = 'test-security-code';
 
   try {
     saveConfig({
@@ -84,6 +86,11 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
 
     assert.equal(dashboard.summary.accountCount, 1);
     assert.equal(dashboard.summary.vehicleCount, 1);
+    assert.deepEqual(dashboard.mapConfig, {
+      enabled: true,
+      key: 'test-map-key',
+      securityCode: 'test-security-code',
+    });
     assert.equal(dashboard.accounts[0].name, '13800000001');
     assert.equal(dashboard.accounts[0].phone, '13800000001');
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');
@@ -96,6 +103,8 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
     assert.equal(audit.items[0].account, '13800000001');
   } finally {
     globalThis.fetch = originalFetch;
+    delete process.env.AMAP_JS_KEY;
+    delete process.env.AMAP_JS_SECURITY_CODE;
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });
   }

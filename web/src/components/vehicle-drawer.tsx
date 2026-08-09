@@ -21,7 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 
 import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
-import type { Account, TripProfileInput, Vehicle } from '../types';
+import type { Account, MapConfig, TripProfileInput, Vehicle } from '../types';
 import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 
 type RenewalFormValues = TripProfileInput & { saveAsDefault?: boolean };
@@ -29,6 +29,7 @@ type RenewalFormValues = TripProfileInput & { saveAsDefault?: boolean };
 interface VehicleDrawerProps {
   account: Account | null;
   loading: boolean;
+  mapConfig: MapConfig;
   onClose: () => void;
   onRenew: (
     vehicle: Vehicle,
@@ -47,6 +48,7 @@ interface VehicleDrawerProps {
 export function VehicleDrawer({
   account,
   loading,
+  mapConfig,
   onClose,
   onRenew,
   onUpdate,
@@ -299,7 +301,7 @@ export function VehicleDrawer({
           }}
           preserve={false}
         >
-          <TripProfileFields />
+          <TripProfileFields mapConfig={mapConfig} />
           <Form.Item name="saveAsDefault" valuePropName="checked">
             <Checkbox>同时保存为该账号的默认出行配置</Checkbox>
           </Form.Item>

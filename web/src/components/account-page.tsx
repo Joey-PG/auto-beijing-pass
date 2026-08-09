@@ -26,6 +26,7 @@ import type {
   Account,
   AccountCreateInput,
   AccountUpdateInput,
+  MapConfig,
   TripProfileInput,
 } from '../types';
 import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
@@ -33,6 +34,7 @@ import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 interface AccountPageProps {
   accounts: Account[];
   loading: boolean;
+  mapConfig: MapConfig;
   onAdd: (values: AccountCreateInput) => Promise<void>;
   onDelete: (account: Account) => Promise<void>;
   onRelogin: (account: Account, password: string) => Promise<void>;
@@ -47,6 +49,7 @@ interface AccountPageProps {
 export function AccountPage({
   accounts,
   loading,
+  mapConfig,
   onAdd,
   onDelete,
   onRelogin,
@@ -270,7 +273,7 @@ export function AccountPage({
           }}
           preserve={false}
         >
-          <TripProfileFields />
+          <TripProfileFields mapConfig={mapConfig} />
         </Form>
       </Modal>
 
