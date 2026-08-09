@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { readAuditEvents } from '../src/lib/audit-logger.js';
-import { saveConfig } from '../src/lib/config-manager.js';
+import { loadConfig, saveConfig } from '../src/lib/config-manager.js';
 import {
   createDashboardServer,
   startDashboardServer,
@@ -272,6 +272,51 @@ test('web mutations write the authenticated administrator to audit logs', async 
     assert.equal(event.event, 'config_changed');
     assert.equal(event.actor, 'zhaoyue');
     assert.equal(event.account, '测试账号');
+  } finally {
+    server.close();
+    await once(server, 'close');
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('web server saves an account trip profile', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-trip-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  saveConfig({
+    users: [{
+      auth: 'test-token',
+      auto_renew: false,
+      bjt_phone: '13800000001',
+      name: '测试账号',
+    }],
+  });
+  const server = createDashboardServer();
+  const baseUrl = await listen(server);
+  try {
+    const response = await fetch(`${baseUrl}/api/accounts/1/trip-profile`, {
+      body: JSON.stringify({
+        inBeijingAddress: '北京市朝阳区测试路 1 号',
+        inBeijingLongitude: '116.40',
+        inBeijingLatitude: '39.90',
+        destinationAddress: '北京市海淀区测试路 2 号',
+        destinationLongitude: '116.30',
+        destinationLatitude: '39.95',
+        destinationArea: '海淀区',
+        districtCode: '008',
+        purposeName: '其它',
+        purposeCode: '06',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT',
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).data.updated, true);
+    assert.equal(
+      loadConfig().users[0].trip_profile.in_beijing_address.address,
+      '北京市朝阳区测试路 1 号',
+    );
   } finally {
     server.close();
     await once(server, 'close');

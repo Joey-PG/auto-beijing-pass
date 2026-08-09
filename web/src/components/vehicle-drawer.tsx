@@ -5,26 +5,36 @@ import {
 } from '@ant-design/icons';
 import {
   Button,
+  Alert,
+  Checkbox,
   Descriptions,
   Drawer,
   Empty,
-  Popconfirm,
+  Form,
+  Modal,
   Select,
-  Space,
   Switch,
   Tabs,
   Tag,
   Timeline,
 } from 'antd';
+import { useEffect, useState } from 'react';
 
 import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
-import type { Account, Vehicle } from '../types';
+import type { Account, TripProfileInput, Vehicle } from '../types';
+import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
+
+type RenewalFormValues = TripProfileInput & { saveAsDefault?: boolean };
 
 interface VehicleDrawerProps {
   account: Account | null;
   loading: boolean;
   onClose: () => void;
-  onRenew: (vehicle: Vehicle) => Promise<void>;
+  onRenew: (
+    vehicle: Vehicle,
+    tripProfile: TripProfileInput,
+    saveAsDefault: boolean,
+  ) => Promise<boolean>;
   onUpdate: (
     accountId: string,
     values: Record<string, boolean | string>,
@@ -43,6 +53,18 @@ export function VehicleDrawer({
   open,
   vehicle,
 }: VehicleDrawerProps) {
+  const [renewForm] = Form.useForm<RenewalFormValues>();
+  const [renewOpen, setRenewOpen] = useState(false);
+
+  useEffect(() => {
+    if (renewOpen) {
+      renewForm.setFieldsValue({
+        ...tripProfileToInput(account?.tripProfile || null),
+        saveAsDefault: false,
+      });
+    }
+  }, [account, renewForm, renewOpen]);
+
   if (!vehicle || !account) return null;
 
   const record = getLatestRecord(vehicle);
@@ -146,16 +168,16 @@ export function VehicleDrawer({
         </div>
         <Descriptions column={1} colon={false} size="small">
           <Descriptions.Item label="在京地址">
-            {profile.in_beijing_address?.address || '—'}
+            {profile?.in_beijing_address.address || '未配置'}
           </Descriptions.Item>
           <Descriptions.Item label="进京目的地">
-            {profile.destination?.address || '—'}
+            {profile?.destination.address || '未配置'}
           </Descriptions.Item>
           <Descriptions.Item label="目的地区县">
-            {profile.destination?.area || '—'}
+            {profile?.destination.area || '未配置'}
           </Descriptions.Item>
           <Descriptions.Item label="进京目的">
-            {profile.purpose?.name || '—'}
+            {profile?.purpose.name || '未配置'}
           </Descriptions.Item>
         </Descriptions>
       </section>
@@ -206,7 +228,8 @@ export function VehicleDrawer({
   );
 
   return (
-    <Drawer
+    <>
+      <Drawer
       className="vehicle-detail-drawer"
       destroyOnClose
       mask={false}
@@ -222,22 +245,16 @@ export function VehicleDrawer({
       width={410}
     >
       <div className="drawer-primary-action">
-        <Popconfirm
-          description="系统会先检查当前状态，仅在需要时提交续签。"
-          okText="确认执行"
-          onConfirm={() => onRenew(vehicle)}
-          title={`立即检查并续签 ${vehicle.licenseNumber}？`}
+        <Button
+          block
+          icon={<ThunderboltOutlined />}
+          loading={loading}
+          onClick={() => setRenewOpen(true)}
+          size="large"
+          type="primary"
         >
-          <Button
-            block
-            icon={<ThunderboltOutlined />}
-            loading={loading}
-            size="large"
-            type="primary"
-          >
-            立即检查 / 续签
-          </Button>
-        </Popconfirm>
+          立即检查 / 续签
+        </Button>
       </div>
       <Tabs
         items={[
@@ -250,6 +267,44 @@ export function VehicleDrawer({
           { children: configuration, key: 'configuration', label: '配置' },
         ]}
       />
-    </Drawer>
+      </Drawer>
+      <Modal
+        centered
+        destroyOnClose
+        maskClosable={!loading}
+        okButtonProps={{ loading }}
+        okText="确认检查并续签"
+        onCancel={() => setRenewOpen(false)}
+        onOk={() => renewForm.submit()}
+        open={renewOpen}
+        title={`确认本次出行信息 · ${vehicle.licenseNumber}`}
+        width={720}
+      >
+        <Alert
+          className="modal-inline-alert"
+          message={account.tripProfileConfigured
+            ? '以下内容已从账号默认配置带入，本次可以临时修改。'
+            : '该账号尚未保存默认出行配置，请填写本次申请信息。'}
+          showIcon
+          type={account.tripProfileConfigured ? 'info' : 'warning'}
+        />
+        <Form
+          className="trip-profile-form"
+          form={renewForm}
+          layout="vertical"
+          onFinish={async ({ saveAsDefault = false, ...values }) => {
+            if (await onRenew(vehicle, values, saveAsDefault)) {
+              setRenewOpen(false);
+            }
+          }}
+          preserve={false}
+        >
+          <TripProfileFields />
+          <Form.Item name="saveAsDefault" valuePropName="checked">
+            <Checkbox>同时保存为该账号的默认出行配置</Checkbox>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

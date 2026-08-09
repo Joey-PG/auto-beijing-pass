@@ -23,7 +23,10 @@ import {
   parseVehicle,
   vehicleToApiDict,
 } from '../lib/models.js';
-import { resolveTripProfile } from '../lib/trip-profile.js';
+import {
+  createTripProfile,
+  isCompleteTripProfile,
+} from '../lib/trip-profile.js';
 
 const ENTRY_TYPES = new Set(['六环内', '六环外']);
 const PLATE_TYPES = new Set(['01', '02', '06', '13', '51', '52']);
@@ -179,7 +182,8 @@ async function loadAccountDashboard(user, index) {
     entryType: user.entry_type || '六环外',
     autoRenew: user.auto_renew !== false,
     preferredVehicle: user.preferred_vehicle || '',
-    tripProfile: resolveTripProfile(user.trip_profile),
+    tripProfile: user.trip_profile || null,
+    tripProfileConfigured: isCompleteTripProfile(user.trip_profile),
   };
 
   try {
@@ -270,9 +274,12 @@ export async function addDashboardAccount(
     const password = validatePassword(input?.password);
     const name = validateAccountName(input?.name, phone);
     const entryType = validateEntryType(input?.entryType);
-    const autoRenew = input?.autoRenew ?? true;
+    const autoRenew = input?.autoRenew ?? false;
     if (typeof autoRenew !== 'boolean') {
       throw new WebServiceError('自动续签开关必须是布尔值', 400);
+    }
+    if (autoRenew) {
+      throw new WebServiceError('请先添加账号并配置出行信息，再开启自动续签', 400);
     }
     if (getUsers().some((user) => user.bjt_phone === phone)) {
       throw new WebServiceError('该北京通手机号已存在，请使用重新登录', 409);
@@ -500,6 +507,9 @@ export function updateDashboardAccount(
       if (typeof input.autoRenew !== 'boolean') {
         throw new WebServiceError('自动续签开关必须是布尔值', 400);
       }
+      if (input.autoRenew && !isCompleteTripProfile(user.trip_profile)) {
+        throw new WebServiceError('请先配置完整的出行信息，再开启自动续签', 400);
+      }
       updates.auto_renew = input.autoRenew;
     }
     if (Object.hasOwn(input, 'entryType')) {
@@ -538,6 +548,38 @@ export function updateDashboardAccount(
   }
 }
 
+export function updateDashboardTripProfile(
+  accountId,
+  input,
+  { actor = null } = {},
+) {
+  let user = null;
+  try {
+    ({ user } = getAccountById(accountId));
+    const tripProfile = createTripProfile(input);
+    updateUser({ trip_profile: tripProfile }, user.bjt_phone);
+    writeAuditEvent('trip_profile_changed', {
+      account: getAccountLabel(user),
+      actor,
+      result: 'success',
+      profile_source: 'custom',
+      area: tripProfile.destination.area,
+      district_code: tripProfile.destination.district_code,
+      purpose_code: tripProfile.purpose.code,
+      source: 'web',
+    });
+    return { tripProfile, updated: true };
+  } catch (error) {
+    writeWebFailure('trip_profile_changed', error, {
+      account_id: accountId,
+      actor,
+      user,
+    });
+    if (error instanceof WebServiceError) throw error;
+    throw new WebServiceError(getErrorMessage(error), 400);
+  }
+}
+
 export async function runDashboardRenewal(
   accountId,
   input,
@@ -555,12 +597,15 @@ export async function runDashboardRenewal(
     if (input.entryType && !ENTRY_TYPES.has(input.entryType)) {
       throw new WebServiceError('进京证类型只能是六环内或六环外', 400);
     }
+    const tripProfile = input.tripProfile
+      ? createTripProfile(input.tripProfile)
+      : null;
     const result = await applyPermit(
       api,
       user,
       plate,
       input.entryType || undefined,
-      { dryRun },
+      { dryRun, tripProfile },
     );
     writeAuditEvent(
       result.applied

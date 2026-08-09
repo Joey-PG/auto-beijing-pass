@@ -291,6 +291,10 @@ button, input, select { font: inherit; }
 .history-item p { margin: 7px 0 2px; color: #475467; }
 .history-item > span { color: #98a2b3; font-size: 12px; }
 .modal-description { margin: 0 0 18px; color: #667085; font-size: 13px; }
+.modal-inline-alert { margin-bottom: 18px; }
+.trip-profile-form .ant-divider { margin: 18px 0 14px; color: #344054; font-size: 13px; }
+.trip-profile-form .ant-form-item { margin-bottom: 16px; }
+.trip-profile-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .vehicle-form .ant-form-item { margin-bottom: 18px; }
 .vehicle-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }

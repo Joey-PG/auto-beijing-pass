@@ -24,6 +24,7 @@ import {
   getConfigDir,
   getUsers,
 } from '../lib/config-manager.js';
+import { isCompleteTripProfile } from '../lib/trip-profile.js';
 
 const COMMAND_NAME =
   process.env.AUTO_BJ_PASS_COMMAND_NAME ||
@@ -422,6 +423,18 @@ export function registerCronCommand(program) {
     )
     .action(async (options) => {
       try {
+        const missingProfiles = getUsers({ initializedOnly: true })
+          .filter(
+            (user) =>
+              user.auto_renew !== false &&
+              !isCompleteTripProfile(user.trip_profile),
+          )
+          .map((user, index) => getAccountLabel(user, index));
+        if (missingProfiles.length > 0) {
+          throw new Error(
+            `以下自动续签账号尚未配置完整出行信息：${missingProfiles.join('、')}`,
+          );
+        }
         ensureCronLog();
         let current = getCurrentCrontab();
 
@@ -531,10 +544,20 @@ export function registerCronCommand(program) {
         const selectedAccounts = [];
         let eligibleCount = 0;
         let disabledCount = 0;
+        let missingProfileCount = 0;
 
         for (const [index, user] of users.entries()) {
           if (user.auto_renew === false) {
             disabledCount += 1;
+            continue;
+          }
+          if (!isCompleteTripProfile(user.trip_profile)) {
+            missingProfileCount += 1;
+            writeAuditEvent('cron_account_skipped', {
+              account: getAccountLabel(user, index),
+              result: 'skipped',
+              reason: 'missing_trip_profile',
+            });
             continue;
           }
           eligibleCount += 1;
@@ -697,6 +720,7 @@ export function registerCronCommand(program) {
             result: failedCount > 0 ? 'partial_failure' : 'success',
             eligible_count: eligibleCount,
             disabled_count: disabledCount,
+            missing_profile_count: missingProfileCount,
             selected_count: selectedAccounts.length,
             succeeded_count: succeededCount,
             failed_count: failedCount,

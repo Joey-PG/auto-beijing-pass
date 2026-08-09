@@ -16,6 +16,7 @@ import {
   reloginDashboardAccount,
   removeDashboardAccount,
   updateDashboardAccount,
+  updateDashboardTripProfile,
 } from '../src/web/dashboard-service.js';
 
 function apiResponse(data) {
@@ -148,6 +149,64 @@ test('dashboard updates only supported account renewal settings', () => {
   }
 });
 
+test('dashboard saves and validates account trip profiles', () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-trip-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '出行账号',
+        auth: 'test-token',
+        bjt_phone: '13800000001',
+        auto_renew: false,
+      }],
+    });
+
+    const input = {
+      inBeijingAddress: '北京市朝阳区测试路 1 号',
+      inBeijingLongitude: '116.40',
+      inBeijingLatitude: '39.90',
+      destinationAddress: '北京市海淀区测试路 2 号',
+      destinationLongitude: '116.30',
+      destinationLatitude: '39.95',
+      destinationArea: '海淀区',
+      districtCode: '008',
+      purposeName: '其它',
+      purposeCode: '06',
+    };
+    const result = updateDashboardTripProfile('1', input, {
+      actor: 'zhaoyue',
+    });
+
+    assert.equal(result.updated, true);
+    assert.equal(
+      loadConfig().users[0].trip_profile.destination.address,
+      input.destinationAddress,
+    );
+    assert.equal(
+      loadConfig().users[0].trip_profile.current_location.longitude,
+      input.inBeijingLongitude,
+    );
+    assert.throws(
+      () => updateDashboardTripProfile(
+        '1',
+        { ...input, destinationLatitude: '200' },
+        { actor: 'zhaoyue' },
+      ),
+      /目的地纬度无效/,
+    );
+    assert.doesNotThrow(() => updateDashboardAccount(
+      '1',
+      { autoRenew: true },
+      { actor: 'zhaoyue' },
+    ));
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('dashboard securely adds, edits, reauthenticates, and removes accounts', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-accounts-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
@@ -159,7 +218,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
         phone: '13800000001',
         password: 'initial-secret',
         entryType: '六环外',
-        autoRenew: true,
+        autoRenew: false,
       },
       {
         actor: 'zhaochunxu',
@@ -179,7 +238,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       entry_type: '六环外',
       notify_urls: [],
       preferred_vehicle: '',
-      auto_renew: true,
+      auto_renew: false,
     });
 
     updateDashboardAccount(

@@ -10,7 +10,10 @@ import {
   formatDate, getFutureDate,
 } from '../lib/models.js';
 import { notify } from '../lib/notifier.js';
-import { resolveTripProfile } from '../lib/trip-profile.js';
+import {
+  isCompleteTripProfile,
+  requireTripProfile,
+} from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
 import { output, success, error } from '../output.js';
 
@@ -78,7 +81,7 @@ export async function applyPermit(
   user,
   plate,
   entryTypeOverride,
-  { dryRun = false } = {},
+  { dryRun = false, tripProfile = null } = {},
 ) {
   const { state: rawState } = await api.loadHomePageData();
   const state = parseStateData(rawState);
@@ -131,7 +134,7 @@ export async function applyPermit(
     userInfo,
     applyDate,
     entryType,
-    resolveTripProfile(user.trip_profile),
+    requireTripProfile(tripProfile || user.trip_profile),
   );
   if (dryRun) {
     return {
@@ -305,6 +308,21 @@ export async function runCommand({
           `[${getAccountLabel(user)}] 已关闭自动续签，跳过`,
         ),
       );
+      continue;
+    }
+    if (!isCompleteTripProfile(user.trip_profile)) {
+      const message = '未配置完整的出行信息，请先运行 trip set';
+      writeAuditEvent(
+        'renewal_failed',
+        {
+          account: getAccountLabel(user),
+          result: 'failure',
+          error: message,
+        },
+        { level: 'error' },
+      );
+      output(error(`[${getAccountLabel(user)}] 运行失败: ${message}`));
+      process.exitCode = 1;
       continue;
     }
     try {

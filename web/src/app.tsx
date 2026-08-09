@@ -39,6 +39,7 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  TripProfileInput,
   Vehicle,
 } from './types';
 
@@ -284,7 +285,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const handleAddAccount = async (values: AccountCreateInput) => {
     await handleMutation(
       () => dashboardApi.addAccount(values),
-      `账号 ${values.name || values.phone} 添加成功`,
+      `账号 ${values.name || values.phone} 添加成功，请继续配置出行信息`,
     );
   };
 
@@ -293,6 +294,16 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     values: AccountUpdateInput,
   ) => {
     await handleUpdateAccount(account.id, { ...values }, '账号配置已更新');
+  };
+
+  const handleUpdateTripProfile = async (
+    account: Account,
+    values: TripProfileInput,
+  ) => {
+    await handleMutation(
+      () => dashboardApi.updateTripProfile(account.id, values),
+      `账号 ${account.name} 的出行配置已保存`,
+    );
   };
 
   const handleReloginAccount = async (account: Account, password: string) => {
@@ -311,7 +322,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
 
   const handleUpdateAccount = async (
     accountId: string,
-    values: Record<string, boolean | string>,
+    values: AccountUpdateInput | Record<string, boolean | string>,
     successMessage: string,
   ) => {
     await handleMutation(
@@ -328,18 +339,28 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     );
   };
 
-  const handleRenewVehicle = async (vehicle: Vehicle) => {
+  const handleRenewVehicle = async (
+    vehicle: Vehicle,
+    tripProfile: TripProfileInput,
+    saveAsDefault: boolean,
+  ) => {
     setMutationLoading(true);
     try {
+      if (saveAsDefault) {
+        await dashboardApi.updateTripProfile(vehicle.accountId, tripProfile);
+      }
       const result = await dashboardApi.renewVehicle(
         vehicle.accountId,
         vehicle.licenseNumber,
+        tripProfile,
       );
       message.success(result.message || '检查完成');
       await loadData({ quiet: true });
+      return true;
     } catch (error) {
       console.error(error);
       message.error(error instanceof Error ? error.message : '续签执行失败');
+      return false;
     } finally {
       setMutationLoading(false);
     }
@@ -380,6 +401,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           onRelogin={handleReloginAccount}
           onToggle={handleToggleAutoRenew}
           onUpdate={handleEditAccount}
+          onUpdateTripProfile={handleUpdateTripProfile}
         />
       );
     }

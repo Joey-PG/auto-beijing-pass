@@ -17,6 +17,7 @@ import {
   removeDashboardVehicle,
   runDashboardRenewal,
   updateDashboardAccount,
+  updateDashboardTripProfile,
   WebServiceError,
 } from './dashboard-service.js';
 import { SessionStore } from './session-store.js';
@@ -377,10 +378,23 @@ async function handleApi(request, response, url, { actor = null } = {}) {
   const accountLoginMatch = url.pathname.match(
     /^\/api\/accounts\/([^/]+)\/login$/,
   );
+  const accountTripProfileMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/trip-profile$/,
+  );
   if (request.method === 'POST' && accountLoginMatch) {
     const body = await readJsonBody(request);
     const data = await reloginDashboardAccount(
       decodeURIComponent(accountLoginMatch[1]),
+      body,
+      { actor },
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
+  if (request.method === 'PUT' && accountTripProfileMatch) {
+    const body = await readJsonBody(request);
+    const data = updateDashboardTripProfile(
+      decodeURIComponent(accountTripProfileMatch[1]),
       body,
       { actor },
     );

@@ -5,7 +5,6 @@ import {
 } from '../lib/config-manager.js';
 import { output, success, error } from '../output.js';
 import { COMMAND_NAME } from '../constants.js';
-import { resolveTripProfile } from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
 
 function normalizeCoordinate(value, label, min, max) {
@@ -17,11 +16,17 @@ function normalizeCoordinate(value, label, min, max) {
 }
 
 function formatTripProfile(user) {
-  const profile = resolveTripProfile(user.trip_profile);
-  const source = user.trip_profile ? '账号配置' : '系统默认';
+  const profile = user.trip_profile;
+  if (!profile) {
+    return (
+      `账号: ${getAccountLabel(user)}\n` +
+      '出行配置: 未配置\n' +
+      '请设置真实的在京地址、进京目的地和进京目的'
+    );
+  }
   return (
     `账号: ${getAccountLabel(user)}\n` +
-    `地址来源: ${source}\n` +
+    '地址来源: 账号配置\n' +
     `是否已在京: ${profile.is_in_beijing ? '是' : '否'}\n` +
     `在京地址: ${profile.in_beijing_address.address} ` +
     `(${profile.in_beijing_address.longitude}, ${profile.in_beijing_address.latitude})\n` +
@@ -207,8 +212,8 @@ export function registerTripCommand(program) {
           success(
             {
               account: getAccountLabel(user),
-              tripProfile: resolveTripProfile(user.trip_profile),
-              usesDefault: !user.trip_profile,
+              tripProfile: user.trip_profile || null,
+              configured: Boolean(user.trip_profile),
             },
             formatTripProfile(user),
           ),
