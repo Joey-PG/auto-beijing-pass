@@ -24,6 +24,57 @@ import { useMemo, useState } from 'react';
 import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
 import type { Account, Dashboard, Vehicle } from '../types';
 
+function formatRenewalDate(value: string, generatedAt: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value;
+  const currentYear = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+  }).format(new Date(generatedAt));
+  return match[1] === currentYear
+    ? `${match[2]}/${match[3]}`
+    : `${match[1]}/${match[2]}/${match[3]}`;
+}
+
+function NextRenewalCell({
+  account,
+  dashboard,
+  vehicle,
+}: {
+  account: Account;
+  dashboard: Dashboard;
+  vehicle: Vehicle;
+}) {
+  const record = getLatestRecord(vehicle);
+  let detail = '暂无有效期';
+  let value = '待检查';
+  if (!account.autoRenew) {
+    detail = '自动续签已关闭';
+    value = '未开启';
+  } else if (!dashboard.schedule.active) {
+    detail = '定时任务未启用';
+    value = '未排期';
+  } else if (record?.validTo) {
+    const date = formatRenewalDate(record.validTo, dashboard.generatedAt);
+    if (dashboard.schedule.randomWindow) {
+      detail = '到期日内随机';
+      value = `${date} ${dashboard.schedule.randomWindow.replace('-', '–')}`;
+    } else if (dashboard.schedule.dailyTime) {
+      detail = '到期日定时检查';
+      value = `${date} ${dashboard.schedule.dailyTime}`;
+    } else {
+      detail = dashboard.schedule.description || '按当前计划执行';
+      value = date;
+    }
+  }
+  return (
+    <div className="next-renewal-cell">
+      <span>{value}</span>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
 interface VehiclePageProps {
   dashboard: Dashboard;
   loading: boolean;
@@ -159,6 +210,27 @@ export function VehiclePage({
       width: 75,
     },
     {
+      key: 'nextRenewal',
+      render: (_, vehicle) => {
+        const account = accountMap.get(vehicle.accountId);
+        return account ? (
+          <NextRenewalCell
+            account={account}
+            dashboard={dashboard}
+            vehicle={vehicle}
+          />
+        ) : (
+          '—'
+        );
+      },
+      title: (
+        <Tooltip title="按当前证件有效期结束日和自动调度时段估算；系统会先检查状态，仅在符合条件时提交续签">
+          预计下次续签
+        </Tooltip>
+      ),
+      width: 135,
+    },
+    {
       key: 'lastExecution',
       render: (_, vehicle) => (
         <div className="last-run-cell">
@@ -276,7 +348,7 @@ export function VehiclePage({
             vehicle.vehicleId === selectedVehicleId ? 'selected-vehicle-row' : ''
           }
           rowKey={(vehicle) => `${vehicle.accountId}-${vehicle.vehicleId}`}
-          scroll={{ x: 740 }}
+          scroll={{ x: 875 }}
           size="middle"
         />
       </Card>

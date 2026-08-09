@@ -254,12 +254,16 @@ button, input, select { font: inherit; }
 .account-cell strong,
 .account-cell span,
 .validity-cell span,
+.next-renewal-cell span,
+.next-renewal-cell small,
 .last-run-cell span,
 .last-run-cell small { display: block; }
 .account-cell strong { color: #344054; font-weight: 500; }
 .account-cell span,
+.next-renewal-cell small,
 .last-run-cell small { margin-top: 2px; color: #98a2b3; font-size: 11px; }
-.validity-cell, .last-run-cell { line-height: 1.45; }
+.validity-cell, .next-renewal-cell, .last-run-cell { line-height: 1.45; }
+.next-renewal-cell span { font-size: 12px; white-space: nowrap; }
 
 .vehicle-detail-drawer .ant-drawer-header { min-height: 92px; padding: 18px 20px; }
 .vehicle-detail-drawer .ant-drawer-body { padding: 0 20px 24px; }
