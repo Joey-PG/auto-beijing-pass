@@ -5,9 +5,11 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import { getConfigDir } from '../lib/config-manager.js';
 
 import {
   addDashboardAccount,
+  extendDashboardMembership,
   addDashboardVehicle,
   getDashboard,
   getDashboardAudit,
@@ -16,10 +18,20 @@ import {
   removeDashboardVehicle,
   runDashboardRenewal,
   updateDashboardAccount,
+  updateDashboardTripProfile,
   WebServiceError,
 } from './dashboard-service.js';
+import { SessionStore } from './session-store.js';
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), 'public');
+const SPA_ROUTES = new Set([
+  '/',
+  '/accounts',
+  '/audit',
+  '/logs',
+  '/system',
+  '/vehicles',
+]);
 const MAX_BODY_BYTES = 64 * 1024;
 const SESSION_COOKIE = 'auto_bj_pass_session';
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -125,12 +137,15 @@ function parseCookies(request) {
   return cookies;
 }
 
-function getSession(request, sessions) {
+function getSession(request, sessions, authenticators) {
   const token = parseCookies(request)[SESSION_COOKIE];
   if (!token) return null;
   const session = sessions.get(token);
   if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
+  if (
+    authenticators.length > 0 &&
+    !authenticators.some((authenticator) => authenticator.name === session.username)
+  ) {
     sessions.delete(token);
     return null;
   }
@@ -139,7 +154,7 @@ function getSession(request, sessions) {
 
 function isAuthenticated(request, authenticators, sessions) {
   if (authenticators.length === 0) return true;
-  return Boolean(getSession(request, sessions)) ||
+  return Boolean(getSession(request, sessions, authenticators)) ||
     Boolean(getBasicAuthenticatedUsername(request, authenticators));
 }
 
@@ -155,6 +170,20 @@ function isSecureRequest(request) {
   return forwarded === 'https' || Boolean(request.socket.encrypted);
 }
 
+function isLocalRequest(request) {
+  try {
+    const forwardedHost = String(
+      request.headers['x-forwarded-host'] || '',
+    ).split(',')[0].trim();
+    const hostname = new URL(
+      `http://${forwardedHost || request.headers.host || 'localhost'}`,
+    ).hostname;
+    return ['127.0.0.1', '::1', 'localhost'].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
 function createSessionCookie(token, request) {
   const secure = isSecureRequest(request) ? '; Secure' : '';
   return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
@@ -165,19 +194,12 @@ function clearSessionCookie(request) {
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
 }
 
-function pruneSessions(sessions) {
-  const now = Date.now();
-  for (const [token, session] of sessions) {
-    if (session.expiresAt <= now) sessions.delete(token);
-  }
-}
-
 async function handleAuth(request, response, url, context) {
   const { auditWriter, authenticators, loginAttempts, sessions } = context;
   const authenticationEnabled = authenticators.length > 0;
 
   if (request.method === 'GET' && url.pathname === '/api/auth/session') {
-    const session = getSession(request, sessions);
+    const session = getSession(request, sessions, authenticators);
     sendJson(response, 200, {
       success: true,
       data: {
@@ -258,9 +280,8 @@ async function handleAuth(request, response, url, context) {
     }
 
     loginAttempts.delete(address);
-    pruneSessions(sessions);
     const token = randomBytes(32).toString('base64url');
-    sessions.set(token, {
+    sessions.create(token, {
       expiresAt: now + SESSION_TTL_SECONDS * 1000,
       username: authenticatedUsername,
     });
@@ -283,7 +304,7 @@ async function handleAuth(request, response, url, context) {
     if (!isSafeOrigin(request)) {
       throw new WebServiceError('请求来源校验失败', 403);
     }
-    const session = getSession(request, sessions);
+    const session = getSession(request, sessions, authenticators);
     auditWriter('web_logout', {
       actor: session?.username || null,
       address: getClientAddress(request),
@@ -336,7 +357,15 @@ async function handleApi(request, response, url, { actor = null } = {}) {
     throw new WebServiceError('请求来源校验失败', 403);
   }
   if (request.method === 'GET' && url.pathname === '/api/dashboard') {
-    sendJson(response, 200, { success: true, data: await getDashboard() });
+    sendJson(response, 200, {
+      success: true,
+      data: await getDashboard({
+        securityContext: {
+          localRequest: isLocalRequest(request),
+          secureRequest: isSecureRequest(request),
+        },
+      }),
+    });
     return true;
   }
   if (request.method === 'GET' && url.pathname === '/api/audit') {
@@ -372,10 +401,36 @@ async function handleApi(request, response, url, { actor = null } = {}) {
   const accountLoginMatch = url.pathname.match(
     /^\/api\/accounts\/([^/]+)\/login$/,
   );
+  const accountMembershipMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/membership$/,
+  );
+  const accountTripProfileMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/trip-profile$/,
+  );
+  if (request.method === 'POST' && accountMembershipMatch) {
+    const body = await readJsonBody(request);
+    const data = extendDashboardMembership(
+      decodeURIComponent(accountMembershipMatch[1]),
+      body,
+      { actor },
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
   if (request.method === 'POST' && accountLoginMatch) {
     const body = await readJsonBody(request);
     const data = await reloginDashboardAccount(
       decodeURIComponent(accountLoginMatch[1]),
+      body,
+      { actor },
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
+  if (request.method === 'PUT' && accountTripProfileMatch) {
+    const body = await readJsonBody(request);
+    const data = updateDashboardTripProfile(
+      decodeURIComponent(accountTripProfileMatch[1]),
       body,
       { actor },
     );
@@ -410,7 +465,8 @@ async function handleApi(request, response, url, { actor = null } = {}) {
 }
 
 async function serveStatic(response, pathname) {
-  const requested = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const routePath = pathname.replace(/\/+$/, '') || '/';
+  const requested = SPA_ROUTES.has(routePath) ? 'index.html' : pathname.slice(1);
   const normalized = normalize(requested);
   if (normalized.startsWith('..') || normalize(normalized) !== normalized) {
     return false;
@@ -421,9 +477,9 @@ async function serveStatic(response, pathname) {
     response.writeHead(200, {
       'Cache-Control': normalized === 'index.html' ? 'no-cache' : 'public, max-age=3600',
       'Content-Security-Policy':
-        "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+        "default-src 'self'; style-src 'self' 'unsafe-inline' https://*.amap.com; script-src 'self' 'unsafe-eval' https://*.amap.com; img-src 'self' data: blob: https://*.amap.com https://*.autonavi.com; connect-src 'self' https://*.amap.com https://*.autonavi.com; worker-src 'self' blob:; frame-ancestors 'none'",
       'Content-Type': CONTENT_TYPES[extname(path)] || 'application/octet-stream',
-      'Referrer-Policy': 'no-referrer',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
     });
@@ -436,11 +492,12 @@ async function serveStatic(response, pathname) {
 
 export function createDashboardServer({
   auditWriter = writeAuditEvent,
+  sessionFile = '',
   username = '',
   password = '',
   users = [],
 } = {}) {
-  const sessions = new Map();
+  const sessions = new SessionStore({ filePath: sessionFile });
   const loginAttempts = new Map();
   const authenticators = normalizeAuthenticators({ password, username, users });
   return createServer(async (request, response) => {
@@ -461,7 +518,7 @@ export function createDashboardServer({
           });
           return;
         }
-        const session = getSession(request, sessions);
+        const session = getSession(request, sessions, authenticators);
         const actor = session?.username ||
           getBasicAuthenticatedUsername(request, authenticators) ||
           (authenticators.length === 0 ? '本机管理员' : null);
@@ -497,6 +554,9 @@ export async function startDashboardServer({
     process.env.AUTO_BJ_PASS_WEB_PASSWORD ||
     process.env.CROSS_BJ_WEB_PASSWORD ||
     '',
+  sessionFile =
+    process.env.AUTO_BJ_PASS_WEB_SESSION_FILE ||
+    join(getConfigDir(), 'web-sessions.json'),
   users = [],
   usersFile = process.env.AUTO_BJ_PASS_WEB_USERS_FILE || '',
 } = {}) {
@@ -523,7 +583,12 @@ export async function startDashboardServer({
       'AUTO_BJ_PASS_WEB_USERS_FILE，或设置 AUTO_BJ_PASS_WEB_USERNAME 和 AUTO_BJ_PASS_WEB_PASSWORD',
     );
   }
-  const server = createDashboardServer({ username, password, users: configuredUsers });
+  const server = createDashboardServer({
+    sessionFile,
+    username,
+    password,
+    users: configuredUsers,
+  });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, resolve);

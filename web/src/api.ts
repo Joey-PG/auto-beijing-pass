@@ -5,6 +5,8 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  MembershipUpdateInput,
+  TripProfileInput,
 } from './types';
 
 export interface SessionState {
@@ -72,15 +74,28 @@ export const dashboardApi = {
     });
     if (query.account) search.set('account', query.account);
     if (query.event) search.set('event', query.event);
+    if (query.events?.length) search.set('events', query.events.join(','));
     if (query.status) search.set('status', query.status);
     return request<AuditPageData>(`/api/audit?${search}`);
   },
   getDashboard: () => request<Dashboard>('/api/dashboard'),
-  renewVehicle: (accountId: string, licenseNumber: string) =>
+  renewVehicle: (
+    accountId: string,
+    licenseNumber: string,
+    tripProfile?: TripProfileInput,
+  ) =>
     request<{ applied: boolean; message: string }>('/api/renewals', {
-      body: JSON.stringify({ accountId, licenseNumber }),
+      body: JSON.stringify({ accountId, licenseNumber, tripProfile }),
       method: 'POST',
     }),
+  extendMembership: (accountId: string, body: MembershipUpdateInput) =>
+    request<{ expiresOn: string | null; permanent: boolean; updated: boolean }>(
+      `/api/accounts/${encodeURIComponent(accountId)}/membership`,
+      {
+        body: JSON.stringify(body),
+        method: 'POST',
+      },
+    ),
   reloginAccount: (accountId: string, password: string) =>
     request<{ updated: boolean }>(
       `/api/accounts/${encodeURIComponent(accountId)}/login`,
@@ -97,4 +112,12 @@ export const dashboardApi = {
       body: JSON.stringify(body),
       method: 'PATCH',
     }),
+  updateTripProfile: (accountId: string, body: TripProfileInput) =>
+    request<{ updated: boolean }>(
+      `/api/accounts/${encodeURIComponent(accountId)}/trip-profile`,
+      {
+        body: JSON.stringify(body),
+        method: 'PUT',
+      },
+    ),
 };

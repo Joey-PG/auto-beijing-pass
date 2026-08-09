@@ -294,8 +294,6 @@ button, input, select { font: inherit; }
 .history-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .history-item p { margin: 7px 0 2px; color: #475467; }
 .history-item > span { color: #98a2b3; font-size: 12px; }
-.drawer-danger-zone { display: flex; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #edf0f5; }
-
 .modal-description { margin: 0 0 18px; color: #667085; font-size: 13px; }
 .account-delete-modal-icon { color: #d92d20; }
 .account-delete-modal .ant-alert { margin: 4px 0 18px; }
@@ -307,16 +305,56 @@ button, input, select { font: inherit; }
 .account-delete-summary span { margin-bottom: 5px; color: #98a2b3; font-size: 11px; }
 .account-delete-summary strong { overflow: hidden; color: #344054; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .account-delete-note { margin: 0; color: #667085; font-size: 13px; line-height: 1.65; }
+.modal-inline-alert { margin-bottom: 18px; }
+.trip-profile-form .ant-divider { margin: 18px 0 14px; color: #344054; font-size: 13px; }
+.trip-profile-form .ant-form-item { margin-bottom: 16px; }
+.trip-profile-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.trip-profile-form .ant-input-group-addon { padding: 0; background: #fff; }
+.trip-profile-form .ant-input-group-addon .ant-btn { height: 30px; padding-inline: 12px; }
+.map-search { margin-bottom: 14px; }
+.map-picker-shell { position: relative; height: 410px; overflow: hidden; border: 1px solid #d9dfe8; border-radius: 8px; background: #f2f4f7; }
+.map-picker-canvas { width: 100%; height: 100%; }
+.map-center-pin { position: absolute; top: 50%; left: 50%; z-index: 2; color: #1677ff; font-size: 36px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.28)); pointer-events: none; transform: translate(-50%, -100%); }
+.map-loading { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: rgba(255, 255, 255, 0.48); pointer-events: none; }
+.map-picker-hint { margin: 10px 0 !important; font-size: 12px; }
+.map-location-result { margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: #f5f8ff; }
+.map-location-result strong,
+.map-location-result span { display: block; }
+.map-location-result strong { color: #344054; font-size: 13px; }
+.map-location-result span { margin-top: 4px; color: #7b8497; font-size: 12px; }
 .vehicle-form .ant-form-item { margin-bottom: 18px; }
 .vehicle-form .ant-form-item-extra { color: #98a2b3; font-size: 11px; }
 
 .page-alert { margin-bottom: 18px; }
 .system-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.system-card-grid .ant-card:last-child { grid-column: 1 / -1; }
-.system-status-row { margin-bottom: 16px; }
-.success-icon { margin-right: 8px; color: #26a269; }
-.warning-icon { margin-right: 8px; color: #f79009; }
+.system-card-grid > .ant-card { min-width: 0; }
+.system-schedule-card,
+.system-account-plan-card { grid-column: 1 / -1; }
+.system-schedule-card .ant-card-head-wrapper { flex-wrap: wrap; gap: 8px; }
+.system-schedule-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
+.system-schedule-heading > div { display: flex; align-items: center; gap: 8px; color: #475467; }
+.system-schedule-heading small { color: #98a2b3; }
+.scheduler-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; min-width: 0; margin-bottom: 20px; gap: 12px; }
+.scheduler-metric { min-width: 0; padding: 14px 16px; border: 1px solid #edf0f5; border-radius: 8px; background: #fafbfc; }
+.scheduler-metric span,
+.scheduler-metric strong { display: block; }
+.scheduler-metric span { color: #667085; font-size: 12px; }
+.scheduler-metric strong { margin-top: 5px; color: #172033; font-size: 23px; line-height: 1.2; }
+.scheduler-metric-warning strong { color: #d97706; }
+.scheduler-retry-cell span,
+.scheduler-retry-cell small { display: block; }
+.scheduler-retry-cell small { overflow: hidden; max-width: 240px; margin-top: 3px; color: #b54708; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.security-check-list { display: grid; gap: 14px; }
+.security-check { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: flex-start; gap: 10px; }
+.security-check > .anticon { margin-top: 3px; }
+.security-check strong,
+.security-check span { display: block; }
+.security-check strong { color: #344054; font-size: 13px; font-weight: 500; }
+.security-check span { margin-top: 2px; color: #98a2b3; font-size: 11px; line-height: 1.55; }
+.security-check-pass > .anticon { color: #26a269; }
+.security-check-warning > .anticon { color: #f79009; }
+.security-check-info > .anticon { color: #2f6bff; }
 .initial-loading { max-width: 980px; margin: 60px auto; padding: 32px; }
 
 @media (min-width: 1200px) {
@@ -363,7 +401,11 @@ button, input, select { font: inherit; }
   .table-toolbar .audit-account-filter,
   .table-toolbar .audit-event-filter { width: auto; min-width: 180px; }
   .system-card-grid { grid-template-columns: 1fr; }
-  .system-card-grid .ant-card:last-child { grid-column: auto; }
+  .system-schedule-card,
+  .system-account-plan-card { grid-column: auto; }
+  .system-schedule-heading { align-items: flex-start; flex-direction: column; }
+  .scheduler-metric-grid { grid-template-columns: 1fr 1fr; }
+  .system-account-plan-card .ant-card-body { overflow: hidden; }
   .form-grid { grid-template-columns: 1fr; }
   .account-delete-summary { grid-template-columns: 1fr; }
   .account-delete-summary > div { border-right: 0; border-bottom: 1px solid #eaecf0; }
@@ -378,4 +420,15 @@ button, input, select { font: inherit; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+.membership-cell {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.membership-cell small {
+  color: #7d8999;
+  white-space: nowrap;
 }

@@ -18,6 +18,24 @@ import {
   saveConfig,
 } from '../src/lib/config-manager.js';
 
+const TEST_TRIP_PROFILE = {
+  is_in_beijing: true,
+  current_location: { longitude: '116.40', latitude: '39.90' },
+  in_beijing_address: {
+    address: '测试在京地址',
+    longitude: '116.40',
+    latitude: '39.90',
+  },
+  destination: {
+    address: '测试目的地',
+    longitude: '116.41',
+    latitude: '39.91',
+    area: '朝阳区',
+    district_code: '001',
+  },
+  purpose: { name: '其它', code: '06' },
+};
+
 function fakeState(plate) {
   return {
     code: 200,
@@ -63,6 +81,7 @@ test('run processes every initialized account by default', async () => {
           bjt_pwd: '',
           entry_type: '六环外',
           notify_urls: [],
+          trip_profile: TEST_TRIP_PROFILE,
         },
         {
           name: '账号乙',
@@ -71,6 +90,7 @@ test('run processes every initialized account by default', async () => {
           bjt_pwd: '',
           entry_type: '六环外',
           notify_urls: [],
+          trip_profile: TEST_TRIP_PROFILE,
         },
         {
           name: '账号丙',
@@ -124,6 +144,43 @@ test('run processes every initialized account by default', async () => {
       /\[账号丙\] 已关闭自动续签，跳过/,
     );
     assert.equal(process.exitCode, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    process.exitCode = undefined;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('run blocks actual renewal after service expiry without calling JTGL', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-expired-run-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const output = [];
+
+  try {
+    saveConfig({
+      users: [{
+        name: '到期账号',
+        auth: 'token-expired',
+        bjt_phone: '13800000009',
+        auto_renew: true,
+        membership_started_on: '2025-01-01',
+        membership_expires_on: '2026-01-01',
+        membership_permanent: false,
+        notify_urls: [],
+      }],
+    });
+    globalThis.fetch = async () => {
+      throw new Error('expired account must not access JTGL');
+    };
+    console.log = (message) => output.push(String(message));
+
+    await runCommand({ noNotify: true });
+
+    assert.match(output.join('\n'), /服务已于 2026-01-01 到期，跳过/);
   } finally {
     globalThis.fetch = originalFetch;
     console.log = originalLog;
@@ -406,11 +463,7 @@ test('status always displays each account auto-renew state', async () => {
     );
     assert.match(
       rendered,
-      /\[关闭账号\][\s\S]*在京地址（默认）: 王辛庄镇放光村村委会 \(117\.082463, 40\.180804\)/,
-    );
-    assert.match(
-      rendered,
-      /\[关闭账号\][\s\S]*进京目的地（默认）: 王辛庄镇放光村村委会 \(117\.082463, 40\.180804\)/,
+      /\[关闭账号\][\s\S]*出行配置: 未配置（自动续签不会执行）/,
     );
   } finally {
     globalThis.fetch = originalFetch;

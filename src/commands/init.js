@@ -2,6 +2,7 @@ import { login } from '../lib/bjt-login.js';
 import { getUsers, upsertUser } from '../lib/config-manager.js';
 import { output, success, error } from '../output.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import { createMembership } from '../lib/membership.js';
 
 export const DEFAULT_ENTRY_TYPE = '六环外';
 
@@ -132,6 +133,13 @@ export function registerInitCommand(program) {
           notify_urls: notifyUrls,
           preferred_vehicle: existingUser?.preferred_vehicle || '',
           auto_renew: existingUser?.auto_renew ?? true,
+          ...(existingUser
+            ? {
+                membership_started_on: existingUser.membership_started_on,
+                membership_expires_on: existingUser.membership_expires_on,
+                membership_permanent: existingUser.membership_permanent === true,
+              }
+            : createMembership()),
         };
         upsertUser(user, { replace });
         writeAuditEvent(

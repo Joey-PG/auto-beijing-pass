@@ -15,12 +15,32 @@ import {
   acquireCronLock,
   describeCronSchedule,
   getCatchUpCronSchedules,
+  getCronRuntimeInfo,
   getRandomCronLines,
   getRandomTriggerDecision,
   getRandomWindowCronSchedules,
+  getRetryDelayMs,
   registerCronCommand,
 } from '../src/commands/cron.js';
 import { saveConfig } from '../src/lib/config-manager.js';
+
+const TEST_TRIP_PROFILE = {
+  is_in_beijing: true,
+  current_location: { longitude: '116.40', latitude: '39.90' },
+  in_beijing_address: {
+    address: '测试在京地址',
+    longitude: '116.40',
+    latitude: '39.90',
+  },
+  destination: {
+    address: '测试目的地',
+    longitude: '116.41',
+    latitude: '39.91',
+    area: '朝阳区',
+    district_code: '001',
+  },
+  purpose: { name: '其它', code: '06' },
+};
 
 test('random window generates cron ticks only inside the configured hours', () => {
   assert.deepEqual(
@@ -106,10 +126,109 @@ test('each day independently selects one minute and never repeats', () => {
   );
 });
 
+test('daily random plan stays stable and becomes observable before execution', () => {
+  const start = new Date(2026, 6, 30, 7, 30);
+  const beforePlan = new Date(2026, 6, 30, 7, 45);
+  const atPlan = new Date(2026, 6, 30, 8, 0);
+  const planned = getRandomTriggerDecision(
+    '07:30-08:30',
+    start,
+    null,
+    () => 0.5,
+  );
+
+  assert.equal(planned.plannedTime, '08:00');
+  assert.equal(planned.shouldRun, false);
+  assert.equal(
+    getRandomTriggerDecision(
+      '07:30-08:30',
+      beforePlan,
+      null,
+      () => 0,
+      { plannedMinute: planned.plannedMinute },
+    ).shouldRun,
+    false,
+  );
+  assert.equal(
+    getRandomTriggerDecision(
+      '07:30-08:30',
+      atPlan,
+      null,
+      () => 0,
+      { plannedMinute: planned.plannedMinute },
+    ).shouldRun,
+    true,
+  );
+});
+
+test('retry delay uses capped exponential backoff with jitter support', () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 8].map((attempt) =>
+      getRetryDelayMs(attempt, () => 0.5),
+    ),
+    [5, 10, 15, 15, 15, 15].map((minutes) => minutes * 60 * 1000),
+  );
+  assert.ok(getRetryDelayMs(1, () => 0) < 5 * 60 * 1000);
+  assert.ok(getRetryDelayMs(1, () => 1) > 5 * 60 * 1000);
+});
+
+test('cron runtime summary exposes today progress and retry health', () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-health-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const now = new Date(2026, 6, 30, 8, 0);
+
+  try {
+    writeFileSync(
+      join(configDir, 'cron-state.json'),
+      JSON.stringify({
+        lastTickAt: now.toISOString(),
+        lastTickResult: 'partial_failure',
+        accounts: {
+          completed: {
+            completedAt: now.toISOString(),
+            lastRunDate: '2026-07-30',
+            plannedDate: '2026-07-30',
+            plannedTime: '07:40',
+          },
+          retrying: {
+            lastAttemptDate: '2026-07-30',
+            nextRetryAt: new Date(now.getTime() + 5 * 60 * 1000).toISOString(),
+            plannedDate: '2026-07-30',
+            plannedTime: '07:50',
+            retryCount: 2,
+            retryPending: true,
+          },
+        },
+      }),
+      'utf8',
+    );
+    const runtime = getCronRuntimeInfo(
+      { active: true, randomWindow: '07:30-08:30' },
+      [
+        { bjt_phone: 'completed', name: '已完成账号', membership_expires_on: '2027-07-30' },
+        { bjt_phone: 'retrying', name: '重试账号', membership_expires_on: '2027-07-30' },
+        { bjt_phone: 'disabled', name: '关闭账号', auto_renew: false, membership_expires_on: '2027-07-30' },
+        { bjt_phone: 'expired', name: '到期账号', membership_expires_on: '2026-01-01' },
+      ],
+      now,
+    );
+
+    assert.equal(runtime.counts.completed, 1);
+    assert.equal(runtime.counts.retrying, 1);
+    assert.equal(runtime.counts.disabled, 1);
+    assert.equal(runtime.counts.expired, 1);
+    assert.equal(runtime.health, 'warning');
+    assert.match(runtime.healthMessage, /等待重试/);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('random schedule description explains daily per-account behavior', () => {
   assert.equal(
     describeCronSchedule('30-59 7 * * *', '07:30-08:30'),
-    '每个账号每天在 07:30-08:30 内各自随机一次（失败重试，错过窗口会补执行）',
+    '每个账号每天在 07:30-08:30 内各自随机一次（失败退避重试，错过窗口会补执行）',
   );
 });
 
@@ -161,6 +280,40 @@ test('cron tick lock prevents concurrent scheduler processes', () => {
   }
 });
 
+test('cron setup refuses enabled accounts without trip profiles', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-trip-'));
+  const originalLog = console.log;
+  const originalError = console.error;
+  const messages = [];
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '待配置账号',
+        bjt_phone: '13800000001',
+        auth: 'token',
+        auto_renew: true,
+      }],
+    });
+    console.log = (message) => messages.push(String(message));
+    console.error = (message) => messages.push(String(message));
+
+    const program = new Command();
+    registerCronCommand(program);
+    await program.parseAsync(['node', 'test', 'cron', 'setup']);
+
+    assert.equal(process.exitCode, 1);
+    assert.match(messages.join('\n'), /尚未配置完整出行信息：待配置账号/);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    process.exitCode = undefined;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('failed cron execution stays retryable instead of being marked completed', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-cron-fail-'));
   const fakeBin = join(configDir, 'fake-auto-bj-pass');
@@ -179,6 +332,7 @@ test('failed cron execution stays retryable instead of being marked completed', 
           bjt_phone: '13800000001',
           auth: 'token',
           auto_renew: true,
+          trip_profile: TEST_TRIP_PROFILE,
         },
       ],
     });
@@ -261,6 +415,7 @@ test('successful cron execution is marked completed for the current day', async 
           bjt_phone: '13800000002',
           auth: 'token',
           auto_renew: true,
+          trip_profile: TEST_TRIP_PROFILE,
         },
       ],
     });

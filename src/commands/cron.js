@@ -16,6 +16,7 @@ import { output, success, error } from '../output.js';
 import {
   ensureCronLog,
   getCronLogPath,
+  sanitizeLogText,
   writeAuditEvent,
 } from '../lib/audit-logger.js';
 import {
@@ -24,6 +25,12 @@ import {
   getConfigDir,
   getUsers,
 } from '../lib/config-manager.js';
+import {
+  getMembershipInfo,
+  MEMBERSHIP_REMINDER_DAYS,
+} from '../lib/membership.js';
+import { notify } from '../lib/notifier.js';
+import { isCompleteTripProfile } from '../lib/trip-profile.js';
 
 const COMMAND_NAME =
   process.env.AUTO_BJ_PASS_COMMAND_NAME ||
@@ -38,6 +45,8 @@ const STATE_FILE = 'cron-state.json';
 const LOCK_FILE = 'cron-tick.lock';
 const LOCK_STALE_MS = 15 * 60 * 1000;
 const RETRY_DELAY_MS = 5 * 60 * 1000;
+const MAX_RETRY_DELAY_MS = 15 * 60 * 1000;
+const RETRY_JITTER_RATIO = 0.2;
 export const RETRY_GRACE_MINUTES = 30;
 export const DEFAULT_RANDOM_WINDOW = '07:30-08:30';
 
@@ -149,6 +158,27 @@ function formatMinutes(totalMinutes) {
   );
 }
 
+function getPlannedAt(date, plannedMinute) {
+  const [year, month, day] = date.split('-').map(Number);
+  const hour = Math.floor(plannedMinute / 60);
+  const minute = plannedMinute % 60;
+  return new Date(year, month - 1, day, hour, minute).toISOString();
+}
+
+export function getRetryDelayMs(retryCount, random = Math.random) {
+  const attempt = Math.max(1, Number(retryCount) || 1);
+  const exponentialDelay = Math.min(
+    RETRY_DELAY_MS * 2 ** (attempt - 1),
+    MAX_RETRY_DELAY_MS,
+  );
+  const jitter =
+    1 - RETRY_JITTER_RATIO + random() * RETRY_JITTER_RATIO * 2;
+  return Math.min(
+    MAX_RETRY_DELAY_MS,
+    Math.round(exponentialDelay * jitter),
+  );
+}
+
 export function getCatchUpCronSchedules(
   randomWindow,
   graceMinutes = RETRY_GRACE_MINUTES,
@@ -212,18 +242,34 @@ export function getRandomTriggerDecision(
   now,
   lastRunDate = null,
   random = Math.random,
-  { catchUp = false } = {},
+  { catchUp = false, plannedMinute = null } = {},
 ) {
   const { startMinutes, endMinutes } =
     parseRandomWindow(randomWindow);
   const date = formatLocalDate(now);
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const plannedMinuteIsValid =
+    Number.isInteger(plannedMinute) &&
+    plannedMinute >= startMinutes &&
+    plannedMinute <= endMinutes;
+  const selectedMinute = plannedMinuteIsValid
+    ? plannedMinute
+    : Math.min(
+        endMinutes,
+        startMinutes +
+          Math.floor(random() * (endMinutes - startMinutes + 1)),
+      );
+  const plan = {
+    plannedAt: getPlannedAt(date, selectedMinute),
+    plannedMinute: selectedMinute,
+    plannedTime: formatMinutes(selectedMinute),
+  };
 
   if (lastRunDate === date) {
-    return { shouldRun: false, date, reason: 'already-ran' };
+    return { shouldRun: false, date, reason: 'already-ran', ...plan };
   }
   if (currentMinutes < startMinutes) {
-    return { shouldRun: false, date, reason: 'outside-window' };
+    return { shouldRun: false, date, reason: 'outside-window', ...plan };
   }
   if (currentMinutes > endMinutes) {
     return catchUp
@@ -232,18 +278,19 @@ export function getRandomTriggerDecision(
           date,
           reason: 'missed-window',
           remainingMinutes: 0,
+          ...plan,
         }
-      : { shouldRun: false, date, reason: 'outside-window' };
+      : { shouldRun: false, date, reason: 'outside-window', ...plan };
   }
 
-  const remainingMinutes = endMinutes - currentMinutes + 1;
-  const shouldRun =
-    remainingMinutes === 1 || random() < 1 / remainingMinutes;
+  const remainingMinutes = Math.max(0, selectedMinute - currentMinutes);
+  const shouldRun = currentMinutes >= selectedMinute;
   return {
     shouldRun,
     date,
     reason: shouldRun ? 'selected' : 'not-selected',
     remainingMinutes,
+    ...plan,
   };
 }
 
@@ -251,7 +298,7 @@ export function describeCronSchedule(schedule, randomWindow = null) {
   if (randomWindow) {
     return (
       `每个账号每天在 ${randomWindow} 内各自随机一次` +
-      '（失败重试，错过窗口会补执行）'
+      '（失败退避重试，错过窗口会补执行）'
     );
   }
   const dailyTime = getDailyScheduleTime(schedule);
@@ -303,7 +350,7 @@ function getCronStatePath() {
   return join(getConfigDir(), STATE_FILE);
 }
 
-function loadCronState() {
+export function loadCronState() {
   const path = getCronStatePath();
   if (!existsSync(path)) {
     return { accounts: {} };
@@ -327,6 +374,124 @@ function saveCronState(state) {
   const path = getCronStatePath();
   writeFileSync(path, JSON.stringify(state, null, 2), 'utf-8');
   chmodSync(path, 0o600);
+}
+
+export function getCronRuntimeInfo(
+  schedule,
+  users = getUsers({ initializedOnly: true }),
+  now = new Date(),
+) {
+  const state = loadCronState();
+  const date = formatLocalDate(now);
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const accounts = users.map((user, index) => {
+    const accountKey = user.bjt_phone || user.name || String(index + 1);
+    const accountState = state.accounts[accountKey] || {};
+    const disabled = user.auto_renew === false;
+    const expired = !getMembershipInfo(user, now).active;
+    const completed = accountState.lastRunDate === date;
+    const retrying =
+      accountState.retryPending === true &&
+      accountState.lastAttemptDate === date;
+    const plannedToday = accountState.plannedDate === date;
+    const overdue =
+      !disabled &&
+      !expired &&
+      !completed &&
+      !retrying &&
+      plannedToday &&
+      Number.isInteger(accountState.plannedMinute) &&
+      currentMinutes > accountState.plannedMinute;
+    let status = 'pending';
+    if (expired) status = 'expired';
+    else if (disabled) status = 'disabled';
+    else if (completed) status = 'completed';
+    else if (retrying) status = 'retrying';
+    else if (overdue) status = 'overdue';
+    else if (plannedToday) status = 'scheduled';
+
+    return {
+      id: String(index + 1),
+      name: user.name?.trim() || `账号 ${index + 1}`,
+      status,
+      plannedAt: plannedToday ? accountState.plannedAt || null : null,
+      plannedTime: plannedToday ? accountState.plannedTime || null : null,
+      completedAt: completed ? accountState.completedAt || null : null,
+      lastAttemptAt: accountState.lastAttemptAt || null,
+      lastError: retrying ? accountState.lastError || null : null,
+      nextRetryAt: retrying ? accountState.nextRetryAt || null : null,
+      retryCount: retrying ? Number(accountState.retryCount || 0) : 0,
+    };
+  });
+  const counts = accounts.reduce(
+    (result, account) => {
+      result.total += 1;
+      result[account.status] += 1;
+      if (!['disabled', 'expired'].includes(account.status)) result.eligible += 1;
+      return result;
+    },
+    {
+      completed: 0,
+      disabled: 0,
+      eligible: 0,
+      expired: 0,
+      overdue: 0,
+      pending: 0,
+      retrying: 0,
+      scheduled: 0,
+      total: 0,
+    },
+  );
+
+  let health = schedule?.active ? 'healthy' : 'inactive';
+  let healthMessage = schedule?.active
+    ? '调度计划已安装'
+    : '尚未安装自动调度计划';
+  if (schedule?.active && schedule.randomWindow) {
+    const { startMinutes, endMinutes } = parseRandomWindow(
+      schedule.randomWindow,
+    );
+    const monitoringWindow =
+      currentMinutes >= startMinutes &&
+      currentMinutes <= endMinutes + RETRY_GRACE_MINUTES;
+    const lastTickAt = state.lastTickAt
+      ? new Date(state.lastTickAt)
+      : null;
+    const heartbeatStale =
+      !lastTickAt ||
+      Number.isNaN(lastTickAt.getTime()) ||
+      now.getTime() - lastTickAt.getTime() > 4 * 60 * 1000;
+    const heartbeatMissingToday =
+      currentMinutes >= startMinutes &&
+      (!lastTickAt ||
+        Number.isNaN(lastTickAt.getTime()) ||
+        formatLocalDate(lastTickAt) !== date);
+    if (heartbeatMissingToday) {
+      health = 'warning';
+      healthMessage = '今天尚未收到调度心跳';
+    } else if (monitoringWindow && heartbeatStale) {
+      health = 'warning';
+      healthMessage = '执行窗口内未收到最新调度心跳';
+    } else if (state.lastTickResult === 'failure') {
+      health = 'warning';
+      healthMessage = '最近一次调度轮询执行失败';
+    } else if (counts.retrying > 0 || counts.overdue > 0) {
+      health = 'warning';
+      healthMessage = counts.retrying > 0
+        ? `${counts.retrying} 个账号正在等待重试`
+        : `${counts.overdue} 个账号已超过计划时间`;
+    }
+  }
+
+  return {
+    accounts,
+    counts,
+    health,
+    healthMessage,
+    lastTickAt: state.lastTickAt || null,
+    lastTickCompletedAt: state.lastTickCompletedAt || null,
+    lastTickResult: state.lastTickResult || null,
+  };
 }
 
 function getCronLockPath() {
@@ -422,6 +587,18 @@ export function registerCronCommand(program) {
     )
     .action(async (options) => {
       try {
+        const missingProfiles = getUsers({ initializedOnly: true })
+          .filter(
+            (user) =>
+              user.auto_renew !== false &&
+              !isCompleteTripProfile(user.trip_profile),
+          )
+          .map((user, index) => getAccountLabel(user, index));
+        if (missingProfiles.length > 0) {
+          throw new Error(
+            `以下自动续签账号尚未配置完整出行信息：${missingProfiles.join('、')}`,
+          );
+        }
         ensureCronLog();
         let current = getCurrentCrontab();
 
@@ -514,6 +691,7 @@ export function registerCronCommand(program) {
     .option('--catch-up', '错过当天时间段时立即补执行')
     .action(async (options) => {
       let releaseLock = null;
+      let state = null;
       try {
         releaseLock = acquireCronLock();
         if (!releaseLock) {
@@ -526,28 +704,106 @@ export function registerCronCommand(program) {
         }
 
         const now = new Date();
-        const state = loadCronState();
+        state = loadCronState();
+        state.lastTickAt = now.toISOString();
+        state.lastTickResult = 'running';
+        saveCronState(state);
         const users = getUsers({ initializedOnly: true });
         const selectedAccounts = [];
         let eligibleCount = 0;
         let disabledCount = 0;
+        let expiredCount = 0;
+        let missingProfileCount = 0;
 
         for (const [index, user] of users.entries()) {
+          const accountKey =
+            user.bjt_phone || user.name || String(index + 1);
+          const previous = state.accounts[accountKey] || {};
+          const membership = getMembershipInfo(user, now);
+          const reminderDate = formatLocalDate(now);
+          if (
+            MEMBERSHIP_REMINDER_DAYS.has(membership.remainingDays) &&
+            (previous.membershipReminderDate !== reminderDate ||
+              previous.membershipReminderDays !== membership.remainingDays)
+          ) {
+            const label = getAccountLabel(user, index);
+            const reminderMessage = membership.remainingDays === 0
+              ? `服务有效期今天到期（${membership.expiresOn}），明天起将停止自动续签。`
+              : `服务有效期还剩 ${membership.remainingDays} 天，将于 ${membership.expiresOn} 到期。`;
+            if (user.notify_urls?.length > 0) {
+              await notify(
+                user.notify_urls,
+                `[${label}] 服务有效期提醒`,
+                reminderMessage,
+              );
+            }
+            writeAuditEvent('membership_expiry_reminder', {
+              account: label,
+              result: 'success',
+              membership_expires_on: membership.expiresOn,
+              remaining_days: membership.remainingDays,
+              notification_configured: user.notify_urls?.length > 0,
+            });
+            previous.membershipReminderDate = reminderDate;
+            previous.membershipReminderDays = membership.remainingDays;
+            state.accounts[accountKey] = previous;
+          }
+          if (!membership.active) {
+            expiredCount += 1;
+            state.accounts[accountKey] = {
+              ...previous,
+              membershipExpiredAuditDate: reminderDate,
+              lastError: null,
+              nextRetryAt: null,
+              retryPending: false,
+              retryCount: 0,
+            };
+            if (previous.membershipExpiredAuditDate !== reminderDate) {
+              writeAuditEvent('renewal_skipped', {
+                account: getAccountLabel(user, index),
+                result: 'skipped',
+                reason: 'membership_expired',
+                membership_expires_on: membership.expiresOn,
+                source: 'cron_tick',
+              });
+            }
+            continue;
+          }
           if (user.auto_renew === false) {
             disabledCount += 1;
             continue;
           }
+          if (!isCompleteTripProfile(user.trip_profile)) {
+            missingProfileCount += 1;
+            writeAuditEvent('cron_account_skipped', {
+              account: getAccountLabel(user, index),
+              result: 'skipped',
+              reason: 'missing_trip_profile',
+            });
+            continue;
+          }
           eligibleCount += 1;
-          const accountKey =
-            user.bjt_phone || user.name || String(index + 1);
-          const previous = state.accounts[accountKey];
+          const plannedMinute =
+            previous.plannedDate === formatLocalDate(now) &&
+            previous.randomWindow === options.randomWindow
+              ? previous.plannedMinute
+              : null;
           let decision = getRandomTriggerDecision(
             options.randomWindow,
             now,
             previous?.lastRunDate,
             Math.random,
-            { catchUp: options.catchUp },
+            { catchUp: options.catchUp, plannedMinute },
           );
+          const accountState = {
+            ...previous,
+            plannedAt: decision.plannedAt,
+            plannedDate: decision.date,
+            plannedMinute: decision.plannedMinute,
+            plannedTime: decision.plannedTime,
+            randomWindow: options.randomWindow,
+          };
+          state.accounts[accountKey] = accountState;
           const nextRetryAt = previous?.nextRetryAt
             ? new Date(previous.nextRetryAt)
             : null;
@@ -588,7 +844,7 @@ export function registerCronCommand(program) {
             triggeredAt,
             accountKey,
             decision,
-            previous,
+            previous: accountState,
           });
           writeAuditEvent('cron_account_selected', {
             account: getAccountLabel(user, index),
@@ -641,10 +897,14 @@ export function registerCronCommand(program) {
             );
             const completedAt = new Date().toISOString();
             state.accounts[accountKey] = {
+              ...previous,
               lastRunDate: decision.date,
               triggeredAt,
               completedAt,
-              randomWindow: options.randomWindow,
+              lastAttemptAt: triggeredAt,
+              lastAttemptDate: decision.date,
+              lastError: null,
+              nextRetryAt: null,
               retryPending: false,
               retryCount: 0,
             };
@@ -667,12 +927,14 @@ export function registerCronCommand(program) {
               ...previous,
               lastAttemptDate: decision.date,
               lastAttemptAt: failedAt.toISOString(),
+              lastError: sanitizeLogText(
+                err.message || '自动续签执行失败',
+              ),
               retryPending: true,
               retryCount,
               nextRetryAt: new Date(
-                failedAt.getTime() + RETRY_DELAY_MS,
+                failedAt.getTime() + getRetryDelayMs(retryCount),
               ).toISOString(),
-              randomWindow: options.randomWindow,
             };
             saveCronState(state);
             failedCount += 1;
@@ -691,12 +953,20 @@ export function registerCronCommand(program) {
             process.exitCode = 1;
           }
         }
+        state.lastTickCompletedAt = new Date().toISOString();
+        state.lastTickResult = failedCount > 0
+          ? 'partial_failure'
+          : 'success';
+        state.lastTickError = null;
+        saveCronState(state);
         writeAuditEvent(
           'cron_tick_completed',
           {
             result: failedCount > 0 ? 'partial_failure' : 'success',
             eligible_count: eligibleCount,
             disabled_count: disabledCount,
+            expired_count: expiredCount,
+            missing_profile_count: missingProfileCount,
             selected_count: selectedAccounts.length,
             succeeded_count: succeededCount,
             failed_count: failedCount,
@@ -706,6 +976,14 @@ export function registerCronCommand(program) {
           { level: failedCount > 0 ? 'warning' : 'info' },
         );
       } catch (err) {
+        if (state) {
+          state.lastTickCompletedAt = new Date().toISOString();
+          state.lastTickResult = 'failure';
+          state.lastTickError = sanitizeLogText(
+            err.message || '随机定时任务执行失败',
+          );
+          saveCronState(state);
+        }
         writeAuditEvent(
           'cron_tick_failed',
           { result: 'failure', error: err.message },

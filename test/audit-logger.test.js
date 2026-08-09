@@ -152,6 +152,11 @@ test('classifies outcomes and paginates audit events newest first', () => {
       status: 'failure',
       now: new Date('2026-07-31T00:00:00.000Z'),
     });
+    const renewalResults = queryAuditEvents({
+      events: ['renewal_failed', 'renewal_submitted'],
+      since: '2026-07-01',
+      now: new Date('2026-07-31T00:00:00.000Z'),
+    });
 
     assert.equal(firstPage.total, 5);
     assert.deepEqual(
@@ -161,6 +166,10 @@ test('classifies outcomes and paginates audit events newest first', () => {
     assert.equal(firstPage.items[0].source, 'web');
     assert.equal(firstPage.items[0].actor, null);
     assert.equal(failures.total, 1);
+    assert.deepEqual(
+      renewalResults.items.map((item) => item.event),
+      ['renewal_submitted', 'renewal_failed'],
+    );
     assert.equal(getAuditOutcome({ result: 'partial_failure' }), 'partial_failure');
     assert.equal(getAuditOutcome({ result: 'skipped' }), 'skipped');
     assert.equal(getAuditOutcome({ result: 'selected' }), 'in_progress');

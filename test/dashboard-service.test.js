@@ -11,11 +11,14 @@ import {
 } from '../src/lib/audit-logger.js';
 import {
   addDashboardAccount,
+  extendDashboardMembership,
   getDashboard,
   getDashboardAudit,
   reloginDashboardAccount,
   removeDashboardAccount,
+  runDashboardRenewal,
   updateDashboardAccount,
+  updateDashboardTripProfile,
 } from '../src/web/dashboard-service.js';
 
 function apiResponse(data) {
@@ -29,6 +32,8 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-dashboard-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
   const originalFetch = globalThis.fetch;
+  process.env.AMAP_JS_KEY = 'test-map-key';
+  process.env.AMAP_JS_SECURITY_CODE = 'test-security-code';
 
   try {
     saveConfig({
@@ -78,11 +83,30 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
       source: 'cron',
     });
 
-    const dashboard = await getDashboard();
+    const dashboard = await getDashboard({
+      securityContext: { localRequest: false, secureRequest: true },
+    });
     const audit = getDashboardAudit({ since: '30d' });
 
     assert.equal(dashboard.summary.accountCount, 1);
     assert.equal(dashboard.summary.vehicleCount, 1);
+    assert.deepEqual(dashboard.mapConfig, {
+      enabled: true,
+      key: 'test-map-key',
+      securityCode: 'test-security-code',
+    });
+    assert.equal(dashboard.scheduler.counts.eligible, 1);
+    assert.equal(
+      dashboard.runtime.businessApiLastSuccessAt,
+      dashboard.generatedAt,
+    );
+    assert.ok(dashboard.runtime.timeZone);
+    assert.equal(dashboard.security.connection, 'https');
+    assert.equal(
+      dashboard.security.checks.find((check) => check.id === 'public_https')
+        .status,
+       'pass',
+    );
     assert.equal(dashboard.accounts[0].name, '13800000001');
     assert.equal(dashboard.accounts[0].phone, '13800000001');
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');
@@ -95,6 +119,8 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
     assert.equal(audit.items[0].account, '13800000001');
   } finally {
     globalThis.fetch = originalFetch;
+    delete process.env.AMAP_JS_KEY;
+    delete process.env.AMAP_JS_SECURITY_CODE;
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });
   }
@@ -148,6 +174,64 @@ test('dashboard updates only supported account renewal settings', () => {
   }
 });
 
+test('dashboard saves and validates account trip profiles', () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-trip-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '出行账号',
+        auth: 'test-token',
+        bjt_phone: '13800000001',
+        auto_renew: false,
+      }],
+    });
+
+    const input = {
+      inBeijingAddress: '北京市朝阳区测试路 1 号',
+      inBeijingLongitude: '116.40',
+      inBeijingLatitude: '39.90',
+      destinationAddress: '北京市海淀区测试路 2 号',
+      destinationLongitude: '116.30',
+      destinationLatitude: '39.95',
+      destinationArea: '海淀区',
+      districtCode: '008',
+      purposeName: '其它',
+      purposeCode: '06',
+    };
+    const result = updateDashboardTripProfile('1', input, {
+      actor: 'zhaoyue',
+    });
+
+    assert.equal(result.updated, true);
+    assert.equal(
+      loadConfig().users[0].trip_profile.destination.address,
+      input.destinationAddress,
+    );
+    assert.equal(
+      loadConfig().users[0].trip_profile.current_location.longitude,
+      input.inBeijingLongitude,
+    );
+    assert.throws(
+      () => updateDashboardTripProfile(
+        '1',
+        { ...input, destinationLatitude: '200' },
+        { actor: 'zhaoyue' },
+      ),
+      /目的地纬度无效/,
+    );
+    assert.doesNotThrow(() => updateDashboardAccount(
+      '1',
+      { autoRenew: true },
+      { actor: 'zhaoyue' },
+    ));
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('dashboard securely adds, edits, reauthenticates, and removes accounts', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-accounts-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
@@ -159,7 +243,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
         phone: '13800000001',
         password: 'initial-secret',
         entryType: '六环外',
-        autoRenew: true,
+        autoRenew: false,
       },
       {
         actor: 'zhaochunxu',
@@ -179,7 +263,10 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       entry_type: '六环外',
       notify_urls: [],
       preferred_vehicle: '',
-      auto_renew: true,
+      auto_renew: false,
+      membership_started_on: '2026-08-09',
+      membership_expires_on: '2027-08-09',
+      membership_permanent: false,
     });
 
     updateDashboardAccount(
@@ -194,6 +281,13 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     assert.equal(loadConfig().users[0].name, '家庭账号');
     assert.equal(loadConfig().users[0].entry_type, '六环内');
     assert.equal(loadConfig().users[0].auto_renew, false);
+
+    const extended = extendDashboardMembership(
+      '1',
+      { membershipTerm: '1y' },
+      { actor: 'zhaochunxu' },
+    );
+    assert.equal(extended.expiresOn, '2028-08-09');
 
     await assert.rejects(
       reloginDashboardAccount(
@@ -230,6 +324,38 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
     const auditText = JSON.stringify(readAuditEvents({ since: '1d', limit: 50 }));
     assert.doesNotMatch(auditText, /initial-secret|wrong-secret|next-secret|first-token|second-token/);
     assert.match(auditText, /zhaochunxu/);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard blocks actual renewal for an expired membership', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-expired-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+
+  try {
+    saveConfig({
+      users: [{
+        name: '到期账号',
+        auth: 'test-token',
+        bjt_phone: '13800000009',
+        membership_started_on: '2025-01-01',
+        membership_expires_on: '2026-01-01',
+        membership_permanent: false,
+      }],
+    });
+    await assert.rejects(
+      runDashboardRenewal(
+        '1',
+        { licenseNumber: '京A12345' },
+        { actor: 'zhaoyue' },
+      ),
+      /服务有效期已到期/,
+    );
+    const events = readAuditEvents({ since: '1d', limit: 10 });
+    assert.equal(events.at(-1).event, 'renewal_skipped');
+    assert.equal(events.at(-1).reason, 'membership_expired');
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

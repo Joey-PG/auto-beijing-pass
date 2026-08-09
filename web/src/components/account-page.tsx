@@ -1,6 +1,8 @@
 import {
+  CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
+  EnvironmentOutlined,
   KeyOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -20,36 +22,64 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 
-import type { Account, AccountCreateInput, AccountUpdateInput } from '../types';
+import type {
+  Account,
+  AccountCreateInput,
+  AccountUpdateInput,
+  MapConfig,
+  MembershipUpdateInput,
+  TripProfileInput,
+} from '../types';
+import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 
 interface AccountPageProps {
   accounts: Account[];
   loading: boolean;
+  mapConfig: MapConfig;
   onAdd: (values: AccountCreateInput) => Promise<void>;
-  onAddVehicle: (account: Account) => void;
   onDelete: (account: Account) => Promise<void>;
+  onExtendMembership: (account: Account, values: MembershipUpdateInput) => Promise<void>;
   onRelogin: (account: Account, password: string) => Promise<void>;
   onToggle: (account: Account, checked: boolean) => Promise<void>;
   onUpdate: (account: Account, values: AccountUpdateInput) => Promise<void>;
+  onUpdateTripProfile: (
+    account: Account,
+    values: TripProfileInput,
+  ) => Promise<void>;
 }
 
 export function AccountPage({
   accounts,
   loading,
+  mapConfig,
   onAdd,
-  onAddVehicle,
   onDelete,
+  onExtendMembership,
   onRelogin,
   onToggle,
   onUpdate,
+  onUpdateTripProfile,
 }: AccountPageProps) {
   const [addForm] = Form.useForm<AccountCreateInput>();
   const [editForm] = Form.useForm<AccountUpdateInput>();
   const [loginForm] = Form.useForm<{ password: string }>();
+  const [membershipForm] = Form.useForm<MembershipUpdateInput>();
+  const [tripForm] = Form.useForm<TripProfileInput>();
   const [addOpen, setAddOpen] = useState(false);
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [loginAccount, setLoginAccount] = useState<Account | null>(null);
+  const [membershipAccount, setMembershipAccount] = useState<Account | null>(null);
+  const [tripAccount, setTripAccount] = useState<Account | null>(null);
+  const addMembershipTerm = Form.useWatch('membershipTerm', addForm);
+  const membershipTerm = Form.useWatch('membershipTerm', membershipForm);
+
+  const membershipMeta = {
+    active: { color: 'success', label: '有效' },
+    expired: { color: 'error', label: '已到期' },
+    expiring_soon: { color: 'warning', label: '即将到期' },
+    permanent: { color: 'blue', label: '长期有效' },
+  } as const;
 
   useEffect(() => {
     if (editAccount) {
@@ -60,6 +90,12 @@ export function AccountPage({
       });
     }
   }, [editAccount, editForm]);
+
+  useEffect(() => {
+    if (tripAccount) {
+      tripForm.setFieldsValue(tripProfileToInput(tripAccount.tripProfile));
+    }
+  }, [tripAccount, tripForm]);
 
   const columns: ColumnsType<Account> = [
     { dataIndex: 'name', key: 'name', title: '账号名称' },
@@ -72,16 +108,48 @@ export function AccountPage({
     },
     { dataIndex: 'entryType', key: 'entryType', title: '进京证类型' },
     {
+      key: 'tripProfile',
+      render: (_, account) => account.tripProfileConfigured
+        ? <Tag color="success">已配置</Tag>
+        : <Tag color="warning">待配置</Tag>,
+      title: '出行配置',
+    },
+    {
       key: 'vehicles',
       render: (_, account) => `${account.vehicles.length} 辆`,
       title: '关联车辆',
+    },
+    {
+      filters: [
+        { text: '有效', value: 'active' },
+        { text: '即将到期', value: 'expiring_soon' },
+        { text: '已到期', value: 'expired' },
+        { text: '长期有效', value: 'permanent' },
+      ],
+      key: 'membership',
+      onFilter: (value, account) => account.membershipStatus === value,
+      render: (_, account) => {
+        const meta = membershipMeta[account.membershipStatus];
+        return (
+          <div className="membership-cell">
+            <Tag color={meta.color}>{meta.label}</Tag>
+            <small>
+              {account.membershipPermanent
+                ? '不设到期日'
+                : `至 ${account.membershipExpiresOn || '—'}`}
+            </small>
+          </div>
+        );
+      },
+      title: '服务有效期',
+      width: 170,
     },
     {
       key: 'autoRenew',
       render: (_, account) => (
         <Switch
           checked={account.autoRenew}
-          disabled={loading}
+          disabled={loading || account.membershipStatus === 'expired'}
           onChange={(checked) => onToggle(account, checked)}
           size="small"
         />
@@ -93,8 +161,24 @@ export function AccountPage({
       key: 'actions',
       render: (_, account) => (
         <Space size={4} wrap>
-          <Button onClick={() => onAddVehicle(account)} size="small" type="link">
-            添加车辆
+          <Button
+            icon={<CalendarOutlined />}
+            onClick={() => {
+              membershipForm.setFieldsValue({ membershipTerm: '1y' });
+              setMembershipAccount(account);
+            }}
+            size="small"
+            type="text"
+          >
+            续费
+          </Button>
+          <Button
+            icon={<EnvironmentOutlined />}
+            onClick={() => setTripAccount(account)}
+            size="small"
+            type="text"
+          >
+            出行配置
           </Button>
           <Button
             icon={<EditOutlined />}
@@ -110,7 +194,7 @@ export function AccountPage({
             size="small"
             type="text"
           >
-            重新登录
+            修改京通密码
           </Button>
           <Button
             danger
@@ -125,7 +209,7 @@ export function AccountPage({
         </Space>
       ),
       title: '操作',
-      width: 310,
+      width: 500,
     },
   ];
 
@@ -134,7 +218,7 @@ export function AccountPage({
       <div className="page-heading">
         <div>
           <h1>账号管理</h1>
-          <p>管理北京通业务账号，登录成功后可直接添加车辆</p>
+          <p>管理北京通业务账号、服务有效期和自动续签配置</p>
         </div>
         <Button icon={<PlusOutlined />} onClick={() => setAddOpen(true)} type="primary">
           添加账号
@@ -142,9 +226,11 @@ export function AccountPage({
       </div>
       <Alert
         className="page-alert"
-        message="北京通密码仅通过 HTTPS 发送到当前服务器；登录失败不会覆盖已有凭据。"
+        message={accounts.some((account) => account.membershipStatus === 'expired')
+          ? `有 ${accounts.filter((account) => account.membershipStatus === 'expired').length} 个账号服务已到期，自动续签已停止。`
+          : '服务到期前 30、7、1 天及到期当天会提醒；到期次日起停止自动续签。'}
         showIcon
-        type="info"
+        type={accounts.some((account) => account.membershipStatus === 'expired') ? 'warning' : 'info'}
       />
       <Card styles={{ body: { padding: 0 } }}>
         <Table
@@ -153,7 +239,7 @@ export function AccountPage({
           locale={{ emptyText: '尚未添加北京通账号' }}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 1050 }}
+          scroll={{ x: 1280 }}
         />
       </Card>
 
@@ -221,7 +307,7 @@ export function AccountPage({
       >
         <Form
           form={addForm}
-          initialValues={{ autoRenew: true, entryType: '六环外' }}
+          initialValues={{ autoRenew: false, entryType: '六环外', membershipTerm: '1y' }}
           layout="vertical"
           onFinish={async (values) => {
             await onAdd(values);
@@ -254,9 +340,113 @@ export function AccountPage({
           <Form.Item label="进京证类型" name="entryType">
             <Select options={['六环外', '六环内'].map((value) => ({ value }))} />
           </Form.Item>
+          <Form.Item
+            extra="现有账号和新账号默认均为一年；到期日当天仍可使用。"
+            label="服务有效期"
+            name="membershipTerm"
+          >
+            <Select options={[
+              { label: '1 个月', value: '1m' },
+              { label: '3 个月', value: '3m' },
+              { label: '1 年（默认）', value: '1y' },
+              { label: '自定义到期日', value: 'custom' },
+              { label: '长期有效', value: 'permanent' },
+            ]} />
+          </Form.Item>
+          {addMembershipTerm === 'custom' ? (
+            <Form.Item
+              label="服务到期日"
+              name="membershipExpiresOn"
+              rules={[{ required: true, message: '请选择服务到期日' }]}
+            >
+              <Input min={new Date().toISOString().slice(0, 10)} type="date" />
+            </Form.Item>
+          ) : null}
           <Form.Item label="自动续签" name="autoRenew" valuePropName="checked">
             <Switch />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        centered
+        destroyOnClose
+        maskClosable={!loading}
+        okButtonProps={{ loading }}
+        okText="确认续费"
+        onCancel={() => setMembershipAccount(null)}
+        onOk={() => membershipForm.submit()}
+        open={Boolean(membershipAccount)}
+        title={`服务续费 · ${membershipAccount?.name || ''}`}
+      >
+        <p className="modal-description">
+          当前有效期：{membershipAccount?.membershipPermanent
+            ? '长期有效'
+            : membershipAccount?.membershipExpiresOn || '—'}。未到期会从原到期日顺延，已到期则从今天计算。
+        </p>
+        <Form
+          form={membershipForm}
+          initialValues={{ membershipTerm: '1y' }}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!membershipAccount) return;
+            await onExtendMembership(membershipAccount, values);
+            membershipForm.resetFields();
+            setMembershipAccount(null);
+          }}
+          preserve={false}
+        >
+          <Form.Item label="续费时长" name="membershipTerm">
+            <Select options={[
+              { label: '续费 1 个月', value: '1m' },
+              { label: '续费 3 个月', value: '3m' },
+              { label: '续费 1 年', value: '1y' },
+              { label: '设置自定义到期日', value: 'custom' },
+              { label: '设为长期有效', value: 'permanent' },
+            ]} />
+          </Form.Item>
+          {membershipTerm === 'custom' ? (
+            <Form.Item
+              label="服务到期日"
+              name="membershipExpiresOn"
+              rules={[{ required: true, message: '请选择服务到期日' }]}
+            >
+              <Input min={new Date().toISOString().slice(0, 10)} type="date" />
+            </Form.Item>
+          ) : null}
+        </Form>
+      </Modal>
+
+      <Modal
+        centered
+        destroyOnClose
+        maskClosable={!loading}
+        okButtonProps={{ loading }}
+        okText="保存为默认配置"
+        onCancel={() => setTripAccount(null)}
+        onOk={() => tripForm.submit()}
+        open={Boolean(tripAccount)}
+        title={`出行配置 · ${tripAccount?.name || ''}`}
+        width={720}
+      >
+        <Alert
+          className="modal-inline-alert"
+          message="定时续签会直接使用这里保存的信息；手动执行时仍可临时修改。"
+          showIcon
+          type={tripAccount?.tripProfileConfigured ? 'info' : 'warning'}
+        />
+        <Form
+          className="trip-profile-form"
+          form={tripForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!tripAccount) return;
+            await onUpdateTripProfile(tripAccount, values);
+            setTripAccount(null);
+          }}
+          preserve={false}
+        >
+          <TripProfileFields mapConfig={mapConfig} />
         </Form>
       </Modal>
 
@@ -305,14 +495,14 @@ export function AccountPage({
         destroyOnClose
         maskClosable={!loading}
         okButtonProps={{ loading }}
-        okText="重新登录"
+        okText="确认修改"
         onCancel={() => setLoginAccount(null)}
         onOk={() => loginForm.submit()}
         open={Boolean(loginAccount)}
-        title={`重新登录 ${loginAccount?.name || ''}`}
+        title={`修改京通密码 · ${loginAccount?.name || ''}`}
       >
         <p className="modal-description">
-          手机号：{loginAccount?.phone}。登录成功后才会替换当前凭据。
+          手机号：{loginAccount?.phone}。新密码验证成功后才会替换当前凭据。
         </p>
         <Form
           form={loginForm}

@@ -23,7 +23,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { dashboardApi } from './api';
-import { AddVehicleModal } from './components/add-vehicle-modal';
 import { AccountPage } from './components/account-page';
 import { LoginPage } from './components/login-page';
 import {
@@ -40,10 +39,28 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  MembershipUpdateInput,
+  TripProfileInput,
   Vehicle,
 } from './types';
 
 const { Content, Header, Sider } = Layout;
+
+const viewPaths: Record<AppView, string> = {
+  accounts: '/accounts',
+  audit: '/logs',
+  system: '/system',
+  vehicles: '/vehicles',
+};
+
+function getViewFromPathname(pathname: string): AppView {
+  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+  if (normalizedPathname === '/audit') return 'audit';
+  const matchedView = Object.entries(viewPaths).find(
+    ([, path]) => path === normalizedPathname,
+  );
+  return (matchedView?.[0] as AppView | undefined) || 'accounts';
+}
 
 export function App() {
   return (
@@ -90,6 +107,7 @@ function Application() {
     try {
       const session = await dashboardApi.login(nextUsername, password);
       setUsername(session.username);
+      window.history.replaceState(null, '', viewPaths.accounts);
       setAuthStatus('authenticated');
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : '登录失败，请稍后重试');
@@ -140,9 +158,9 @@ interface DashboardApplicationProps {
 
 function DashboardApplication({ onLogout, username }: DashboardApplicationProps) {
   const { message } = AntApp.useApp();
-  const [activeView, setActiveView] = useState<AppView>('vehicles');
-  const [addAccountId, setAddAccountId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+  const [activeView, setActiveView] = useState<AppView>(() =>
+    getViewFromPathname(window.location.pathname),
+  );
   const [audit, setAudit] = useState<AuditPageData>({
     items: [],
     page: 1,
@@ -156,7 +174,31 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const [loading, setLoading] = useState(true);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const initializedSelection = useRef(false);
+
+  const navigateTo = useCallback((view: AppView, { replace = false } = {}) => {
+    const path = viewPaths[view];
+    if (window.location.pathname !== path) {
+      window.history[replace ? 'replaceState' : 'pushState'](null, '', path);
+    }
+    setActiveView(view);
+  }, []);
+
+  useEffect(() => {
+    const initialView = getViewFromPathname(window.location.pathname);
+    if (window.location.pathname !== viewPaths[initialView]) {
+      navigateTo(initialView, { replace: true });
+    }
+
+    const handlePopState = () => {
+      setActiveView(getViewFromPathname(window.location.pathname));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigateTo]);
+
+  useEffect(() => {
+    if (activeView !== 'vehicles') setSelectedVehicle(null);
+  }, [activeView]);
 
   const findVehicle = useCallback((data: Dashboard, current: Vehicle) => {
     return (
@@ -178,10 +220,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         setDashboard(nextDashboard);
         setSelectedVehicle((current) => {
           if (current) return findVehicle(nextDashboard, current);
-          if (!initializedSelection.current && window.innerWidth >= 1200) {
-            initializedSelection.current = true;
-            return nextDashboard.accounts.flatMap((account) => account.vehicles)[0] || null;
-          }
           return null;
         });
       } catch (error) {
@@ -245,19 +283,10 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     [loadData, message],
   );
 
-  const handleAddVehicle = async (values: Record<string, string>) => {
-    await handleMutation(
-      () => dashboardApi.addVehicle(values),
-      `车辆 ${values.licenseNumber} 添加成功`,
-    );
-    setAddOpen(false);
-    setAddAccountId(null);
-  };
-
   const handleAddAccount = async (values: AccountCreateInput) => {
     await handleMutation(
       () => dashboardApi.addAccount(values),
-      `账号 ${values.name || values.phone} 添加成功`,
+      `账号 ${values.name || values.phone} 添加成功，请继续配置出行信息`,
     );
   };
 
@@ -265,13 +294,23 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     account: Account,
     values: AccountUpdateInput,
   ) => {
-    await handleUpdateAccount(account.id, values, '账号配置已更新');
+    await handleUpdateAccount(account.id, { ...values }, '账号配置已更新');
+  };
+
+  const handleUpdateTripProfile = async (
+    account: Account,
+    values: TripProfileInput,
+  ) => {
+    await handleMutation(
+      () => dashboardApi.updateTripProfile(account.id, values),
+      `账号 ${account.name} 的出行配置已保存`,
+    );
   };
 
   const handleReloginAccount = async (account: Account, password: string) => {
     await handleMutation(
       () => dashboardApi.reloginAccount(account.id, password),
-      `账号 ${account.name} 已重新登录`,
+      `账号 ${account.name} 的京通密码已更新`,
     );
   };
 
@@ -280,12 +319,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       () => dashboardApi.deleteAccount(account.id),
       `账号 ${account.name} 已从本机配置删除`,
     );
-  };
-
-  const handleAddVehicleForAccount = (account: Account) => {
-    setAddAccountId(account.id);
-    setActiveView('vehicles');
-    setAddOpen(true);
   };
 
   const handleUpdateAccount = async (
@@ -307,29 +340,41 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     );
   };
 
-  const handleRenewVehicle = async (vehicle: Vehicle) => {
+  const handleExtendMembership = async (
+    account: Account,
+    values: MembershipUpdateInput,
+  ) => {
+    await handleMutation(
+      () => dashboardApi.extendMembership(account.id, values),
+      `账号 ${account.name} 的服务有效期已更新`,
+    );
+  };
+
+  const handleRenewVehicle = async (
+    vehicle: Vehicle,
+    tripProfile: TripProfileInput,
+    saveAsDefault: boolean,
+  ) => {
     setMutationLoading(true);
     try {
+      if (saveAsDefault) {
+        await dashboardApi.updateTripProfile(vehicle.accountId, tripProfile);
+      }
       const result = await dashboardApi.renewVehicle(
         vehicle.accountId,
         vehicle.licenseNumber,
+        tripProfile,
       );
       message.success(result.message || '检查完成');
       await loadData({ quiet: true });
+      return true;
     } catch (error) {
       console.error(error);
       message.error(error instanceof Error ? error.message : '续签执行失败');
+      return false;
     } finally {
       setMutationLoading(false);
     }
-  };
-
-  const handleDeleteVehicle = async (vehicle: Vehicle) => {
-    await handleMutation(
-      () => dashboardApi.deleteVehicle(vehicle.accountId, vehicle.vehicleId),
-      `车辆 ${vehicle.licenseNumber} 已删除`,
-    );
-    setSelectedVehicle(null);
   };
 
   const menuItems = [
@@ -362,24 +407,31 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         <AccountPage
           accounts={dashboard.accounts}
           loading={mutationLoading}
+          mapConfig={dashboard.mapConfig}
           onAdd={handleAddAccount}
-          onAddVehicle={handleAddVehicleForAccount}
           onDelete={handleDeleteAccount}
+          onExtendMembership={handleExtendMembership}
           onRelogin={handleReloginAccount}
           onToggle={handleToggleAutoRenew}
           onUpdate={handleEditAccount}
+          onUpdateTripProfile={handleUpdateTripProfile}
         />
       );
     }
-    if (activeView === 'system') return <SystemPage dashboard={dashboard} />;
+    if (activeView === 'system') {
+      return (
+        <SystemPage
+          dashboard={dashboard}
+          loading={loading}
+          onRefresh={() => loadData()}
+          onViewLogs={() => navigateTo('audit')}
+        />
+      );
+    }
     return (
       <VehiclePage
         dashboard={dashboard}
         loading={loading}
-        onAdd={() => {
-          setAddAccountId(null);
-          setAddOpen(true);
-        }}
         onRefresh={() => loadData()}
         onSelect={setSelectedVehicle}
         onToggleAutoRenew={handleToggleAutoRenew}
@@ -413,8 +465,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           items={menuItems}
           mode="inline"
           onClick={({ key }) => {
-            setActiveView(key as AppView);
-            if (key !== 'vehicles') setSelectedVehicle(null);
+            navigateTo(key as AppView);
           }}
           selectedKeys={[activeView]}
           theme="dark"
@@ -469,24 +520,15 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         </Content>
       </Layout>
 
-      {dashboard ? (
-        <AddVehicleModal
-          accounts={dashboard.accounts}
-          initialAccountId={addAccountId}
-          loading={mutationLoading}
-          onCancel={() => {
-            setAddOpen(false);
-            setAddAccountId(null);
-          }}
-          onSubmit={handleAddVehicle}
-          open={addOpen}
-        />
-      ) : null}
       <VehicleDrawer
         account={selectedAccount}
         loading={mutationLoading}
+        mapConfig={dashboard?.mapConfig || {
+          enabled: false,
+          key: '',
+          securityCode: '',
+        }}
         onClose={() => setSelectedVehicle(null)}
-        onDelete={handleDeleteVehicle}
         onRenew={handleRenewVehicle}
         onUpdate={handleUpdateAccount}
         open={Boolean(selectedVehicle) && activeView === 'vehicles'}

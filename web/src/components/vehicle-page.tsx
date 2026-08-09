@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
@@ -78,7 +77,6 @@ function NextRenewalCell({
 interface VehiclePageProps {
   dashboard: Dashboard;
   loading: boolean;
-  onAdd: () => void;
   onRefresh: () => void;
   onSelect: (vehicle: Vehicle) => void;
   onToggleAutoRenew: (account: Account, checked: boolean) => Promise<void>;
@@ -88,15 +86,14 @@ interface VehiclePageProps {
 export function VehiclePage({
   dashboard,
   loading,
-  onAdd,
   onRefresh,
   onSelect,
   onToggleAutoRenew,
   selectedVehicleId,
 }: VehiclePageProps) {
-  const [accountFilter, setAccountFilter] = useState('');
+  const [accountFilter, setAccountFilter] = useState<string>();
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>();
   const vehicles = useMemo(
     () => dashboard.accounts.flatMap((account) => account.vehicles),
     [dashboard.accounts],
@@ -195,10 +192,13 @@ export function VehiclePage({
         const account = accountMap.get(vehicle.accountId);
         if (!account) return '—';
         return (
-          <Tooltip title="此开关对所属账号生效">
+          <Tooltip title={account.membershipStatus === 'expired'
+            ? `服务已于 ${account.membershipExpiresOn || '未知日期'} 到期`
+            : '此开关对所属账号生效'}>
             <span onClick={(event) => event.stopPropagation()}>
               <Switch
                 checked={account.autoRenew}
+                disabled={account.membershipStatus === 'expired'}
                 onChange={(checked) => onToggleAutoRenew(account, checked)}
                 size="small"
               />
@@ -274,9 +274,6 @@ export function VehiclePage({
           <Button icon={<ReloadOutlined />} loading={loading} onClick={onRefresh}>
             刷新
           </Button>
-          <Button icon={<PlusOutlined />} onClick={onAdd} type="primary">
-            添加车辆
-          </Button>
         </Space>
       </div>
 
@@ -302,7 +299,8 @@ export function VehiclePage({
             value={query}
           />
           <Select
-            onChange={setAccountFilter}
+            allowClear
+            onChange={(value) => setAccountFilter(value || undefined)}
             options={[
               { label: '全部账号', value: '' },
               ...dashboard.accounts.map((account) => ({
@@ -310,23 +308,26 @@ export function VehiclePage({
                 value: account.id,
               })),
             ]}
+            placeholder="全部账号"
             value={accountFilter}
           />
           <Select
-            onChange={setStatusFilter}
+            allowClear
+            onChange={(value) => setStatusFilter(value || undefined)}
             options={[
               { label: '全部状态', value: '' },
               { label: '证件有效', value: 'active' },
               { label: '待生效 / 审核中', value: 'pending' },
               { label: '需要处理', value: 'attention' },
             ]}
+            placeholder="全部状态"
             value={statusFilter}
           />
           <Button
             onClick={() => {
               setQuery('');
-              setAccountFilter('');
-              setStatusFilter('');
+              setAccountFilter(undefined);
+              setStatusFilter(undefined);
             }}
           >
             重置

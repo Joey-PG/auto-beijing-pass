@@ -10,8 +10,12 @@ import {
   formatDate, getFutureDate,
 } from '../lib/models.js';
 import { notify } from '../lib/notifier.js';
-import { resolveTripProfile } from '../lib/trip-profile.js';
+import {
+  isCompleteTripProfile,
+  requireTripProfile,
+} from '../lib/trip-profile.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import { getMembershipInfo } from '../lib/membership.js';
 import { output, success, error } from '../output.js';
 
 const ACTIVE_STATUSES = ['审核通过(生效中)', '审核中', '审核通过(待生效)'];
@@ -78,7 +82,7 @@ export async function applyPermit(
   user,
   plate,
   entryTypeOverride,
-  { dryRun = false } = {},
+  { dryRun = false, tripProfile = null } = {},
 ) {
   const { state: rawState } = await api.loadHomePageData();
   const state = parseStateData(rawState);
@@ -131,7 +135,7 @@ export async function applyPermit(
     userInfo,
     applyDate,
     entryType,
-    resolveTripProfile(user.trip_profile),
+    requireTripProfile(tripProfile || user.trip_profile),
   );
   if (dryRun) {
     return {
@@ -289,6 +293,26 @@ export async function runCommand({
 
   const includeLabel = users.length > 1 || Boolean(account);
   for (const user of users) {
+    const membership = getMembershipInfo(user);
+    if (!membership.active && !dryRun) {
+      writeAuditEvent('renewal_skipped', {
+        account: getAccountLabel(user),
+        result: 'skipped',
+        reason: 'membership_expired',
+        membership_expires_on: membership.expiresOn,
+      });
+      output(
+        success(
+          {
+            account: getAccountLabel(user),
+            skipped: true,
+            reason: 'membership_expired',
+          },
+          `[${getAccountLabel(user)}] 服务已于 ${membership.expiresOn || '未知日期'} 到期，跳过`,
+        ),
+      );
+      continue;
+    }
     if (user.auto_renew === false && !dryRun) {
       writeAuditEvent('renewal_skipped', {
         account: getAccountLabel(user),
@@ -305,6 +329,21 @@ export async function runCommand({
           `[${getAccountLabel(user)}] 已关闭自动续签，跳过`,
         ),
       );
+      continue;
+    }
+    if (!isCompleteTripProfile(user.trip_profile)) {
+      const message = '未配置完整的出行信息，请先运行 trip set';
+      writeAuditEvent(
+        'renewal_failed',
+        {
+          account: getAccountLabel(user),
+          result: 'failure',
+          error: message,
+        },
+        { level: 'error' },
+      );
+      output(error(`[${getAccountLabel(user)}] 运行失败: ${message}`));
+      process.exitCode = 1;
       continue;
     }
     try {

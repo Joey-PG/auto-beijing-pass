@@ -37,16 +37,35 @@ export interface Vehicle {
 }
 
 export interface TripProfile {
-  destination?: {
-    address?: string;
-    area?: string;
+  destination: {
+    address: string;
+    area: string;
+    district_code: string;
+    latitude: string;
+    longitude: string;
   };
-  in_beijing_address?: {
-    address?: string;
+  in_beijing_address: {
+    address: string;
+    latitude: string;
+    longitude: string;
   };
-  purpose?: {
-    name?: string;
+  purpose: {
+    code: string;
+    name: string;
   };
+}
+
+export interface TripProfileInput {
+  destinationAddress: string;
+  destinationArea: string;
+  destinationLatitude: string;
+  destinationLongitude: string;
+  districtCode: string;
+  inBeijingAddress: string;
+  inBeijingLatitude: string;
+  inBeijingLongitude: string;
+  purposeCode: string;
+  purposeName: string;
 }
 
 export interface Account {
@@ -55,11 +74,20 @@ export interface Account {
   error: string | null;
   id: string;
   name: string;
+  membershipExpiresOn: string | null;
+  membershipPermanent: boolean;
+  membershipRemainingDays: number | null;
+  membershipStartedOn: string | null;
+  membershipStatus: MembershipStatus;
   phone: string;
   preferredVehicle: string;
-  tripProfile: TripProfile;
+  tripProfile: TripProfile | null;
+  tripProfileConfigured: boolean;
   vehicles: Vehicle[];
 }
+
+export type MembershipStatus = 'active' | 'expired' | 'expiring_soon' | 'permanent';
+export type MembershipTerm = '1m' | '3m' | '1y' | 'custom' | 'permanent';
 
 export interface AccountCreateInput {
   autoRenew: boolean;
@@ -67,6 +95,13 @@ export interface AccountCreateInput {
   name: string;
   password: string;
   phone: string;
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
+}
+
+export interface MembershipUpdateInput {
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
 }
 
 export interface AccountUpdateInput {
@@ -84,10 +119,70 @@ export interface ScheduleInfo {
   schedule?: string | null;
 }
 
+export interface MapConfig {
+  enabled: boolean;
+  key: string;
+  securityCode: string;
+}
+
+export type SchedulerAccountStatus =
+  | 'completed'
+  | 'disabled'
+  | 'expired'
+  | 'overdue'
+  | 'pending'
+  | 'retrying'
+  | 'scheduled';
+
+export interface SchedulerAccountInfo {
+  completedAt: string | null;
+  id: string;
+  lastAttemptAt: string | null;
+  lastError: string | null;
+  name: string;
+  nextRetryAt: string | null;
+  plannedAt: string | null;
+  plannedTime: string | null;
+  retryCount: number;
+  status: SchedulerAccountStatus;
+}
+
+export interface SchedulerRuntimeInfo {
+  accounts: SchedulerAccountInfo[];
+  counts: Record<SchedulerAccountStatus, number> & {
+    eligible: number;
+    total: number;
+  };
+  health: 'healthy' | 'inactive' | 'warning';
+  healthMessage: string;
+  lastTickAt: string | null;
+  lastTickCompletedAt: string | null;
+  lastTickResult: string | null;
+}
+
+export interface SecurityCheck {
+  detail: string;
+  id: string;
+  label: string;
+  status: 'info' | 'pass' | 'warning';
+}
+
+export interface SecurityInfo {
+  checks: SecurityCheck[];
+  connection: 'http' | 'https' | 'local';
+}
+
 export interface Dashboard {
   accounts: Account[];
   generatedAt: string;
+  mapConfig: MapConfig;
+  runtime: {
+    businessApiLastSuccessAt: string | null;
+    timeZone: string;
+  };
   schedule: ScheduleInfo;
+  scheduler: SchedulerRuntimeInfo;
+  security: SecurityInfo;
   summary: {
     accountCount: number;
     failedAccountCount: number;
@@ -126,6 +221,7 @@ export interface AuditPageData {
 export interface AuditQuery {
   account?: string;
   event?: string;
+  events?: string[];
   page: number;
   pageSize: number;
   since: string;

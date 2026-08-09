@@ -242,6 +242,7 @@ export function readAuditEvents({
   since = '30d',
   account = null,
   event = null,
+  events = null,
   limit = 100,
   now = new Date(),
 } = {}) {
@@ -251,6 +252,11 @@ export function readAuditEvents({
   const accountFilters = account
     ? new Set([String(account), maskPhone(account)])
     : null;
+  const eventFilters = events?.length
+    ? new Set(events.map(String))
+    : event
+      ? new Set([String(event)])
+      : null;
   const files = readdirSync(dir)
     .filter((name) => /^audit-\d{4}-\d{2}\.jsonl$/.test(name))
     .sort();
@@ -262,7 +268,7 @@ export function readAuditEvents({
       try {
         const row = JSON.parse(line);
         if (new Date(row.timestamp) < sinceDate) continue;
-        if (event && row.event !== event) continue;
+        if (eventFilters && !eventFilters.has(row.event)) continue;
         if (
           accountFilters &&
           ![...accountFilters].some((candidate) =>
@@ -286,6 +292,7 @@ export function queryAuditEvents({
   since = '30d',
   account = null,
   event = null,
+  events = null,
   status = null,
   page = 1,
   pageSize = 20,
@@ -297,6 +304,7 @@ export function queryAuditEvents({
     since,
     account,
     event,
+    events,
     limit: Number.MAX_SAFE_INTEGER,
     now,
   })
