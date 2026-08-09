@@ -41,12 +41,12 @@ test('web server serves the dashboard with security headers', async () => {
 });
 
 test('dashboard reports the effective HTTPS state behind a reverse proxy', async () => {
-  const server = createDashboardServer();
+  const server = createDashboardServer({ trustProxy: true });
   const baseUrl = await listen(server);
   try {
     const response = await fetch(`${baseUrl}/api/dashboard`, {
       headers: {
-        'X-Forwarded-Host': 'pass.picfix.top',
+        'X-Real-IP': '203.0.113.10',
         'X-Forwarded-Proto': 'https',
       },
     });
@@ -57,6 +57,24 @@ test('dashboard reports the effective HTTPS state behind a reverse proxy', async
         .status,
       'pass',
     );
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
+test('dashboard ignores spoofed forwarding headers unless proxy trust is enabled', async () => {
+  const server = createDashboardServer();
+  const baseUrl = await listen(server);
+  try {
+    const response = await fetch(`${baseUrl}/api/dashboard`, {
+      headers: {
+        'X-Real-IP': '203.0.113.10',
+        'X-Forwarded-Proto': 'https',
+      },
+    });
+    const dashboard = (await response.json()).data;
+    assert.equal(dashboard.security.connection, 'local');
   } finally {
     server.close();
     await once(server, 'close');
@@ -96,6 +114,13 @@ test('web server uses a login session without triggering browser basic auth', as
     const denied = await fetch(`${baseUrl}/api/dashboard`);
     assert.equal(denied.status, 401);
     assert.equal(denied.headers.get('www-authenticate'), null);
+
+    const basicDenied = await fetch(`${baseUrl}/api/dashboard`, {
+      headers: {
+        Authorization: `Basic ${Buffer.from('operator:secret-value').toString('base64')}`,
+      },
+    });
+    assert.equal(basicDenied.status, 401);
 
     const wrongLogin = await fetch(`${baseUrl}/api/auth/login`, {
       body: JSON.stringify({ username: 'operator', password: 'wrong' }),
@@ -148,6 +173,40 @@ test('web server uses a login session without triggering browser basic auth', as
         { event: 'web_logout', actor: 'operator', result: 'success' },
       ],
     );
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
+test('spoofed client IP headers cannot bypass login rate limiting', async () => {
+  const server = createDashboardServer({
+    auditWriter: () => {},
+    username: 'operator',
+    password: 'secret-value',
+  });
+  const baseUrl = await listen(server);
+  try {
+    for (let index = 0; index < 5; index += 1) {
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
+        body: JSON.stringify({ username: 'operator', password: 'wrong' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Real-IP': `203.0.113.${index + 1}`,
+        },
+        method: 'POST',
+      });
+      assert.equal(response.status, 401);
+    }
+    const blocked = await fetch(`${baseUrl}/api/auth/login`, {
+      body: JSON.stringify({ username: 'operator', password: 'secret-value' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Real-IP': '203.0.113.99',
+      },
+      method: 'POST',
+    });
+    assert.equal(blocked.status, 429);
   } finally {
     server.close();
     await once(server, 'close');

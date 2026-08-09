@@ -1,8 +1,10 @@
 import { createServer } from 'node:http';
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
 import { writeAuditEvent } from '../lib/audit-logger.js';
 import { getConfigDir } from '../lib/config-manager.js';
@@ -39,6 +41,7 @@ const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_BLOCK_MS = 15 * 60 * 1000;
 const MAX_LOGIN_FAILURES = 5;
 const PASSWORD_HASH_BYTES = 64;
+const scryptAsync = promisify(scrypt);
 const CONTENT_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -85,18 +88,18 @@ function normalizeAuthenticators({ password = '', username = '', users = [] }) {
   return authenticators;
 }
 
-function verifyCredentials(username, password, authenticators) {
+async function verifyCredentials(username, password, authenticators) {
   const authenticator = authenticators.find((candidate) =>
     safeEqual(candidate.name, username),
   );
   if (!authenticator) {
     if (authenticators.some((candidate) => candidate.passwordHash)) {
-      scryptSync(String(password), Buffer.alloc(16), PASSWORD_HASH_BYTES);
+      await scryptAsync(String(password), Buffer.alloc(16), PASSWORD_HASH_BYTES);
     }
     return null;
   }
   if (authenticator.passwordHash) {
-    const actual = scryptSync(
+    const actual = await scryptAsync(
       String(password),
       Buffer.from(authenticator.salt, 'hex'),
       PASSWORD_HASH_BYTES,
@@ -105,24 +108,6 @@ function verifyCredentials(username, password, authenticators) {
     return timingSafeEqual(actual, expected) ? authenticator.name : null;
   }
   return safeEqual(authenticator.password, password) ? authenticator.name : null;
-}
-
-function getBasicAuthenticatedUsername(request, authenticators) {
-  const authorization = request.headers.authorization || '';
-  if (!authorization.startsWith('Basic ')) return null;
-  let credentials;
-  try {
-    credentials = Buffer.from(authorization.slice(6), 'base64').toString();
-  } catch {
-    return null;
-  }
-  const separator = credentials.indexOf(':');
-  if (separator < 0) return null;
-  return verifyCredentials(
-    credentials.slice(0, separator),
-    credentials.slice(separator + 1),
-    authenticators,
-  );
 }
 
 function parseCookies(request) {
@@ -154,48 +139,63 @@ function getSession(request, sessions, authenticators) {
 
 function isAuthenticated(request, authenticators, sessions) {
   if (authenticators.length === 0) return true;
-  return Boolean(getSession(request, sessions, authenticators)) ||
-    Boolean(getBasicAuthenticatedUsername(request, authenticators));
+  return Boolean(getSession(request, sessions, authenticators));
 }
 
-function getClientAddress(request) {
-  const forwarded = String(request.headers['x-real-ip'] || '').trim();
-  return forwarded || request.socket.remoteAddress || 'unknown';
+function normalizeAddress(value) {
+  const address = String(value || '').trim();
+  return address.startsWith('::ffff:') ? address.slice(7) : address;
 }
 
-function isSecureRequest(request) {
-  const forwarded = String(request.headers['x-forwarded-proto'] || '')
-    .split(',')[0]
-    .trim();
-  return forwarded === 'https' || Boolean(request.socket.encrypted);
+function isLoopbackAddress(value) {
+  return ['127.0.0.1', '::1'].includes(normalizeAddress(value));
 }
 
-function isLocalRequest(request) {
-  try {
-    const forwardedHost = String(
-      request.headers['x-forwarded-host'] || '',
-    ).split(',')[0].trim();
-    const hostname = new URL(
-      `http://${forwardedHost || request.headers.host || 'localhost'}`,
-    ).hostname;
-    return ['127.0.0.1', '::1', 'localhost'].includes(hostname);
-  } catch {
-    return false;
+function trustsForwardedHeaders(request, trustProxy) {
+  return trustProxy === true && isLoopbackAddress(request.socket.remoteAddress);
+}
+
+function getClientAddress(request, trustProxy = false) {
+  if (trustsForwardedHeaders(request, trustProxy)) {
+    const forwarded = String(request.headers['x-real-ip'] || '')
+      .split(',')[0]
+      .trim();
+    if (isIP(forwarded)) return normalizeAddress(forwarded);
   }
+  return normalizeAddress(request.socket.remoteAddress) || 'unknown';
 }
 
-function createSessionCookie(token, request) {
-  const secure = isSecureRequest(request) ? '; Secure' : '';
+function isSecureRequest(request, trustProxy = false) {
+  if (request.socket.encrypted) return true;
+  if (!trustsForwardedHeaders(request, trustProxy)) return false;
+  return String(request.headers['x-forwarded-proto'] || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase() === 'https';
+}
+
+function isLocalRequest(request, trustProxy = false) {
+  return isLoopbackAddress(getClientAddress(request, trustProxy));
+}
+
+function createSessionCookie(token, request, trustProxy = false) {
+  const secure = isSecureRequest(request, trustProxy) ? '; Secure' : '';
   return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
 }
 
-function clearSessionCookie(request) {
-  const secure = isSecureRequest(request) ? '; Secure' : '';
+function clearSessionCookie(request, trustProxy = false) {
+  const secure = isSecureRequest(request, trustProxy) ? '; Secure' : '';
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
 }
 
 async function handleAuth(request, response, url, context) {
-  const { auditWriter, authenticators, loginAttempts, sessions } = context;
+  const {
+    auditWriter,
+    authenticators,
+    loginAttempts,
+    sessions,
+    trustProxy,
+  } = context;
   const authenticationEnabled = authenticators.length > 0;
 
   if (request.method === 'GET' && url.pathname === '/api/auth/session') {
@@ -227,8 +227,13 @@ async function handleAuth(request, response, url, context) {
       return true;
     }
 
-    const address = getClientAddress(request);
+    const address = getClientAddress(request, trustProxy);
     const now = Date.now();
+    for (const [key, value] of loginAttempts) {
+      if (now - value.startedAt > LOGIN_WINDOW_MS && value.blockedUntil <= now) {
+        loginAttempts.delete(key);
+      }
+    }
     const attempt = loginAttempts.get(address);
     const body = await readJsonBody(request);
     const attemptedUsername = String(body.username || '').trim();
@@ -247,7 +252,7 @@ async function handleAuth(request, response, url, context) {
       return true;
     }
 
-    const authenticatedUsername = verifyCredentials(
+    const authenticatedUsername = await verifyCredentials(
       attemptedUsername,
       body.password || '',
       authenticators,
@@ -295,7 +300,7 @@ async function handleAuth(request, response, url, context) {
       response,
       200,
       { success: true, data: { authenticated: true, username: authenticatedUsername } },
-      { 'Set-Cookie': createSessionCookie(token, request) },
+      { 'Set-Cookie': createSessionCookie(token, request, trustProxy) },
     );
     return true;
   }
@@ -307,7 +312,7 @@ async function handleAuth(request, response, url, context) {
     const session = getSession(request, sessions, authenticators);
     auditWriter('web_logout', {
       actor: session?.username || null,
-      address: getClientAddress(request),
+      address: getClientAddress(request, trustProxy),
       result: 'success',
       source: 'web',
     });
@@ -316,7 +321,7 @@ async function handleAuth(request, response, url, context) {
       response,
       200,
       { success: true, data: { loggedOut: true } },
-      { 'Set-Cookie': clearSessionCookie(request) },
+      { 'Set-Cookie': clearSessionCookie(request, trustProxy) },
     );
     return true;
   }
@@ -352,7 +357,12 @@ async function readJsonBody(request) {
   }
 }
 
-async function handleApi(request, response, url, { actor = null } = {}) {
+async function handleApi(
+  request,
+  response,
+  url,
+  { actor = null, trustProxy = false } = {},
+) {
   if (request.method !== 'GET' && !isSafeOrigin(request)) {
     throw new WebServiceError('请求来源校验失败', 403);
   }
@@ -361,8 +371,8 @@ async function handleApi(request, response, url, { actor = null } = {}) {
       success: true,
       data: await getDashboard({
         securityContext: {
-          localRequest: isLocalRequest(request),
-          secureRequest: isSecureRequest(request),
+          localRequest: isLocalRequest(request, trustProxy),
+          secureRequest: isSecureRequest(request, trustProxy),
         },
       }),
     });
@@ -493,6 +503,7 @@ async function serveStatic(response, pathname) {
 export function createDashboardServer({
   auditWriter = writeAuditEvent,
   sessionFile = '',
+  trustProxy = false,
   username = '',
   password = '',
   users = [],
@@ -509,6 +520,7 @@ export function createDashboardServer({
           authenticators,
           loginAttempts,
           sessions,
+          trustProxy,
         });
         if (authHandled) return;
         if (!isAuthenticated(request, authenticators, sessions)) {
@@ -520,9 +532,11 @@ export function createDashboardServer({
         }
         const session = getSession(request, sessions, authenticators);
         const actor = session?.username ||
-          getBasicAuthenticatedUsername(request, authenticators) ||
           (authenticators.length === 0 ? '本机管理员' : null);
-        const handled = await handleApi(request, response, url, { actor });
+        const handled = await handleApi(request, response, url, {
+          actor,
+          trustProxy,
+        });
         if (!handled) sendJson(response, 404, { success: false, message: '接口不存在' });
         return;
       }
@@ -557,6 +571,8 @@ export async function startDashboardServer({
   sessionFile =
     process.env.AUTO_BJ_PASS_WEB_SESSION_FILE ||
     join(getConfigDir(), 'web-sessions.json'),
+  trustProxy =
+    String(process.env.AUTO_BJ_PASS_WEB_TRUST_PROXY || '').toLowerCase() === 'true',
   users = [],
   usersFile = process.env.AUTO_BJ_PASS_WEB_USERS_FILE || '',
 } = {}) {
@@ -585,6 +601,7 @@ export async function startDashboardServer({
   }
   const server = createDashboardServer({
     sessionFile,
+    trustProxy,
     username,
     password,
     users: configuredUsers,

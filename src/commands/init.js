@@ -3,6 +3,7 @@ import { getUsers, upsertUser } from '../lib/config-manager.js';
 import { output, success, error } from '../output.js';
 import { writeAuditEvent } from '../lib/audit-logger.js';
 import { createMembership } from '../lib/membership.js';
+import { readFileSync } from 'node:fs';
 
 export const DEFAULT_ENTRY_TYPE = '六环外';
 
@@ -24,19 +25,26 @@ export function resolveNotifyUrls(requestedUrls, existingUser) {
     : requestedUrls;
 }
 
+export function readPasswordFromStdin() {
+  if (process.stdin.isTTY) {
+    throw new Error('--password-stdin 需要从标准输入管道读取密码');
+  }
+  return readFileSync(0, 'utf8').replace(/\r?\n$/, '');
+}
+
 export function registerInitCommand(program) {
   program
     .command('init')
     .description('添加或更新账号（无参数=交互式，有参数=非交互式）')
     .option('--name <name>', '账号名称（用于多账号选择）')
     .option('--phone <phone>', '北京通手机号')
-    .option('--password <password>', '北京通密码')
+    .option('--password-stdin', '从标准输入读取北京通密码（避免出现在进程参数中）')
     .option('--entry-type <type>', '进京证类型（六环内/六环外，默认六环外）')
     .option('--notify <urls...>', '通知渠道URL')
     .option('-f, --force', '更新相同手机号的已有账号')
     .action(async (options) => {
       try {
-        const isInteractive = !(options.phone && options.password);
+        const isInteractive = !(options.phone && options.passwordStdin);
 
         let name, phone, password, entryType, notifyUrls, existingUser;
         const existingUsers = getUsers();
@@ -45,7 +53,7 @@ export function registerInitCommand(program) {
           // Non-interactive mode
           name = options.name;
           phone = options.phone;
-          password = options.password;
+          password = readPasswordFromStdin();
           existingUser = existingUsers.find(
             (user) => user.bjt_phone === phone,
           );
@@ -69,7 +77,6 @@ export function registerInitCommand(program) {
             (user) => user.bjt_phone === phone,
           );
           password =
-            options.password ??
             await passwordPrompt({
               message: '请输入北京通密码:',
               mask: '*',
@@ -128,7 +135,6 @@ export function registerInitCommand(program) {
           name: accountName,
           auth: token,
           bjt_phone: phone,
-          bjt_pwd: password,
           entry_type: entryType,
           notify_urls: notifyUrls,
           preferred_vehicle: existingUser?.preferred_vehicle || '',

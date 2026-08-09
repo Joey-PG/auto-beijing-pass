@@ -31,10 +31,10 @@ auto-bj-pass status
 如果返回"未初始化"错误，询问用户的北京通手机号和密码，然后执行：
 
 ```bash
-auto-bj-pass init --name <name> --phone <phone> --password <password>
+auto-bj-pass init --name <name> --phone <phone> --password-stdin < /安全路径/password
 ```
 
-可选参数：`--entry-type <六环内|六环外>`（新账号默认六环外）、`--notify <url>`（可多次指定）、`-f`（更新已有账号）
+密码必须通过交互式提示或标准输入提供，不能放入命令行参数。可选参数：`--entry-type <六环内|六环外>`（新账号默认六环外）、`--notify <url>`（可多次指定）、`-f`（更新已有账号）
 
 可重复执行 `init` 添加多个账号；相同手机号需加 `-f` 更新。更新时未显式传入的进京证类型、通知渠道和其他业务配置会保持不变。
 

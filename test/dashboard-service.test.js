@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -275,7 +275,6 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       name: '新账号',
       auth: 'first-token',
       bjt_phone: '13800000001',
-      bjt_pwd: 'initial-secret',
       entry_type: '六环外',
       notify_urls: [],
       preferred_vehicle: '',
@@ -319,7 +318,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       /北京通登录失败：密码错误/,
     );
     assert.equal(loadConfig().users[0].auth, 'first-token');
-    assert.equal(loadConfig().users[0].bjt_pwd, 'initial-secret');
+    assert.equal(Object.hasOwn(loadConfig().users[0], 'bjt_pwd'), false);
 
     await reloginDashboardAccount(
       '1',
@@ -327,7 +326,11 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
       { actor: 'zhaochunxu', loginFn: async () => 'second-token' },
     );
     assert.equal(loadConfig().users[0].auth, 'second-token');
-    assert.equal(loadConfig().users[0].bjt_pwd, 'next-secret');
+    assert.equal(Object.hasOwn(loadConfig().users[0], 'bjt_pwd'), false);
+    assert.doesNotMatch(
+      readFileSync(join(configDir, 'config.json'), 'utf8'),
+      /initial-secret|next-secret|first-token|second-token/,
+    );
 
     assert.throws(
       () => removeDashboardAccount('2', { actor: 'zhaochunxu' }),

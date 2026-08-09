@@ -11,6 +11,11 @@ import {
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { COMMAND_NAME, CONFIG_DIR, CONFIG_FILE } from '../constants.js';
+import {
+  needsCredentialMigration,
+  protectConfig,
+  unprotectConfig,
+} from './credential-store.js';
 import { migrateMembershipConfig } from './membership.js';
 
 const LEGACY_CONFIG_DIRS = ['.cross-bj-next', '.cross-bj'];
@@ -68,9 +73,12 @@ export function loadConfig() {
     return null;
   }
   const raw = readFileSync(configPath, 'utf-8');
-  const migrated = migrateMembershipConfig(JSON.parse(raw));
-  if (migrated.changed) writeConfigFile(migrated.config);
-  return migrated.config;
+  const parsed = JSON.parse(raw);
+  const credentialMigration = needsCredentialMigration(parsed);
+  const migrated = migrateMembershipConfig(parsed);
+  const config = unprotectConfig(migrated.config, getConfigDir());
+  if (migrated.changed || credentialMigration) writeConfigFile(config);
+  return config;
 }
 
 /**
@@ -85,7 +93,8 @@ function writeConfigFile(config) {
   const configPath = getConfigPath();
   const temporaryPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;
   try {
-    writeFileSync(temporaryPath, JSON.stringify(config, null, 4), {
+    const protectedConfig = protectConfig(config, getConfigDir());
+    writeFileSync(temporaryPath, JSON.stringify(protectedConfig, null, 4), {
       encoding: 'utf-8',
       mode: 0o600,
     });

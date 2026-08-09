@@ -78,14 +78,45 @@ test('supports selecting, updating, and removing multiple accounts', () => {
     assert.equal(loadConfig().users[0].auto_renew, false);
 
     const configPath = join(configDir, 'config.json');
+    const storedConfig = readFileSync(configPath, 'utf8');
     assert.equal(
       statSync(configPath).mode & 0o777,
       0o600,
     );
     assert.doesNotMatch(
-      readFileSync(configPath, 'utf8'),
-      /13811610582/,
+      storedConfig,
+      /token-1|token-2|token-new|not-a-real-password/,
     );
+    assert.match(storedConfig, /auth_encrypted/);
+    assert.equal(statSync(join(configDir, 'credentials.key')).mode & 0o777, 0o600);
+  } finally {
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
+test('migrates plaintext tokens and stored passwords without losing access', () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-credential-migration-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const configPath = join(configDir, 'config.json');
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(configPath, JSON.stringify({
+    users: [{
+      name: '旧账号',
+      auth: 'legacy-token',
+      bjt_phone: '13800000006',
+      bjt_pwd: 'legacy-password',
+      membership_permanent: true,
+    }],
+  }));
+
+  try {
+    const [user] = loadConfig().users;
+    assert.equal(user.auth, 'legacy-token');
+    assert.equal(Object.hasOwn(user, 'bjt_pwd'), false);
+    const storedConfig = readFileSync(configPath, 'utf8');
+    assert.doesNotMatch(storedConfig, /legacy-token|legacy-password/);
+    assert.match(storedConfig, /auth_encrypted/);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });
