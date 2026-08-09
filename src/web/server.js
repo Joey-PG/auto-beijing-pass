@@ -169,6 +169,20 @@ function isSecureRequest(request) {
   return forwarded === 'https' || Boolean(request.socket.encrypted);
 }
 
+function isLocalRequest(request) {
+  try {
+    const forwardedHost = String(
+      request.headers['x-forwarded-host'] || '',
+    ).split(',')[0].trim();
+    const hostname = new URL(
+      `http://${forwardedHost || request.headers.host || 'localhost'}`,
+    ).hostname;
+    return ['127.0.0.1', '::1', 'localhost'].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
 function createSessionCookie(token, request) {
   const secure = isSecureRequest(request) ? '; Secure' : '';
   return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
@@ -342,7 +356,15 @@ async function handleApi(request, response, url, { actor = null } = {}) {
     throw new WebServiceError('请求来源校验失败', 403);
   }
   if (request.method === 'GET' && url.pathname === '/api/dashboard') {
-    sendJson(response, 200, { success: true, data: await getDashboard() });
+    sendJson(response, 200, {
+      success: true,
+      data: await getDashboard({
+        securityContext: {
+          localRequest: isLocalRequest(request),
+          secureRequest: isSecureRequest(request),
+        },
+      }),
+    });
     return true;
   }
   if (request.method === 'GET' && url.pathname === '/api/audit') {

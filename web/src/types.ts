@@ -99,10 +99,63 @@ export interface ScheduleInfo {
   schedule?: string | null;
 }
 
+export type SchedulerAccountStatus =
+  | 'completed'
+  | 'disabled'
+  | 'expired'
+  | 'overdue'
+  | 'pending'
+  | 'retrying'
+  | 'scheduled';
+
+export interface SchedulerAccountInfo {
+  completedAt: string | null;
+  id: string;
+  lastAttemptAt: string | null;
+  lastError: string | null;
+  name: string;
+  nextRetryAt: string | null;
+  plannedAt: string | null;
+  plannedTime: string | null;
+  retryCount: number;
+  status: SchedulerAccountStatus;
+}
+
+export interface SchedulerRuntimeInfo {
+  accounts: SchedulerAccountInfo[];
+  counts: Record<SchedulerAccountStatus, number> & {
+    eligible: number;
+    total: number;
+  };
+  health: 'healthy' | 'inactive' | 'warning';
+  healthMessage: string;
+  lastTickAt: string | null;
+  lastTickCompletedAt: string | null;
+  lastTickResult: string | null;
+}
+
+export interface SecurityCheck {
+  detail: string;
+  id: string;
+  label: string;
+  status: 'info' | 'pass' | 'warning';
+}
+
+export interface SecurityInfo {
+  checks: SecurityCheck[];
+  connection: 'http' | 'https' | 'local';
+}
+
 export interface Dashboard {
   accounts: Account[];
   generatedAt: string;
+  runtime: {
+    businessApiLastSuccessAt: string | null;
+    timeZone: string;
+  };
   schedule: ScheduleInfo;
+  scheduler: SchedulerRuntimeInfo;
+  security: SecurityInfo;
   summary: {
     accountCount: number;
     failedAccountCount: number;

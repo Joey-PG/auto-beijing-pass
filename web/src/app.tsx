@@ -395,7 +395,16 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         />
       );
     }
-    if (activeView === 'system') return <SystemPage dashboard={dashboard} />;
+    if (activeView === 'system') {
+      return (
+        <SystemPage
+          dashboard={dashboard}
+          loading={loading}
+          onRefresh={() => loadData()}
+          onViewLogs={() => navigateTo('audit')}
+        />
+      );
+    }
     return (
       <VehiclePage
         dashboard={dashboard}

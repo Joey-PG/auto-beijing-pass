@@ -1,9 +1,12 @@
 import {
+  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloudServerOutlined,
+  InfoCircleOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import {
   Button,
@@ -26,6 +29,8 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  SchedulerAccountInfo,
+  SchedulerAccountStatus,
 } from '../types';
 
 const eventLabels: Record<string, string> = {
@@ -426,31 +431,128 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
 
 interface SystemPageProps {
   dashboard: Dashboard;
+  loading: boolean;
+  onRefresh: () => void;
+  onViewLogs: () => void;
 }
 
-export function SystemPage({ dashboard }: SystemPageProps) {
+const schedulerAccountStatus: Record<
+  SchedulerAccountStatus,
+  { color: string; label: string }
+> = {
+  completed: { color: 'success', label: '今日已完成' },
+  disabled: { color: 'default', label: '已关闭' },
+  expired: { color: 'error', label: '服务已到期' },
+  overdue: { color: 'error', label: '已超过计划时间' },
+  pending: { color: 'default', label: '等待生成计划' },
+  retrying: { color: 'warning', label: '等待重试' },
+  scheduled: { color: 'processing', label: '等待执行' },
+};
+
+export function SystemPage({
+  dashboard,
+  loading,
+  onRefresh,
+  onViewLogs,
+}: SystemPageProps) {
   const { schedule } = dashboard;
+  const { scheduler, security } = dashboard;
+  const health = scheduler.health === 'healthy'
+    ? { color: 'success', label: '运行正常' }
+    : scheduler.health === 'warning'
+      ? { color: 'warning', label: '需要关注' }
+      : { color: 'default', label: '未启用' };
+  const accountColumns: ColumnsType<SchedulerAccountInfo> = [
+    {
+      dataIndex: 'name',
+      key: 'name',
+      title: '账号',
+    },
+    {
+      key: 'status',
+      render: (_, account) => {
+        const meta = schedulerAccountStatus[account.status];
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
+      title: '今日状态',
+      width: 150,
+    },
+    {
+      key: 'plannedTime',
+      render: (_, account) => account.plannedTime || '—',
+      title: '计划时间',
+      width: 110,
+    },
+    {
+      key: 'lastActivity',
+      render: (_, account) => formatDateTime(
+        account.completedAt || account.lastAttemptAt || undefined,
+      ),
+      title: '最近执行',
+      width: 150,
+    },
+    {
+      key: 'retry',
+      render: (_, account) => account.status === 'retrying'
+        ? (
+            <div className="scheduler-retry-cell">
+              <span>第 {account.retryCount} 次 · {formatDateTime(account.nextRetryAt || undefined)}</span>
+              {account.lastError ? <small title={account.lastError}>{account.lastError}</small> : null}
+            </div>
+          )
+        : '—',
+      title: '重试信息',
+      width: 260,
+    },
+  ];
   return (
     <div className="page-shell system-page">
       <div className="page-heading">
         <div>
-          <h1>系统设置</h1>
-          <p>查看当前无数据库运行模式与自动调度状态</p>
+          <h1>系统状态</h1>
+          <p>查看自动调度健康、运行环境与安全检查结果</p>
         </div>
+        <Button icon={<ReloadOutlined />} loading={loading} onClick={onRefresh}>
+          刷新状态
+        </Button>
       </div>
       <div className="system-card-grid">
-        <Card title={<Space><ClockCircleOutlined />自动调度</Space>}>
-          <div className="system-status-row">
-            <Tag color={schedule.active ? 'success' : 'default'}>
-              {schedule.active ? '运行中' : '未启用'}
-            </Tag>
+        <Card
+          className="system-schedule-card"
+          extra={<Button onClick={onViewLogs} type="link">查看调度日志</Button>}
+          title={<Space><ClockCircleOutlined />自动调度</Space>}
+        >
+          <div className="system-schedule-heading">
+            <div>
+              <Tag color={health.color}>{health.label}</Tag>
+              <span>{scheduler.healthMessage}</span>
+            </div>
+            <small>时区：{dashboard.runtime.timeZone}</small>
+          </div>
+          <div className="scheduler-metric-grid">
+            <div className="scheduler-metric">
+              <span>今日完成</span>
+              <strong>{scheduler.counts.completed} / {scheduler.counts.eligible}</strong>
+            </div>
+            <div className="scheduler-metric">
+              <span>等待执行</span>
+              <strong>{scheduler.counts.scheduled + scheduler.counts.pending}</strong>
+            </div>
+            <div className="scheduler-metric scheduler-metric-warning">
+              <span>重试 / 超时</span>
+              <strong>{scheduler.counts.retrying + scheduler.counts.overdue}</strong>
+            </div>
+            <div className="scheduler-metric">
+              <span>已关闭</span>
+              <strong>{scheduler.counts.disabled} / 到期 {scheduler.counts.expired}</strong>
+            </div>
           </div>
           <Descriptions column={1} colon={false}>
             <Descriptions.Item label="执行计划">
               {schedule.description || '尚未设置定时任务'}
             </Descriptions.Item>
-            <Descriptions.Item label="随机时段">
-              {schedule.randomWindow || '—'}
+            <Descriptions.Item label="最后心跳">
+              {formatDateTime(scheduler.lastTickAt || undefined)}
             </Descriptions.Item>
             <Descriptions.Item label="重启补偿">
               {schedule.catchUpEnabled ? '已启用' : '未启用'}
@@ -461,18 +563,45 @@ export function SystemPage({ dashboard }: SystemPageProps) {
           <Descriptions column={1} colon={false}>
             <Descriptions.Item label="数据存储">本地配置文件 + JSONL 日志</Descriptions.Item>
             <Descriptions.Item label="业务数据">实时读取北京交管接口</Descriptions.Item>
-            <Descriptions.Item label="最近同步">
+            <Descriptions.Item label="交管接口最近成功访问">
+              {formatDateTime(dashboard.runtime.businessApiLastSuccessAt || undefined)}
+            </Descriptions.Item>
+            <Descriptions.Item label="页面数据生成于">
               {formatDateTime(dashboard.generatedAt)}
             </Descriptions.Item>
+            <Descriptions.Item label="服务器时区">{dashboard.runtime.timeZone}</Descriptions.Item>
           </Descriptions>
         </Card>
-        <Card title={<Space><SafetyCertificateOutlined />安全状态</Space>}>
-          <Space direction="vertical" size={12}>
-            <span><CheckCircleOutlined className="success-icon" /> 北京通密码仅通过 HTTPS 提交</span>
-            <span><CheckCircleOutlined className="success-icon" /> 业务 token 不返回浏览器</span>
-            <span><CheckCircleOutlined className="success-icon" /> 磁盘日志保持敏感信息脱敏</span>
-            <span><CheckCircleOutlined className="success-icon" /> 公网访问必须配置 HTTPS</span>
-          </Space>
+        <Card title={<Space><SafetyCertificateOutlined />安全检查</Space>}>
+          <div className="security-check-list">
+            {security.checks.map((check) => (
+              <div className={`security-check security-check-${check.status}`} key={check.id}>
+                {check.status === 'pass'
+                  ? <CheckCircleOutlined />
+                  : check.status === 'warning'
+                    ? <WarningOutlined />
+                    : <InfoCircleOutlined />}
+                <div>
+                  <strong>{check.label}</strong>
+                  <span>{check.detail}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card
+          className="system-account-plan-card"
+          title={<Space><CalendarOutlined />今日账号计划</Space>}
+        >
+          <Table
+            columns={accountColumns}
+            dataSource={scheduler.accounts}
+            locale={{ emptyText: '尚未添加业务账号' }}
+            pagination={false}
+            rowKey="id"
+            scroll={{ x: 850 }}
+            size="small"
+          />
         </Card>
       </div>
     </div>

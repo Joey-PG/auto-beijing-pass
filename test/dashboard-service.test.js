@@ -80,11 +80,25 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
       source: 'cron',
     });
 
-    const dashboard = await getDashboard();
+    const dashboard = await getDashboard({
+      securityContext: { localRequest: false, secureRequest: true },
+    });
     const audit = getDashboardAudit({ since: '30d' });
 
     assert.equal(dashboard.summary.accountCount, 1);
     assert.equal(dashboard.summary.vehicleCount, 1);
+    assert.equal(dashboard.scheduler.counts.eligible, 1);
+    assert.equal(
+      dashboard.runtime.businessApiLastSuccessAt,
+      dashboard.generatedAt,
+    );
+    assert.ok(dashboard.runtime.timeZone);
+    assert.equal(dashboard.security.connection, 'https');
+    assert.equal(
+      dashboard.security.checks.find((check) => check.id === 'public_https')
+        .status,
+      'pass',
+    );
     assert.equal(dashboard.accounts[0].name, '13800000001');
     assert.equal(dashboard.accounts[0].phone, '13800000001');
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');

@@ -297,9 +297,33 @@ button, input, select { font: inherit; }
 
 .page-alert { margin-bottom: 18px; }
 .system-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.system-card-grid .ant-card:last-child { grid-column: 1 / -1; }
-.system-status-row { margin-bottom: 16px; }
-.success-icon { margin-right: 8px; color: #26a269; }
+.system-card-grid > .ant-card { min-width: 0; }
+.system-schedule-card,
+.system-account-plan-card { grid-column: 1 / -1; }
+.system-schedule-card .ant-card-head-wrapper { flex-wrap: wrap; gap: 8px; }
+.system-schedule-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
+.system-schedule-heading > div { display: flex; align-items: center; gap: 8px; color: #475467; }
+.system-schedule-heading small { color: #98a2b3; }
+.scheduler-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; min-width: 0; margin-bottom: 20px; gap: 12px; }
+.scheduler-metric { min-width: 0; padding: 14px 16px; border: 1px solid #edf0f5; border-radius: 8px; background: #fafbfc; }
+.scheduler-metric span,
+.scheduler-metric strong { display: block; }
+.scheduler-metric span { color: #667085; font-size: 12px; }
+.scheduler-metric strong { margin-top: 5px; color: #172033; font-size: 23px; line-height: 1.2; }
+.scheduler-metric-warning strong { color: #d97706; }
+.scheduler-retry-cell span,
+.scheduler-retry-cell small { display: block; }
+.scheduler-retry-cell small { overflow: hidden; max-width: 240px; margin-top: 3px; color: #b54708; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.security-check-list { display: grid; gap: 14px; }
+.security-check { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: flex-start; gap: 10px; }
+.security-check > .anticon { margin-top: 3px; }
+.security-check strong,
+.security-check span { display: block; }
+.security-check strong { color: #344054; font-size: 13px; font-weight: 500; }
+.security-check span { margin-top: 2px; color: #98a2b3; font-size: 11px; line-height: 1.55; }
+.security-check-pass > .anticon { color: #26a269; }
+.security-check-warning > .anticon { color: #f79009; }
+.security-check-info > .anticon { color: #2f6bff; }
 .initial-loading { max-width: 980px; margin: 60px auto; padding: 32px; }
 
 @media (min-width: 1200px) {
@@ -346,7 +370,11 @@ button, input, select { font: inherit; }
   .table-toolbar .audit-account-filter,
   .table-toolbar .audit-event-filter { width: auto; min-width: 180px; }
   .system-card-grid { grid-template-columns: 1fr; }
-  .system-card-grid .ant-card:last-child { grid-column: auto; }
+  .system-schedule-card,
+  .system-account-plan-card { grid-column: auto; }
+  .system-schedule-heading { align-items: flex-start; flex-direction: column; }
+  .scheduler-metric-grid { grid-template-columns: 1fr 1fr; }
+  .system-account-plan-card .ant-card-body { overflow: hidden; }
   .form-grid { grid-template-columns: 1fr; }
   .vehicle-detail-drawer .ant-drawer-content-wrapper { width: 100% !important; }
 }

@@ -1,4 +1,7 @@
-import { getCronScheduleInfo } from '../commands/cron.js';
+import {
+  getCronRuntimeInfo,
+  getCronScheduleInfo,
+} from '../commands/cron.js';
 import { applyPermit } from '../commands/run.js';
 import { API_BASE_URL } from '../constants.js';
 import { ApiManager } from '../lib/api-manager.js';
@@ -36,6 +39,47 @@ const VEHICLE_TYPES = new Set(['01', '02']);
 const PHONE_PATTERN = /^1\d{10}$/;
 const MAX_ACCOUNT_NAME_LENGTH = 40;
 const MAX_PASSWORD_LENGTH = 256;
+
+function getSecurityStatus({ localRequest = true, secureRequest = false } = {}) {
+  const protectedTransport = localRequest || secureRequest;
+  return {
+    checks: [
+      {
+        detail: protectedTransport
+          ? secureRequest
+            ? '当前请求已通过 HTTPS 加密传输'
+            : '当前请求来自本机回环地址'
+          : '当前公网请求未检测到 HTTPS',
+        id: 'password_transport',
+        label: '北京通密码安全传输',
+        status: protectedTransport ? 'pass' : 'warning',
+      },
+      {
+        detail: 'Dashboard 响应不会包含北京通业务 token',
+        id: 'token_exposure',
+        label: '业务 token 不返回浏览器',
+        status: 'pass',
+      },
+      {
+        detail: '审计日志写入前统一执行手机号、车牌和敏感字段脱敏',
+        id: 'log_redaction',
+        label: '磁盘日志敏感信息脱敏',
+        status: 'pass',
+      },
+      {
+        detail: localRequest
+          ? '当前为本机访问；公网部署仍必须使用 HTTPS'
+          : secureRequest
+            ? '当前公网访问已检测到 HTTPS'
+            : '请检查反向代理证书与 X-Forwarded-Proto 配置',
+        id: 'public_https',
+        label: '公网访问 HTTPS',
+        status: localRequest ? 'info' : secureRequest ? 'pass' : 'warning',
+      },
+    ],
+    connection: secureRequest ? 'https' : localRequest ? 'local' : 'http',
+  };
+}
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
@@ -222,7 +266,7 @@ async function loadAccountDashboard(user, index) {
   }
 }
 
-export async function getDashboard() {
+export async function getDashboard({ securityContext = {} } = {}) {
   const users = getUsers({ initializedOnly: true });
   const accounts = await Promise.all(
     users.map((user, index) => loadAccountDashboard(user, index)),
@@ -256,9 +300,19 @@ export async function getDashboard() {
   } catch {
     schedule = { active: false, description: null, randomWindow: null };
   }
+  const scheduler = getCronRuntimeInfo(schedule, users);
+  const generatedAt = new Date().toISOString();
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     schedule,
+    scheduler,
+    security: getSecurityStatus(securityContext),
+    runtime: {
+      businessApiLastSuccessAt: accounts.some((account) => !account.error)
+        ? generatedAt
+        : null,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
     accounts,
     summary: {
       accountCount: accounts.length,
