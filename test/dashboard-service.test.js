@@ -348,7 +348,7 @@ test('dashboard securely adds, edits, reauthenticates, and removes accounts', as
   }
 });
 
-test('dashboard requires membership and profile choices when adding accounts', async () => {
+test('dashboard validates account choices and falls back to the phone as its name', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-add-validation-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
   const validCredentials = {
@@ -384,6 +384,17 @@ test('dashboard requires membership and profile choices when adding accounts', a
       /在京地址不能为空/,
     );
     assert.equal(loadConfig()?.users?.length ?? 0, 0);
+
+    const created = await addDashboardAccount(
+      {
+        ...validCredentials,
+        membershipTerm: '1y',
+        tripProfileMode: 'default',
+      },
+      { loginFn },
+    );
+    assert.equal(created.name, validCredentials.phone);
+    assert.equal(loadConfig().users[0].name, validCredentials.phone);
   } finally {
     delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
     rmSync(configDir, { recursive: true, force: true });

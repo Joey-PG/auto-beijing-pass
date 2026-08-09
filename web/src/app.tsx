@@ -287,7 +287,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const handleAddAccount = async (values: AccountCreateInput) => {
     await handleMutation(
       () => dashboardApi.addAccount(values),
-      `账号 ${values.phone} 添加成功，已使用${values.tripProfileMode === 'default' ? '系统默认' : '自定义'}出行配置并开启自动续签`,
+      `账号 ${values.name?.trim() || values.phone} 添加成功，已使用${values.tripProfileMode === 'default' ? '系统默认' : '自定义'}出行配置并开启自动续签`,
     );
   };
 
