@@ -68,7 +68,7 @@ export function MapLocationPicker({
   open,
   title,
 }: MapLocationPickerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<AMapMap | null>(null);
   const geocoderRef = useRef<AMapGeocoder | null>(null);
   const requestIdRef = useRef(0);
@@ -77,6 +77,18 @@ export function MapLocationPicker({
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const initialAddress = initialLocation?.address;
+  const initialLatitude = initialLocation?.latitude;
+  const initialLongitude = initialLocation?.longitude;
+  const {
+    enabled: mapEnabled,
+    key: mapKey,
+    securityCode: mapSecurityCode,
+  } = config;
+
+  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
+    setContainer(node);
+  }, []);
 
   const reverseGeocode = useCallback((longitude: number, latitude: number) => {
     const geocoder = geocoderRef.current;
@@ -111,19 +123,26 @@ export function MapLocationPicker({
   }, []);
 
   useEffect(() => {
-    if (!open || !config.enabled) return undefined;
+    if (!open || !mapEnabled || !container) return undefined;
     let active = true;
     setCandidate(null);
     setError('');
-    setSearchText(initialLocation?.address || '平谷世纪广场');
+    setSearchText(initialAddress || '平谷世纪广场');
     setLoading(true);
 
-    void loadAMap(config)
+    void loadAMap({
+      enabled: mapEnabled,
+      key: mapKey,
+      securityCode: mapSecurityCode,
+    })
       .then((AMap) => {
-        if (!active || !containerRef.current) return;
-        const center = toPosition(initialLocation);
+        if (!active || !container.isConnected) return;
+        const center = toPosition({
+          latitude: initialLatitude,
+          longitude: initialLongitude,
+        });
         const geocoder = new AMap.Geocoder({ city: '北京市' });
-        const map = new AMap.Map(containerRef.current, {
+        const map = new AMap.Map(container, {
           center,
           resizeEnable: true,
           zoom: 16,
@@ -152,7 +171,17 @@ export function MapLocationPicker({
       mapRef.current = null;
       geocoderRef.current = null;
     };
-  }, [config, initialLocation, open, reverseGeocode]);
+  }, [
+    container,
+    initialAddress,
+    initialLatitude,
+    initialLongitude,
+    mapEnabled,
+    mapKey,
+    mapSecurityCode,
+    open,
+    reverseGeocode,
+  ]);
 
   const handleSearch = () => {
     const keyword = searchText.trim();
@@ -216,7 +245,7 @@ export function MapLocationPicker({
             </Button>
           </Space.Compact>
           <div className="map-picker-shell">
-            <div className="map-picker-canvas" ref={containerRef} />
+            <div className="map-picker-canvas" ref={handleContainerRef} />
             <EnvironmentFilled className="map-center-pin" />
             {loading ? (
               <div className="map-loading"><Spin /></div>
