@@ -34,6 +34,23 @@ test('web server serves the dashboard with security headers', async () => {
   }
 });
 
+test('web server serves the dashboard entry for every menu route', async () => {
+  const server = createDashboardServer();
+  const baseUrl = await listen(server);
+  try {
+    for (const route of ['/vehicles', '/logs', '/accounts', '/system', '/audit']) {
+      const response = await fetch(`${baseUrl}${route}`);
+      const html = await response.text();
+      assert.equal(response.status, 200, route);
+      assert.match(response.headers.get('content-type'), /^text\/html/);
+      assert.match(html, /车辆续签管理/);
+    }
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
 test('web server uses a login session without triggering browser basic auth', async () => {
   const auditEvents = [];
   const server = createDashboardServer({

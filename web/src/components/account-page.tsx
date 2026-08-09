@@ -27,7 +27,6 @@ interface AccountPageProps {
   accounts: Account[];
   loading: boolean;
   onAdd: (values: AccountCreateInput) => Promise<void>;
-  onAddVehicle: (account: Account) => void;
   onDelete: (account: Account) => Promise<void>;
   onRelogin: (account: Account, password: string) => Promise<void>;
   onToggle: (account: Account, checked: boolean) => Promise<void>;
@@ -38,7 +37,6 @@ export function AccountPage({
   accounts,
   loading,
   onAdd,
-  onAddVehicle,
   onDelete,
   onRelogin,
   onToggle,
@@ -93,9 +91,6 @@ export function AccountPage({
       key: 'actions',
       render: (_, account) => (
         <Space size={4} wrap>
-          <Button onClick={() => onAddVehicle(account)} size="small" type="link">
-            添加车辆
-          </Button>
           <Button
             icon={<EditOutlined />}
             onClick={() => setEditAccount(account)}
@@ -110,7 +105,7 @@ export function AccountPage({
             size="small"
             type="text"
           >
-            重新登录
+            修改京通密码
           </Button>
           <Popconfirm
             description="删除后，该账号及关联车辆将从本管理后台移除，但不会删除北京交管平台中的车辆和进京证记录。重新添加账号后，车辆会再次显示。"
@@ -127,7 +122,7 @@ export function AccountPage({
         </Space>
       ),
       title: '操作',
-      width: 310,
+      width: 330,
     },
   ];
 
@@ -136,7 +131,7 @@ export function AccountPage({
       <div className="page-heading">
         <div>
           <h1>账号管理</h1>
-          <p>管理北京通业务账号，登录成功后可直接添加车辆</p>
+          <p>管理北京通业务账号和自动续签配置</p>
         </div>
         <Button icon={<PlusOutlined />} onClick={() => setAddOpen(true)} type="primary">
           添加账号
@@ -256,14 +251,14 @@ export function AccountPage({
         destroyOnClose
         maskClosable={!loading}
         okButtonProps={{ loading }}
-        okText="重新登录"
+        okText="确认修改"
         onCancel={() => setLoginAccount(null)}
         onOk={() => loginForm.submit()}
         open={Boolean(loginAccount)}
-        title={`重新登录 ${loginAccount?.name || ''}`}
+        title={`修改京通密码 · ${loginAccount?.name || ''}`}
       >
         <p className="modal-description">
-          手机号：{loginAccount?.phone}。登录成功后才会替换当前凭据。
+          手机号：{loginAccount?.phone}。新密码验证成功后才会替换当前凭据。
         </p>
         <Form
           form={loginForm}

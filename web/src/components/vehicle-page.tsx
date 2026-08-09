@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
@@ -27,7 +26,6 @@ import type { Account, Dashboard, Vehicle } from '../types';
 interface VehiclePageProps {
   dashboard: Dashboard;
   loading: boolean;
-  onAdd: () => void;
   onRefresh: () => void;
   onSelect: (vehicle: Vehicle) => void;
   onToggleAutoRenew: (account: Account, checked: boolean) => Promise<void>;
@@ -37,7 +35,6 @@ interface VehiclePageProps {
 export function VehiclePage({
   dashboard,
   loading,
-  onAdd,
   onRefresh,
   onSelect,
   onToggleAutoRenew,
@@ -201,9 +198,6 @@ export function VehiclePage({
         <Space>
           <Button icon={<ReloadOutlined />} loading={loading} onClick={onRefresh}>
             刷新
-          </Button>
-          <Button icon={<PlusOutlined />} onClick={onAdd} type="primary">
-            添加车辆
           </Button>
         </Space>
       </div>

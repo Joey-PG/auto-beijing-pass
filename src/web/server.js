@@ -22,6 +22,14 @@ import {
 import { SessionStore } from './session-store.js';
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), 'public');
+const SPA_ROUTES = new Set([
+  '/',
+  '/accounts',
+  '/audit',
+  '/logs',
+  '/system',
+  '/vehicles',
+]);
 const MAX_BODY_BYTES = 64 * 1024;
 const SESSION_COOKIE = 'auto_bj_pass_session';
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -407,7 +415,8 @@ async function handleApi(request, response, url, { actor = null } = {}) {
 }
 
 async function serveStatic(response, pathname) {
-  const requested = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const routePath = pathname.replace(/\/+$/, '') || '/';
+  const requested = SPA_ROUTES.has(routePath) ? 'index.html' : pathname.slice(1);
   const normalized = normalize(requested);
   if (normalized.startsWith('..') || normalize(normalized) !== normalized) {
     return false;

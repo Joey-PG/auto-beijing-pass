@@ -2,7 +2,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloudServerOutlined,
-  ExclamationCircleOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
@@ -467,7 +466,7 @@ export function SystemPage({ dashboard }: SystemPageProps) {
             <span><CheckCircleOutlined className="success-icon" /> 北京通密码仅通过 HTTPS 提交</span>
             <span><CheckCircleOutlined className="success-icon" /> 业务 token 不返回浏览器</span>
             <span><CheckCircleOutlined className="success-icon" /> 磁盘日志保持敏感信息脱敏</span>
-            <span><ExclamationCircleOutlined className="warning-icon" /> 公网访问必须配置 HTTPS</span>
+            <span><CheckCircleOutlined className="success-icon" /> 公网访问必须配置 HTTPS</span>
           </Space>
         </Card>
       </div>

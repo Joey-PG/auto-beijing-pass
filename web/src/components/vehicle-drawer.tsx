@@ -1,7 +1,6 @@
 import {
   CheckCircleFilled,
   ClockCircleOutlined,
-  DeleteOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import {
@@ -16,7 +15,6 @@ import {
   Tabs,
   Tag,
   Timeline,
-  Tooltip,
 } from 'antd';
 
 import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
@@ -26,7 +24,6 @@ interface VehicleDrawerProps {
   account: Account | null;
   loading: boolean;
   onClose: () => void;
-  onDelete: (vehicle: Vehicle) => Promise<void>;
   onRenew: (vehicle: Vehicle) => Promise<void>;
   onUpdate: (
     accountId: string,
@@ -41,7 +38,6 @@ export function VehicleDrawer({
   account,
   loading,
   onClose,
-  onDelete,
   onRenew,
   onUpdate,
   open,
@@ -254,21 +250,6 @@ export function VehicleDrawer({
           { children: configuration, key: 'configuration', label: '配置' },
         ]}
       />
-      <div className="drawer-danger-zone">
-        <Tooltip title="解除车辆与当前账号的绑定">
-          <Popconfirm
-            description="删除后如需续签，必须重新添加车辆。"
-            okButtonProps={{ danger: true }}
-            okText="确认删除"
-            onConfirm={() => onDelete(vehicle)}
-            title={`确定删除 ${vehicle.licenseNumber}？`}
-          >
-            <Button danger icon={<DeleteOutlined />} loading={loading}>
-              删除车辆
-            </Button>
-          </Popconfirm>
-        </Tooltip>
-      </div>
     </Drawer>
   );
 }

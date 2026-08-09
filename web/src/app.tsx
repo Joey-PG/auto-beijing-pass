@@ -23,7 +23,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { dashboardApi } from './api';
-import { AddVehicleModal } from './components/add-vehicle-modal';
 import { AccountPage } from './components/account-page';
 import { LoginPage } from './components/login-page';
 import {
@@ -44,6 +43,22 @@ import type {
 } from './types';
 
 const { Content, Header, Sider } = Layout;
+
+const viewPaths: Record<AppView, string> = {
+  accounts: '/accounts',
+  audit: '/logs',
+  system: '/system',
+  vehicles: '/vehicles',
+};
+
+function getViewFromPathname(pathname: string): AppView {
+  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+  if (normalizedPathname === '/audit') return 'audit';
+  const matchedView = Object.entries(viewPaths).find(
+    ([, path]) => path === normalizedPathname,
+  );
+  return (matchedView?.[0] as AppView | undefined) || 'accounts';
+}
 
 export function App() {
   return (
@@ -90,6 +105,7 @@ function Application() {
     try {
       const session = await dashboardApi.login(nextUsername, password);
       setUsername(session.username);
+      window.history.replaceState(null, '', viewPaths.accounts);
       setAuthStatus('authenticated');
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : '登录失败，请稍后重试');
@@ -140,9 +156,9 @@ interface DashboardApplicationProps {
 
 function DashboardApplication({ onLogout, username }: DashboardApplicationProps) {
   const { message } = AntApp.useApp();
-  const [activeView, setActiveView] = useState<AppView>('vehicles');
-  const [addAccountId, setAddAccountId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+  const [activeView, setActiveView] = useState<AppView>(() =>
+    getViewFromPathname(window.location.pathname),
+  );
   const [audit, setAudit] = useState<AuditPageData>({
     items: [],
     page: 1,
@@ -156,7 +172,31 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
   const [loading, setLoading] = useState(true);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const initializedSelection = useRef(false);
+
+  const navigateTo = useCallback((view: AppView, { replace = false } = {}) => {
+    const path = viewPaths[view];
+    if (window.location.pathname !== path) {
+      window.history[replace ? 'replaceState' : 'pushState'](null, '', path);
+    }
+    setActiveView(view);
+  }, []);
+
+  useEffect(() => {
+    const initialView = getViewFromPathname(window.location.pathname);
+    if (window.location.pathname !== viewPaths[initialView]) {
+      navigateTo(initialView, { replace: true });
+    }
+
+    const handlePopState = () => {
+      setActiveView(getViewFromPathname(window.location.pathname));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigateTo]);
+
+  useEffect(() => {
+    if (activeView !== 'vehicles') setSelectedVehicle(null);
+  }, [activeView]);
 
   const findVehicle = useCallback((data: Dashboard, current: Vehicle) => {
     return (
@@ -178,10 +218,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         setDashboard(nextDashboard);
         setSelectedVehicle((current) => {
           if (current) return findVehicle(nextDashboard, current);
-          if (!initializedSelection.current && window.innerWidth >= 1200) {
-            initializedSelection.current = true;
-            return nextDashboard.accounts.flatMap((account) => account.vehicles)[0] || null;
-          }
           return null;
         });
       } catch (error) {
@@ -245,15 +281,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     [loadData, message],
   );
 
-  const handleAddVehicle = async (values: Record<string, string>) => {
-    await handleMutation(
-      () => dashboardApi.addVehicle(values),
-      `车辆 ${values.licenseNumber} 添加成功`,
-    );
-    setAddOpen(false);
-    setAddAccountId(null);
-  };
-
   const handleAddAccount = async (values: AccountCreateInput) => {
     await handleMutation(
       () => dashboardApi.addAccount(values),
@@ -265,13 +292,13 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     account: Account,
     values: AccountUpdateInput,
   ) => {
-    await handleUpdateAccount(account.id, values, '账号配置已更新');
+    await handleUpdateAccount(account.id, { ...values }, '账号配置已更新');
   };
 
   const handleReloginAccount = async (account: Account, password: string) => {
     await handleMutation(
       () => dashboardApi.reloginAccount(account.id, password),
-      `账号 ${account.name} 已重新登录`,
+      `账号 ${account.name} 的京通密码已更新`,
     );
   };
 
@@ -280,12 +307,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       () => dashboardApi.deleteAccount(account.id),
       `账号 ${account.name} 已从本机配置删除`,
     );
-  };
-
-  const handleAddVehicleForAccount = (account: Account) => {
-    setAddAccountId(account.id);
-    setActiveView('vehicles');
-    setAddOpen(true);
   };
 
   const handleUpdateAccount = async (
@@ -324,14 +345,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     }
   };
 
-  const handleDeleteVehicle = async (vehicle: Vehicle) => {
-    await handleMutation(
-      () => dashboardApi.deleteVehicle(vehicle.accountId, vehicle.vehicleId),
-      `车辆 ${vehicle.licenseNumber} 已删除`,
-    );
-    setSelectedVehicle(null);
-  };
-
   const menuItems = [
     { icon: <TeamOutlined />, key: 'accounts', label: '账号管理' },
     { icon: <CarOutlined />, key: 'vehicles', label: '车辆管理' },
@@ -363,7 +376,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           accounts={dashboard.accounts}
           loading={mutationLoading}
           onAdd={handleAddAccount}
-          onAddVehicle={handleAddVehicleForAccount}
           onDelete={handleDeleteAccount}
           onRelogin={handleReloginAccount}
           onToggle={handleToggleAutoRenew}
@@ -376,10 +388,6 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
       <VehiclePage
         dashboard={dashboard}
         loading={loading}
-        onAdd={() => {
-          setAddAccountId(null);
-          setAddOpen(true);
-        }}
         onRefresh={() => loadData()}
         onSelect={setSelectedVehicle}
         onToggleAutoRenew={handleToggleAutoRenew}
@@ -413,8 +421,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           items={menuItems}
           mode="inline"
           onClick={({ key }) => {
-            setActiveView(key as AppView);
-            if (key !== 'vehicles') setSelectedVehicle(null);
+            navigateTo(key as AppView);
           }}
           selectedKeys={[activeView]}
           theme="dark"
@@ -469,24 +476,10 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
         </Content>
       </Layout>
 
-      {dashboard ? (
-        <AddVehicleModal
-          accounts={dashboard.accounts}
-          initialAccountId={addAccountId}
-          loading={mutationLoading}
-          onCancel={() => {
-            setAddOpen(false);
-            setAddAccountId(null);
-          }}
-          onSubmit={handleAddVehicle}
-          open={addOpen}
-        />
-      ) : null}
       <VehicleDrawer
         account={selectedAccount}
         loading={mutationLoading}
         onClose={() => setSelectedVehicle(null)}
-        onDelete={handleDeleteVehicle}
         onRenew={handleRenewVehicle}
         onUpdate={handleUpdateAccount}
         open={Boolean(selectedVehicle) && activeView === 'vehicles'}

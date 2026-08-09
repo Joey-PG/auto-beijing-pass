@@ -290,8 +290,6 @@ button, input, select { font: inherit; }
 .history-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .history-item p { margin: 7px 0 2px; color: #475467; }
 .history-item > span { color: #98a2b3; font-size: 12px; }
-.drawer-danger-zone { display: flex; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #edf0f5; }
-
 .modal-description { margin: 0 0 18px; color: #667085; font-size: 13px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .vehicle-form .ant-form-item { margin-bottom: 18px; }
@@ -302,7 +300,6 @@ button, input, select { font: inherit; }
 .system-card-grid .ant-card:last-child { grid-column: 1 / -1; }
 .system-status-row { margin-bottom: 16px; }
 .success-icon { margin-right: 8px; color: #26a269; }
-.warning-icon { margin-right: 8px; color: #f79009; }
 .initial-loading { max-width: 980px; margin: 60px auto; padding: 32px; }
 
 @media (min-width: 1200px) {
