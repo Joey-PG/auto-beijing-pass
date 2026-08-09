@@ -36,16 +36,16 @@ const eventLabels: Record<string, string> = {
   account_updated: '账号更新',
   audit_queried: '查询审计日志',
   config_changed: '续签配置变更',
-  cron_account_completed: '自动检查完成',
-  cron_account_failed: '自动检查失败',
-  cron_account_selected: '选中自动检查账号',
+  cron_account_completed: '账号自动检查完成',
+  cron_account_failed: '账号自动检查失败',
+  cron_account_selected: '账号进入自动检查',
   cron_configuration_failed: '自动调度配置失败',
   cron_configured: '自动调度配置完成',
   cron_removal_failed: '移除自动调度失败',
   cron_removed: '自动调度已移除',
-  cron_tick_completed: '定时检查完成',
-  cron_tick_failed: '定时检查失败',
-  cron_tick_skipped: '跳过定时检查',
+  cron_tick_completed: '定时调度轮询完成',
+  cron_tick_failed: '定时调度轮询失败',
+  cron_tick_skipped: '跳过定时调度轮询',
   notification_channel_added: '添加通知渠道',
   notification_channel_removed: '移除通知渠道',
   notification_failed: '通知发送失败',
@@ -55,8 +55,8 @@ const eventLabels: Record<string, string> = {
   renewal_check_started: '开始检查续签',
   renewal_dry_run: '续签预演',
   renewal_failed: '续签失败',
-  renewal_skipped: '检查完成，无需续签',
-  renewal_submitted: '已提交续签申请',
+  renewal_skipped: '续签检查完成（无需提交）',
+  renewal_submitted: '续签申请已提交',
   trip_profile_changed: '出行配置变更',
   vehicle_added: '添加车辆',
   vehicle_plate_swapped: '车辆换牌',
@@ -246,11 +246,13 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
       <Card styles={{ body: { padding: 0 } }}>
         <div className="table-toolbar">
           <Select
+            className="audit-account-filter"
             onChange={(value) => resetPage(() => setAccount(value))}
             options={[
               { label: '全部账号', value: '' },
               ...accounts.map((item) => ({ label: item.name, value: item.name })),
             ]}
+            popupMatchSelectWidth={220}
             value={account}
           />
           <Select
@@ -266,6 +268,7 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
             value={status}
           />
           <Select
+            className="audit-event-filter"
             onChange={(value) => resetPage(() => setEvent(value))}
             options={[
               { label: '全部事件', value: '' },
@@ -274,6 +277,8 @@ export function AuditPage({ accounts, data, loading, onQuery }: AuditPageProps) 
                 value,
               })),
             ]}
+            optionFilterProp="label"
+            popupMatchSelectWidth={280}
             showSearch
             value={event}
           />
