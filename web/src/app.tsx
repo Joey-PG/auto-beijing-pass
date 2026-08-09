@@ -39,6 +39,7 @@ import type {
   AuditPageData,
   AuditQuery,
   Dashboard,
+  MembershipUpdateInput,
   Vehicle,
 } from './types';
 
@@ -328,6 +329,16 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
     );
   };
 
+  const handleExtendMembership = async (
+    account: Account,
+    values: MembershipUpdateInput,
+  ) => {
+    await handleMutation(
+      () => dashboardApi.extendMembership(account.id, values),
+      `账号 ${account.name} 的服务有效期已更新`,
+    );
+  };
+
   const handleRenewVehicle = async (vehicle: Vehicle) => {
     setMutationLoading(true);
     try {
@@ -377,6 +388,7 @@ function DashboardApplication({ onLogout, username }: DashboardApplicationProps)
           loading={mutationLoading}
           onAdd={handleAddAccount}
           onDelete={handleDeleteAccount}
+          onExtendMembership={handleExtendMembership}
           onRelogin={handleReloginAccount}
           onToggle={handleToggleAutoRenew}
           onUpdate={handleEditAccount}

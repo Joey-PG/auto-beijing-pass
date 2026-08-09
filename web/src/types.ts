@@ -55,11 +55,19 @@ export interface Account {
   error: string | null;
   id: string;
   name: string;
+  membershipExpiresOn: string | null;
+  membershipPermanent: boolean;
+  membershipRemainingDays: number | null;
+  membershipStartedOn: string | null;
+  membershipStatus: MembershipStatus;
   phone: string;
   preferredVehicle: string;
   tripProfile: TripProfile;
   vehicles: Vehicle[];
 }
+
+export type MembershipStatus = 'active' | 'expired' | 'expiring_soon' | 'permanent';
+export type MembershipTerm = '1m' | '3m' | '1y' | 'custom' | 'permanent';
 
 export interface AccountCreateInput {
   autoRenew: boolean;
@@ -67,6 +75,13 @@ export interface AccountCreateInput {
   name: string;
   password: string;
   phone: string;
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
+}
+
+export interface MembershipUpdateInput {
+  membershipExpiresOn?: string;
+  membershipTerm: MembershipTerm;
 }
 
 export interface AccountUpdateInput {

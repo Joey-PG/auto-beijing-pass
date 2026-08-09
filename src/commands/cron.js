@@ -24,6 +24,11 @@ import {
   getConfigDir,
   getUsers,
 } from '../lib/config-manager.js';
+import {
+  getMembershipInfo,
+  MEMBERSHIP_REMINDER_DAYS,
+} from '../lib/membership.js';
+import { notify } from '../lib/notifier.js';
 
 const COMMAND_NAME =
   process.env.AUTO_BJ_PASS_COMMAND_NAME ||
@@ -531,16 +536,72 @@ export function registerCronCommand(program) {
         const selectedAccounts = [];
         let eligibleCount = 0;
         let disabledCount = 0;
+        let expiredCount = 0;
 
         for (const [index, user] of users.entries()) {
+          const accountKey =
+            user.bjt_phone || user.name || String(index + 1);
+          const previous = state.accounts[accountKey] || {};
+          const membership = getMembershipInfo(user, now);
+          const reminderDate = formatLocalDate(now);
+          if (
+            MEMBERSHIP_REMINDER_DAYS.has(membership.remainingDays) &&
+            (previous.membershipReminderDate !== reminderDate ||
+              previous.membershipReminderDays !== membership.remainingDays)
+          ) {
+            const label = getAccountLabel(user, index);
+            const reminderMessage = membership.remainingDays === 0
+              ? `服务有效期今天到期（${membership.expiresOn}），明天起将停止自动续签。`
+              : `服务有效期还剩 ${membership.remainingDays} 天，将于 ${membership.expiresOn} 到期。`;
+            if (user.notify_urls?.length > 0) {
+              await notify(
+                user.notify_urls,
+                `[${label}] 服务有效期提醒`,
+                reminderMessage,
+              );
+            }
+            writeAuditEvent('membership_expiry_reminder', {
+              account: label,
+              result: 'success',
+              membership_expires_on: membership.expiresOn,
+              remaining_days: membership.remainingDays,
+              notification_configured: user.notify_urls?.length > 0,
+            });
+            previous.membershipReminderDate = reminderDate;
+            previous.membershipReminderDays = membership.remainingDays;
+            state.accounts[accountKey] = previous;
+          }
+          if (!membership.active) {
+            expiredCount += 1;
+            state.accounts[accountKey] = {
+              ...previous,
+              membershipExpiredAuditDate: reminderDate,
+              lastError: null,
+              nextRetryAt: null,
+              retryPending: false,
+              retryCount: 0,
+            };
+            if (previous.membershipExpiredAuditDate !== reminderDate) {
+              writeAuditEvent('renewal_skipped', {
+                account: getAccountLabel(user, index),
+                result: 'skipped',
+                reason: 'membership_expired',
+                membership_expires_on: membership.expiresOn,
+                source: 'cron_tick',
+              });
+            }
+            continue;
+          }
           if (user.auto_renew === false) {
             disabledCount += 1;
             continue;
           }
           eligibleCount += 1;
-          const accountKey =
-            user.bjt_phone || user.name || String(index + 1);
-          const previous = state.accounts[accountKey];
+          const plannedMinute =
+            previous.plannedDate === formatLocalDate(now) &&
+            previous.randomWindow === options.randomWindow
+              ? previous.plannedMinute
+              : null;
           let decision = getRandomTriggerDecision(
             options.randomWindow,
             now,
@@ -697,6 +758,7 @@ export function registerCronCommand(program) {
             result: failedCount > 0 ? 'partial_failure' : 'success',
             eligible_count: eligibleCount,
             disabled_count: disabledCount,
+            expired_count: expiredCount,
             selected_count: selectedAccounts.length,
             succeeded_count: succeededCount,
             failed_count: failedCount,

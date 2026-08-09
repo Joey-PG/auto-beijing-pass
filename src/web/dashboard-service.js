@@ -24,6 +24,11 @@ import {
   vehicleToApiDict,
 } from '../lib/models.js';
 import { resolveTripProfile } from '../lib/trip-profile.js';
+import {
+  createMembership,
+  extendMembership,
+  getMembershipInfo,
+} from '../lib/membership.js';
 
 const ENTRY_TYPES = new Set(['六环内', '六环外']);
 const PLATE_TYPES = new Set(['01', '02', '06', '13', '51', '52']);
@@ -172,6 +177,7 @@ function mergeVehicle(fullVehicle, stateVehicle, user, account) {
 
 async function loadAccountDashboard(user, index) {
   const api = createApi(user);
+  const membership = getMembershipInfo(user);
   const account = {
     id: String(index + 1),
     name: getDashboardAccountName(user, index),
@@ -180,6 +186,11 @@ async function loadAccountDashboard(user, index) {
     autoRenew: user.auto_renew !== false,
     preferredVehicle: user.preferred_vehicle || '',
     tripProfile: resolveTripProfile(user.trip_profile),
+    membershipStartedOn: membership.startedOn,
+    membershipExpiresOn: membership.expiresOn,
+    membershipPermanent: membership.permanent,
+    membershipRemainingDays: membership.remainingDays,
+    membershipStatus: membership.status,
   };
 
   try {
@@ -281,6 +292,13 @@ export async function addDashboardAccount(
       throw new WebServiceError('账号名称已存在，请使用其他名称', 409);
     }
 
+    let membership;
+    try {
+      membership = createMembership(input);
+    } catch (error) {
+      throw new WebServiceError(getErrorMessage(error), 400);
+    }
+
     const token = await loginFn(phone, password);
     const user = {
       name,
@@ -291,6 +309,7 @@ export async function addDashboardAccount(
       notify_urls: [],
       preferred_vehicle: '',
       auto_renew: autoRenew,
+      ...membership,
     };
     const index = upsertUser(user);
     writeAuditEvent('account_initialized', {
@@ -300,6 +319,8 @@ export async function addDashboardAccount(
       result: 'success',
       entry_type: entryType,
       auto_renew: autoRenew,
+      membership_expires_on: membership.membership_expires_on,
+      membership_permanent: membership.membership_permanent,
       source: 'web',
     });
     return { id: String(index + 1), name, phone };
@@ -538,6 +559,49 @@ export function updateDashboardAccount(
   }
 }
 
+export function extendDashboardMembership(
+  accountId,
+  input,
+  { actor = null } = {},
+) {
+  let user = null;
+  try {
+    ({ user } = getAccountById(accountId));
+    const before = getMembershipInfo(user);
+    let updates;
+    try {
+      updates = extendMembership(user, input);
+    } catch (error) {
+      throw new WebServiceError(getErrorMessage(error), 400);
+    }
+    updateUser(updates, user.bjt_phone);
+    const after = getMembershipInfo({ ...user, ...updates });
+    writeAuditEvent('membership_extended', {
+      account: getAccountLabel(user),
+      actor,
+      result: 'success',
+      previous_expires_on: before.expiresOn,
+      membership_expires_on: after.expiresOn,
+      membership_permanent: after.permanent,
+      membership_term: input?.membershipTerm || '1y',
+      source: 'web',
+    });
+    return {
+      expiresOn: after.expiresOn,
+      permanent: after.permanent,
+      status: after.status,
+      updated: true,
+    };
+  } catch (error) {
+    writeWebFailure('membership_extended', error, {
+      account_id: accountId,
+      actor,
+      user,
+    });
+    throw error;
+  }
+}
+
 export async function runDashboardRenewal(
   accountId,
   input,
@@ -552,6 +616,24 @@ export async function runDashboardRenewal(
       throw new WebServiceError('请选择要检查的车辆', 400);
     }
     const dryRun = input.dryRun === true;
+    const membership = getMembershipInfo(user);
+    if (!dryRun && !membership.active) {
+      writeAuditEvent('renewal_skipped', {
+        account: getAccountLabel(user),
+        actor,
+        result: 'skipped',
+        reason: 'membership_expired',
+        membership_expires_on: membership.expiresOn,
+        plate,
+        source: 'web',
+      });
+      const expiredError = new WebServiceError(
+        '服务有效期已到期，请续费后再执行续签',
+        403,
+      );
+      expiredError.auditHandled = true;
+      throw expiredError;
+    }
     if (input.entryType && !ENTRY_TYPES.has(input.entryType)) {
       throw new WebServiceError('进京证类型只能是六环内或六环外', 400);
     }
@@ -586,12 +668,14 @@ export async function runDashboardRenewal(
       applyDate: result.applyDate || null,
     };
   } catch (error) {
-    writeWebFailure('renewal_failed', error, {
-      account_id: accountId,
-      actor,
-      plate: plate || null,
-      user,
-    });
+    if (!error?.auditHandled) {
+      writeWebFailure('renewal_failed', error, {
+        account_id: accountId,
+        actor,
+        plate: plate || null,
+        user,
+      });
+    }
     throw error;
   }
 }

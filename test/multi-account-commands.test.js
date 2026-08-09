@@ -133,6 +133,43 @@ test('run processes every initialized account by default', async () => {
   }
 });
 
+test('run blocks actual renewal after service expiry without calling JTGL', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-expired-run-'));
+  process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const output = [];
+
+  try {
+    saveConfig({
+      users: [{
+        name: '到期账号',
+        auth: 'token-expired',
+        bjt_phone: '13800000009',
+        auto_renew: true,
+        membership_started_on: '2025-01-01',
+        membership_expires_on: '2026-01-01',
+        membership_permanent: false,
+        notify_urls: [],
+      }],
+    });
+    globalThis.fetch = async () => {
+      throw new Error('expired account must not access JTGL');
+    };
+    console.log = (message) => output.push(String(message));
+
+    await runCommand({ noNotify: true });
+
+    assert.match(output.join('\n'), /服务已于 2026-01-01 到期，跳过/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+    delete process.env.AUTO_BJ_PASS_CONFIG_DIR;
+    process.exitCode = undefined;
+    rmSync(configDir, { recursive: true, force: true });
+  }
+});
+
 test('dry-run previews a configured trip without submitting', async () => {
   const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-dry-run-'));
   process.env.AUTO_BJ_PASS_CONFIG_DIR = configDir;

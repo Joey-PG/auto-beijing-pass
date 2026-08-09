@@ -141,10 +141,13 @@ export function VehiclePage({
         const account = accountMap.get(vehicle.accountId);
         if (!account) return '—';
         return (
-          <Tooltip title="此开关对所属账号生效">
+          <Tooltip title={account.membershipStatus === 'expired'
+            ? `服务已于 ${account.membershipExpiresOn || '未知日期'} 到期`
+            : '此开关对所属账号生效'}>
             <span onClick={(event) => event.stopPropagation()}>
               <Switch
                 checked={account.autoRenew}
+                disabled={account.membershipStatus === 'expired'}
                 onChange={(checked) => onToggleAutoRenew(account, checked)}
                 size="small"
               />

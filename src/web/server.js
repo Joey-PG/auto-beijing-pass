@@ -9,6 +9,7 @@ import { getConfigDir } from '../lib/config-manager.js';
 
 import {
   addDashboardAccount,
+  extendDashboardMembership,
   addDashboardVehicle,
   getDashboard,
   getDashboardAudit,
@@ -377,6 +378,19 @@ async function handleApi(request, response, url, { actor = null } = {}) {
   const accountLoginMatch = url.pathname.match(
     /^\/api\/accounts\/([^/]+)\/login$/,
   );
+  const accountMembershipMatch = url.pathname.match(
+    /^\/api\/accounts\/([^/]+)\/membership$/,
+  );
+  if (request.method === 'POST' && accountMembershipMatch) {
+    const body = await readJsonBody(request);
+    const data = extendDashboardMembership(
+      decodeURIComponent(accountMembershipMatch[1]),
+      body,
+      { actor },
+    );
+    sendJson(response, 200, { success: true, data });
+    return true;
+  }
   if (request.method === 'POST' && accountLoginMatch) {
     const body = await readJsonBody(request);
     const data = await reloginDashboardAccount(

@@ -359,3 +359,14 @@ button, input, select { font: inherit; }
     transition-duration: 0.01ms !important;
   }
 }
+.membership-cell {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.membership-cell small {
+  color: #7d8999;
+  white-space: nowrap;
+}
