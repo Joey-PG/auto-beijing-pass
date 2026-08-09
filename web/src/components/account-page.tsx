@@ -5,12 +5,14 @@ import {
   EditOutlined,
   EnvironmentOutlined,
   KeyOutlined,
+  MoreOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
   Button,
   Card,
+  Dropdown,
   Form,
   Input,
   Modal,
@@ -170,16 +172,36 @@ export function AccountPage({
     setAddOpen(false);
   };
 
+  const openMembershipModal = (account: Account) => {
+    membershipForm.setFieldsValue({ membershipTerm: '1y' });
+    setMembershipAccount(account);
+  };
+
   const columns: ColumnsType<Account> = [
-    { dataIndex: 'name', key: 'name', title: '账号名称' },
-    { dataIndex: 'phone', key: 'phone', title: '手机号' },
+    {
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string) => (
+        <span className="account-name-cell" title={name}>{name}</span>
+      ),
+      title: '账号名称',
+      width: 140,
+    },
+    {
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (phone: string) => <span className="account-phone-cell">{phone}</span>,
+      title: '手机号',
+      width: 128,
+    },
     {
       key: 'login',
       render: (_, account) =>
         account.error ? <Tag color="error">状态异常</Tag> : <Tag color="success">已登录</Tag>,
       title: '登录状态',
+      width: 96,
     },
-    { dataIndex: 'entryType', key: 'entryType', title: '进京证类型' },
+    { dataIndex: 'entryType', key: 'entryType', title: '进京证类型', width: 110 },
     {
       key: 'tripProfile',
       render: (_, account) => account.tripProfileMode === 'default'
@@ -188,11 +210,13 @@ export function AccountPage({
           ? <Tag color="success">自定义</Tag>
           : <Tag color="warning">待配置</Tag>,
       title: '出行配置',
+      width: 110,
     },
     {
       key: 'vehicles',
       render: (_, account) => `${account.vehicles.length} 辆`,
       title: '关联车辆',
+      width: 90,
     },
     {
       filters: [
@@ -213,11 +237,22 @@ export function AccountPage({
                 ? '不设到期日'
                 : `至 ${account.membershipExpiresOn || '—'}`}
             </small>
+            {['expiring_soon', 'expired'].includes(account.membershipStatus) ? (
+              <Button
+                className="membership-renew-button"
+                icon={<CalendarOutlined />}
+                onClick={() => openMembershipModal(account)}
+                size="small"
+                type="link"
+              >
+                续费
+              </Button>
+            ) : null}
           </div>
         );
       },
       title: '服务有效期',
-      width: 170,
+      width: 180,
     },
     {
       key: 'autoRenew',
@@ -230,61 +265,73 @@ export function AccountPage({
         />
       ),
       title: '自动续签',
+      width: 100,
     },
     {
       fixed: 'right',
       key: 'actions',
-      render: (_, account) => (
-        <Space size={4} wrap>
-          <Button
-            icon={<CalendarOutlined />}
-            onClick={() => {
-              membershipForm.setFieldsValue({ membershipTerm: '1y' });
-              setMembershipAccount(account);
-            }}
-            size="small"
-            type="text"
-          >
-            续费
-          </Button>
-          <Button
-            icon={<EnvironmentOutlined />}
-            onClick={() => setTripAccount(account)}
-            size="small"
-            type="text"
-          >
-            出行配置
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => setEditAccount(account)}
-            size="small"
-            type="text"
-          >
-            编辑
-          </Button>
-          <Button
-            icon={<KeyOutlined />}
-            onClick={() => setLoginAccount(account)}
-            size="small"
-            type="text"
-          >
-            修改京通密码
-          </Button>
-          <Button
-            danger
-            disabled={loading}
-            icon={<DeleteOutlined />}
-            onClick={() => setDeleteAccount(account)}
-            size="small"
-            type="text"
-          >
-            删除
-          </Button>
-        </Space>
-      ),
+      render: (_, account) => {
+        const renewalNeedsAttention = ['expiring_soon', 'expired']
+          .includes(account.membershipStatus);
+        const items = [
+          ...(renewalNeedsAttention ? [] : [{
+            icon: <CalendarOutlined />,
+            key: 'renew',
+            label: '续费',
+          }]),
+          {
+            icon: <KeyOutlined />,
+            key: 'password',
+            label: '修改京通密码',
+          },
+          { type: 'divider' as const },
+          {
+            danger: true,
+            disabled: loading,
+            icon: <DeleteOutlined />,
+            key: 'delete',
+            label: '删除账号',
+          },
+        ];
+
+        return (
+          <Space className="account-actions" size={4}>
+            <Button
+              icon={<EnvironmentOutlined />}
+              onClick={() => setTripAccount(account)}
+              size="small"
+              type="text"
+            >
+              出行配置
+            </Button>
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => setEditAccount(account)}
+              size="small"
+              type="text"
+            >
+              编辑
+            </Button>
+            <Dropdown
+              menu={{
+                items,
+                onClick: ({ key }) => {
+                  if (key === 'renew') openMembershipModal(account);
+                  if (key === 'password') setLoginAccount(account);
+                  if (key === 'delete') setDeleteAccount(account);
+                },
+              }}
+              trigger={['click']}
+            >
+              <Button icon={<MoreOutlined />} size="small" type="text">
+                更多
+              </Button>
+            </Dropdown>
+          </Space>
+        );
+      },
       title: '操作',
-      width: 500,
+      width: 280,
     },
   ];
 
@@ -314,7 +361,7 @@ export function AccountPage({
           locale={{ emptyText: '尚未添加北京通账号' }}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 1280 }}
+          scroll={{ x: 1234 }}
         />
       </Card>
 

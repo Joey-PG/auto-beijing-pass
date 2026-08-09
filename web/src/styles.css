@@ -250,6 +250,10 @@ button, input, select { font: inherit; }
 .ant-table-wrapper .ant-table-tbody > tr > td { height: 64px; color: #344054; cursor: pointer; }
 .ant-table-wrapper .ant-table-tbody > tr.selected-vehicle-row > td { background: #edf4ff !important; }
 .ant-table-wrapper .ant-table-tbody > tr.selected-vehicle-row > td:first-child { box-shadow: inset 3px 0 #2f6bff; }
+.account-name-cell,
+.account-phone-cell { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-phone-cell { font-variant-numeric: tabular-nums; }
+.account-actions { white-space: nowrap; }
 .plate-number { color: #182230; font-size: 14px; }
 .account-cell strong,
 .account-cell span,
@@ -467,4 +471,10 @@ button, input, select { font: inherit; }
 .membership-cell small {
   color: #7d8999;
   white-space: nowrap;
+}
+
+.membership-renew-button {
+  height: auto;
+  padding: 0;
+  font-size: 12px;
 }
