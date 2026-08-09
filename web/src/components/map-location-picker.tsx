@@ -38,7 +38,7 @@ interface MapLocationPickerProps {
   title: string;
 }
 
-const BEIJING_CENTER: [number, number] = [116.397428, 39.90923];
+const PINGGU_CENTURY_SQUARE: [number, number] = [117.107614, 40.143807];
 
 function toPosition(location?: Partial<MapLocation>): [number, number] {
   const longitude = Number(location?.longitude);
@@ -53,7 +53,7 @@ function toPosition(location?: Partial<MapLocation>): [number, number] {
   ) {
     return [longitude, latitude];
   }
-  return BEIJING_CENTER;
+  return PINGGU_CENTURY_SQUARE;
 }
 
 function isGeocodeResult(result: AMapGeocode | string | object): result is object {
@@ -115,7 +115,7 @@ export function MapLocationPicker({
     let active = true;
     setCandidate(null);
     setError('');
-    setSearchText(initialLocation?.address || '');
+    setSearchText(initialLocation?.address || '平谷世纪广场');
     setLoading(true);
 
     void loadAMap(config)
