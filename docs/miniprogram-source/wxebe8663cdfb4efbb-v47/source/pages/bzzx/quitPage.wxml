@@ -1,0 +1,5 @@
+<view class="qPage">
+    <image alt bindtouchmove="__e" class="warningImg _img" data-event-opts="{{[ [ 'touchmove',[ [ 'showInfo',['$event'] ] ] ] ]}}" src="/static/common/warning.png"></image>
+    <view class="info">小程序与该公众号已解绑，暂不支持从公众号跳转</view>
+    <navigator class="qBtn" openType="exit" target="miniProgram">退出程序</navigator>
+</view>

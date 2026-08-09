@@ -1,0 +1,14 @@
+<view>
+    <camera bindinitdone="__e" data-event-opts="{{[ [ 'initdone',[ [ 'init',['$event'] ] ] ] ]}}" devicePosition="{{devPosition}}" flash="off" style="{{'width:100%;'+'height:'+viewH-btmH+'px'+';'}}" wx:if="{{authCamera}}">
+        <cover-image class="cover-border" src="/pagesClgl/static/tjcl_orc_border1.png" style="{{'top:'+(viewH-btmH-400)/2+'px'+';'}}"></cover-image>
+    </camera>
+    <view class="defaultBgm" style="{{'height:'+viewH-btmH+'px'+';'}}" wx:else></view>
+    <view class="view_cont_btm">
+        <view class="tip-text">请将行驶证主页置于此区域，并对齐扫描框边缘</view>
+        <view class="photobtn">
+            <view class="img"></view>
+            <image bindtap="__e" class="img" data-event-opts="{{[ [ 'tap',[ ['takePhoto'] ] ] ]}}" mode="aspectFit" src="/pagesClgl/static/tjcl_camera.png"></image>
+            <image bindtap="__e" class="img" data-event-opts="{{[ [ 'tap',[ ['chooseImg'] ] ] ]}}" mode="aspectFit" src="/pagesClgl/static/sqbz_photo.png" style="margin-right:30rpx;"></image>
+        </view>
+    </view>
+</view>

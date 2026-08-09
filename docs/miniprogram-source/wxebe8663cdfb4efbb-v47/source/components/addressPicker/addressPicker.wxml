@@ -1,0 +1,3 @@
+<picker bindcancel="__e" bindchange="__e" bindcolumnchange="__e" class="data-v-466a618a" data-event-opts="{{[ [ 'cancel',[ [ 'onCancel',['$event'] ] ] ],[ 'change',[ [ 'onChange',['$event'] ] ] ],[ 'columnchange',[ [ 'onColumnchange',['$event'] ] ] ] ]}}" mode="multiSelector" range="{{options}}" rangeKey="name" value="{{pickerValue}}">
+    <slot></slot>
+</picker>

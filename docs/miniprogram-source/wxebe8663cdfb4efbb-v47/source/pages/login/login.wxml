@@ -1,0 +1,5 @@
+<view>
+    <view class="page-section page-section-gap">
+        <web-view binderror="__e" bindload="__e" bindmessage="__e" data-event-opts="{{[ [ 'load',[ [ 'bindload',['$event'] ] ] ],[ 'error',[ [ 'binderror',['$event'] ] ] ],[ 'message',[ [ 'handlePostMessage',['$event'] ] ] ] ]}}" src="https://bjt.beijing.gov.cn/renzheng/open/m/login/goUserLogin?client_id=100100001423&redirect_uri=https://ssp.jtgl.beijing.gov.cn/sso/callback/userauth&response_type=code&scope=user_info&state=300002"></web-view>
+    </view>
+</view>

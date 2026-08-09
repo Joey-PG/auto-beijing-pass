@@ -1,0 +1,81 @@
+<view class="container">
+    <view class="progress-view">
+        <image class="progress-image" mode="aspectFit" src="/pagesSqbz/static/sqbz-progress-2.png"></image>
+    </view>
+    <scroll-view class="scroll" scrollY="true">
+        <view>
+            <view class="jsy-section">
+                <view class="jsy-line"></view>
+                <text class="jsy-title">驾驶员信息</text>
+                <view bindtap="__e" class="scan-button" data-event-opts="{{[ [ 'tap',[ ['scanCardAction'] ] ] ]}}" wx:if="{{isShow==1}}">
+                    <image class="scan-image" mode="aspectFit" src="/pagesSqbz/static/sqbz-scan.png"></image>
+                    <text class="scan-text">智能识读</text>
+                </view>
+            </view>
+            <view class="input-content">
+                <view class="input-seperator"></view>
+                <view class="input-item">
+                    <text class="input-item-title">
+                        <text class="input-important">*</text>驾驶证号</text>
+                    <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','jszh','$event',[] ],['jsy'] ],[ 'e0',['$event'] ] ] ] ]}}" disabled="{{true}}" maxlength="50" placeholder="请输入驾驶证号" value="{{jsy.jszh}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">
+                        <text class="input-important">*</text>姓名</text>
+                    <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','xm','$event',[] ],['jsy'] ] ] ] ]}}" disabled="{{true}}" placeholder="请输入姓名" type="text" value="{{jsy.xm}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view style="padding:20rpx 40rpx;">
+                    <view style="color:red;font-size:32rpx;">温馨提示：</view>
+                    <view class="popup-text" style="text-indent:0;">每个注册用户只能以本人身份申请办理进京证，同一时间只能为一辆机动车申请办理进京证。</view>
+                </view>
+                <view class="input-seperator"></view>
+            </view>
+        </view>
+        <view>
+            <view class="txr-section">
+                <view class="txr-line"></view>
+                <text class="txr-title">同行人</text>
+                <view bindtap="__e" class="txr-button" data-event-opts="{{[ [ 'tap',[ ['confirmTxrAction'] ] ] ]}}" wx:if="{{txrkg==1}}">
+                    <image class="txr-image" mode="aspectFit" src="{{wtxr?'/static/bzzx/jjzsm_selected.png':'/static/bzzx/jjzsm_unselected.png'}}"></image>
+                    <text class="txr-text">无同行人</text>
+                </view>
+                <view class="space"></view>
+                <image bindtap="__e" class="txr-right-button" data-event-opts="{{[ [ 'tap',[ ['addTxrAction'] ] ] ]}}" mode="aspectFit" src="/pagesSqbz/static/sqbz-add.png"></image>
+                <image bindtap="__e" class="txr-right-button" data-event-opts="{{[ [ 'tap',[ ['deleteTxrAction'] ] ] ]}}" mode="aspectFit" src="/pagesSqbz/static/sqbz-delete.png"></image>
+            </view>
+            <view class="input-content input-content-txr" wx:for="{{txrList}}" wx:key="index">
+                <view class="input-seperator"></view>
+                <view class="input-item">
+                    <text class="input-item-title">同行人姓名</text>
+                    <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','txrxm','$event',[] ],[ [ ['txrList','',index] ] ] ] ] ] ]}}" placeholder="请输入同行人姓名" type="text" value="{{item.txrxm}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">身份证号</text>
+                    <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','txrsfzh','$event',[] ],[ [ ['txrList','',index] ] ] ] ] ] ]}}" placeholder="请输入同行人身份证号" type="idcard" value="{{item.txrsfzh}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">手机号</text>
+                    <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','txrsjh','$event',[] ],[ [ ['txrList','',index] ] ] ] ] ] ]}}" placeholder="请输入同行人手机号" type="number" value="{{item.txrsjh}}"></input>
+                </view>
+                <view class="input-seperator"></view>
+            </view>
+        </view>
+    </scroll-view>
+    <view bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ ['nextAction'] ] ] ]}}">
+        <text class="next-text">下一步</text>
+    </view>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="popup" maskClick="{{false}}" type="center" vueId="7260f82c-1" vueSlots="{{['default']}}">
+        <view class="popup-container">
+            <view class="popup-title">温馨提示</view>
+            <view class="popup-text">每个注册用户只能以本人身份作为驾驶员申请办理进京证，同一时间只能为一辆机动车申请办理进京证。</view>
+            <view class="popup-text">
+                <text style="color:red;">请仔细核对提交的驾驶员，如提交的驾驶员非您本人，</text>请您先登录“京通”小程序（微信、支付宝或百度），变更绑定的人员信息后，重新登录“北京交警”APP、微信“进京证办理”小程序或支付宝“进京证办理”小程序申请进京证。(北京交警APP、微信“进京证办理”小程序、支付宝“进京证办理”小程序的实名登录验证，是依托“京通“平台进行)。</view>
+            <view bindtap="__e" class="{{[true?'next-button popup-button':'',timerRead?'disabledBtn':'']}}" data-event-opts="{{[ [ 'tap',[ [ 'closePopup',['$event'] ] ] ] ]}}" type="primary">已知晓<text wx:if="{{timerRead}}">{{'('+timerRead+')'}}</text>
+            </view>
+        </view>
+    </uni-popup>
+</view>

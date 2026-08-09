@@ -1,0 +1,24 @@
+<view class="container">
+    <view class="view">
+        <view class="seperator"></view>
+        <image class="scan-image" mode="aspectFit" src="{{item.src}}"></image>
+        <view class="seperator"></view>
+    </view>
+    <view class="view">
+        <view class="seperator"></view>
+        <view class="item-view">
+            <view class="left-text">驾驶证号</view>
+            <input bindinput="__e" class="right-text" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','jszh','$event',[] ],['item'] ] ] ] ]}}" placeholder="请输入驾驶证号" type="idcard" value="{{item.jszh}}"></input>
+        </view>
+        <view class="seperator"></view>
+        <view class="item-view">
+            <view class="left-text">姓名</view>
+            <input bindinput="__e" class="right-text" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','xm','$event',[] ],['item'] ] ] ] ]}}" placeholder="请输入姓名" type="text" value="{{item.xm}}"></input>
+        </view>
+        <view class="seperator"></view>
+    </view>
+    <view class="view-bottom">
+        <view bindtap="__e" class="left-button" data-event-opts="{{[ [ 'tap',[ [ 'reScanAction',['$event'] ] ] ] ]}}">再次识别</view>
+        <view bindtap="__e" class="right-button" data-event-opts="{{[ [ 'tap',[ [ 'confirmInfoAction',['$event'] ] ] ] ]}}">确认无误</view>
+    </view>
+</view>

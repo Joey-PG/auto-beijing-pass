@@ -1,0 +1,114 @@
+<view class="container">
+    <view class="section">
+        <view class="line"></view>
+        <text class="title">车辆基本信息</text>
+    </view>
+    <view class="content" wx:if="{{carDetail.hphm}}">
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">号牌号码：</text>
+            <text bindtap="__e" class="{{['detail',$root.g0==0?'font':'']}}" data-event-opts="{{[ [ 'tap',[ ['cphmAction'] ] ] ]}}">{{$root.g1?carDetail.hphm:'请选择号牌种类'}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">号牌种类：</text>
+            <text bindtap="__e" class="{{['detail',$root.g2==0?'font':'']}}" data-event-opts="{{[ [ 'tap',[ ['hpzlAction'] ] ] ]}}">{{$root.g3?carDetail.hpzlmc:'请选择号牌种类'}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">发动机号：</text>
+            <input bindinput="__e" class="{{['input-item-detail',$root.g4==0?'font':'']}}" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','fdjh','$event',[] ],['carDetail'] ],[ 'vinInput',['$event'] ] ] ] ]}}" maxlength="6" placeholder="请输入后6位字母数字，若无则填“无”" placeholderClass="grey-text" value="{{carDetail.fdjh}}"></input>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">品牌型号：</text>
+            <input bindinput="__e" class="{{['input-item-detail',$root.g5==0?'font':'']}}" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '$0','ppxh','$event',[] ],['carDetail'] ],[ 'vinInput1',['$event'] ] ] ] ]}}" maxlength="32" placeholder="请输入字母数字，忽略大小写和其它字符" placeholderClass="grey-text" value="{{carDetail.ppxh}}"></input>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">注册日期：</text>
+            <picker bindchange="__e" data-event-opts="{{[ [ 'change',[ [ 'bindDateChange',['$event'] ] ] ] ]}}" end="{{endDate}}" mode="date" value="{{carDetail.zcsj}}">
+                <text class="{{['detail',$root.g6==0?'font':'']}}">{{$root.g7?carDetail.zcsj:'请按行驶证选择车辆注册日期'}}</text>
+            </picker>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <view bindtap="__e" class="title" data-event-opts="{{[ [ 'tap',[ [ 'goCllx',['$event'] ] ] ] ]}}" style="width:290rpx;display:flex;">
+                <text>车辆类型</text>
+                <image mode="aspectFit" src="/pagesClgl/static/tjcl-tip.png" style="width:24rpx;height:24rpx;margin:10rpx;"></image>
+                <text>：</text>
+            </view>
+            <text bindtap="__e" class="{{['detail',$root.g8==0?'font':'']}}" data-event-opts="{{[ [ 'tap',[ ['cllxAction'] ] ] ]}}">{{$root.g9?carDetail.cllxmc:'请选择车辆类型'}}</text>
+        </view>
+        <block wx:if="{{carDetail.cllxmc==='货车'}}">
+            <view class="seperator"></view>
+            <view class="item">
+                <view class="title" style="width:300rpx;display:flex;">
+                    <text>车辆类型明细：</text>
+                </view>
+                <text bindtap="__e" class="{{['detail',carDetail.kz4?'':'font']}}" data-event-opts="{{[ [ 'tap',[ ['cllxDetail'] ] ] ]}}">{{carDetail.kz4||'请选择行驶证载明的车辆类型'}}</text>
+            </view>
+        </block>
+        <view class="seperator"></view>
+    </view>
+    <button bindtap="__e" class="add-button" data-event-opts="{{[ [ 'tap',[ [ 'saveChangeAction',['$event'] ] ] ] ]}}" disabled="{{isEdit}}">保存修改</button>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="hpzl" type="bottom" vueId="cb8146dc-1" vueSlots="{{['default']}}">
+        <view class="hphm-content">
+            <view class="hphm-top">
+                <view class="hphm-title">请根据车牌颜色选择号码种类</view>
+            </view>
+            <view class="hphm-scroll" scrollY="{{true}}">
+                <view class="hphm-content" wx:for="{{hpzlList}}">
+                    <view bindtap="__e" class="hphm-item" data-event-opts="{{[ [ 'tap',[ [ 'hpzlSelectAction',['$0'],[ [ ['hpzlList','',index] ] ] ] ] ] ]}}">
+                        <view class="hphm-item-left">
+                            <image class="hphm-item-left-image" mode="aspectFit" src="{{item.imageUrl}}"></image>
+                            <view class="hphm-item-left-text">{{item.tip}}</view>
+                        </view>
+                        <view class="hphm-item-right">{{item.zdz}}</view>
+                    </view>
+                    <view class="hphm-item-selected" wx:if="{{item.zdbm==carDetail.hpzl}}">
+                        <image class="item_image_selected" mode="aspectFill" src="/pagesClgl/static/hpzl_selected.png"></image>
+                    </view>
+                </view>
+            </view>
+            <view class="hphm-tip">系统无法为临时号牌和近期新登记注册号牌的机动车提供进京证办理服务</view>
+        </view>
+    </uni-popup>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="popup" type="bottom" vueId="cb8146dc-2" vueSlots="{{['default']}}">
+        <view class="pop-content">
+            <view class="pop-center">
+                <text class="pop-title">请输入车牌号</text>
+                <view class="pop-input">
+                    <view bindtap="__e" class="{{[ (_ind==2?'pop-input-item pop-input-item-num':'pop-input-item')+(index.g10?' pop-input-item-current':'') ]}}" data-event-opts="{{[ [ 'tap',[ [ 'goHideJia',[_ind] ] ] ] ]}}" wx:for="{{$root.l0}}" wx:for-index="_ind" wx:for-item="index">{{''+(index.g11?'+':index.g12)+''}}</view>
+                </view>
+                <view class="pop-operation">
+                    <view bindtap="__e" class="pop-cancel-button" data-event-opts="{{[ [ 'tap',[ ['cancelAction'] ] ] ]}}">取消</view>
+                    <view bindtap="__e" class="pop-confirm-button" data-event-opts="{{[ [ 'tap',[ ['confirmAction'] ] ] ]}}">确定</view>
+                </view>
+            </view>
+            <view class="pop-board">
+                <view class="toolbar">
+                    <view bindtap="__e" class="confirm-button" data-event-opts="{{[ [ 'tap',[ [ 'confirmAction',['$event'] ] ] ] ]}}">完成</view>
+                </view>
+                <view class="board-content">
+                    <block wx:if="{{$root.g13==0}}">
+                        <view bindtap="__e" class="board-item" data-event-opts="{{[ [ 'tap',[ [ 'keyClick',['$0'],[ [ ['inputAreaItems','',index] ] ] ] ] ] ]}}" wx:for="{{inputAreaItems}}">{{''+item+''}}</view>
+                    </block>
+                    <block wx:else>
+                        <view bindtap="__e" class="board-item" data-event-opts="{{[ [ 'tap',[ [ 'keyClick',['$0'],[ [ ['inputHeadItems','',index] ] ] ] ] ] ]}}" wx:for="{{inputHeadItems}}">{{''+item+''}}</view>
+                        <view bindtap="__e" class="rightItem" data-event-opts="{{[ [ 'tap',[ ['deleteAction'] ] ] ]}}">
+                            <image class="img" src="../static/del.png"></image>
+                        </view>
+                    </block>
+                </view>
+            </view>
+        </view>
+    </uni-popup>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="cllx" type="bottom" vueId="cb8146dc-3" vueSlots="{{['default']}}">
+        <view class="cllx-content">
+            <view class="hphm-content" wx:for="{{typeList}}">
+                <view bindtap="__e" class="{{[active==index?'hphm-content-acive':'','cllx-box']}}" data-event-opts="{{[ [ 'tap',[ [ 'cllxSelectAction',['$0',index],[ [ ['typeList','',index] ] ] ] ] ] ]}}">{{''+item.zdz+''}}</view>
+            </view>
+        </view>
+    </uni-popup>
+</view>

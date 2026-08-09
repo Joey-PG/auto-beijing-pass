@@ -1,0 +1,19 @@
+<view class="container">
+    <view class="content">
+        <view style="font-size:24px;margin:35rpx 0;text-align:center;">进京证临时登录须知</view>
+        <view class="text-box" scrollY="true">
+            <text>1、由于北京市统一身份认证暂停服务，在恢复前，您可以通过身份信息临时登录系统办理进京证。统一身份认证服务恢复后，仍需通过其平台登录系统。
+
+		2、已注册北京市统一身份认证平台的用户可通过姓名、身份证号、手机号进行登录，通过临时登录申请的进京证可正常使用，并可在正常登录时进行查看。
+
+		3、未注册过北京统一身份认证平台的用户通过临时登录申请的进京证可正常使用。登录恢复正常时，需使用临时登录时的姓名、身份证号、手机号注册北京市统一身份认证平台，才能查看到临时登录时申请的进京证。</text>
+        </view>
+    </view>
+    <view class="bottom-view">
+        <view bindtap="__e" class="rule-button" data-event-opts="{{[ [ 'tap',[ ['agreeAction'] ] ] ]}}">
+            <image class="rule-image" mode="aspectFit" src="{{agree?icon_selected_url:icon_unselected_url}}"></image>
+            <text class="rule-text">我已充分阅读并了解上述内容。</text>
+        </view>
+        <button bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ [ 'sqbzAction',['$event'] ] ] ] ]}}" disabled="{{!agree}}" type="primary">继续临时登录</button>
+    </view>
+</view>

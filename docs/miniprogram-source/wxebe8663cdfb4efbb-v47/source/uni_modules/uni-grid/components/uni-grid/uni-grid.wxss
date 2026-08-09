@@ -1,0 +1,23 @@
+.uni-grid-wrap.data-v-aaae28a6 {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex: 1;
+    flex: 1;
+    -webkit-flex-direction: column;
+    flex-direction: column
+}
+
+.uni-grid.data-v-aaae28a6 {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap
+}
+
+.uni-grid--border.data-v-aaae28a6 {
+    border-left: 1px solid #c8c7cc;
+    position: relative;
+    z-index: 1
+}

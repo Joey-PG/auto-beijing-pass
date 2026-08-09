@@ -1,0 +1,32 @@
+.qPage {
+    padding-top: 120px;
+    text-align: center;
+    width: 100%
+}
+
+.warningImg {
+    height: 90px;
+    width: 90px
+}
+
+.info {
+    display: -webkit-flex;
+    display: flex;
+    font-size: 24px;
+    -webkit-justify-content: center;
+    justify-content: center;
+    line-height: 2;
+    margin: 40px 30px
+}
+
+.info,.qBtn {
+    text-align: center
+}
+
+.qBtn {
+    background: #07c160;
+    color: #fff;
+    cursor: pointer;
+    margin: 10px;
+    padding: 10px
+}

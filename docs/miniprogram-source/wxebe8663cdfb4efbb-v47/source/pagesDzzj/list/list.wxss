@@ -1,0 +1,81 @@
+.noneDzzj {
+    text-align: center
+}
+
+.noneDzzj .dzzjImg {
+    height: 244rpx;
+    margin-top: 193rpx;
+    width: 583rpx
+}
+
+.noneDzzj .szzjText {
+    color: #666;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    margin-top: 64rpx
+}
+
+page {
+    background: #f8f8f8
+}
+
+.container {
+    color: #333;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    width: 100%
+}
+
+.container .top {
+    background: #fff;
+    box-shadow: 0 0 10px 1px rgba(86,95,104,.15);
+    box-sizing: border-box;
+    display: -webkit-flex;
+    display: flex;
+    height: 98rpx;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    left: 0;
+    padding-left: 29rpx;
+    padding-right: 31rpx;
+    position: fixed;
+    right: 0
+}
+
+.container .top .left,.container .top .right {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex
+}
+
+.container .top .img {
+    height: 11rpx;
+    margin-left: 20rpx;
+    width: 18rpx
+}
+
+.container .list {
+    box-sizing: border-box;
+    color: #333;
+    font-family: PingFang SC;
+    font-size: 24rpx;
+    font-weight: 400;
+    line-height: 36rpx;
+    padding-top: 118rpx
+}
+
+.container .list .box {
+    -webkit-align-items: center;
+    align-items: center;
+    background: #fff;
+    border-bottom: 1rpx solid #e1e1e1;
+    box-sizing: border-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    padding: 33rpx 31rpx 36rpx 29rpx
+}

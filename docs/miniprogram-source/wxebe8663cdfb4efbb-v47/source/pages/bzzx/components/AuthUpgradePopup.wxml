@@ -1,0 +1,10 @@
+<uni-popup bind:__l="__l" class="data-v-169b7d9e vue-ref" data-ref="popup" maskClick="{{false}}" type="center" vueId="bcd33416-1" vueSlots="{{['default']}}">
+    <view class="auth-upgrade-popup data-v-169b7d9e">
+        <view class="popup-title data-v-169b7d9e">公告</view>
+        <view class="popup-content data-v-169b7d9e">
+            <view class="popup-text data-v-169b7d9e">受身份认证平台升级影响，新用户、未实人认证用户及登录过期用户等部分用户，自2026年7月4日22时起无法使用该小程序。请您前往“京通APP”“京通小程序”“北京交警APP”办理。给您带来不便，敬请谅解。</view>
+            <view class="popup-date data-v-169b7d9e">2026年7月4日</view>
+        </view>
+        <view bindtap="__e" class="popup-button data-v-169b7d9e" data-event-opts="{{[ [ 'tap',[ [ 'closePopup',['$event'] ] ] ] ]}}">已知晓</view>
+    </view>
+</uni-popup>

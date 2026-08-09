@@ -2,6 +2,10 @@ node_modules/
 *.log
 .DS_Store
 url_key.key
-docs/
+docs/*
+!docs/miniprogram-source/
+docs/miniprogram-source/*
+!docs/miniprogram-source/wxebe8663cdfb4efbb-v47/
+!docs/miniprogram-source/wxebe8663cdfb4efbb-v47/**
 .npmrc
 .worktrees/

@@ -1,0 +1,33 @@
+<view class="container">
+    <view class="top">
+        <view class="left">
+            <picker bindchange="__e" data-event-opts="{{[ [ 'change',[ [ 'dateChange',['$event'] ] ] ] ]}}" end="{{endDate}}" fields="month" mode="date" start="{{startDate}}" value="{{date}}">
+                <view>{{$root.g0+'月'}}</view>
+            </picker>
+            <image class="img" src="/pagesDzzj/static/bottom.png"></image>
+        </view>
+        <view class="right">
+            <picker bindchange="__e" data-event-opts="{{[ [ 'change',[ [ 'typeChange',['$event'] ] ] ] ]}}" range="{{typeArr}}" rangeKey="name">
+                <view>{{carType}}</view>
+            </picker>
+            <image class="img" src="/pagesDzzj/static/bottom.png"></image>
+        </view>
+    </view>
+    <view class="list" wx:if="{{$root.g1}}">
+        <view bindtap="__e" class="box" data-event-opts="{{[ [ 'tap',[ [ 'cardDetail',['$0'],[ [ ['lszjList','',k] ] ] ] ] ] ]}}" wx:for="{{lszjList}}" wx:for-index="k" wx:for-item="i" wx:key="k">
+            <view class="time">
+                <view>{{''+i.yxqs+' 至 '+i.yxqz+''}}</view>
+                <view>{{'车牌号：'+i.hphm+''}}</view>
+            </view>
+            <view class="type">
+                <text style="color:#EE425B;" wx:if="{{i.jjzzl=='01'}}">{{i.jjzzlmc}}</text>
+                <text style="color:#4e86f7;" wx:if="{{i.jjzzl=='02'}}">{{i.jjzzlmc}}</text>
+                <text style="margin-left:23rpx;color:#999;">></text>
+            </view>
+        </view>
+    </view>
+    <view class="list noneDzzj" style="text-align:center;" wx:else>
+        <image class="dzzjImg" mode="scaleToFill" src="../static/zwjl.png"></image>
+        <view class="szzjText">{{text}}</view>
+    </view>
+</view>

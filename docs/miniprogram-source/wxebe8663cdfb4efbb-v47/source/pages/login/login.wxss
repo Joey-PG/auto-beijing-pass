@@ -1,0 +1,30 @@
+.share-button {
+    -webkit-align-items: center;
+    align-items: center;
+    background-color: pink;
+    border-radius: 50%;
+    bottom: 30rpx;
+    color: #fff;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-justify-content: center;
+    justify-content: center;
+    left: 20%;
+    position: fixed;
+    width: 60%;
+    z-index: 999999
+}
+
+.share-button,.share-txt {
+    height: 72rpx;
+    text-align: center
+}
+
+.share-txt {
+    border-radius: 36rpx;
+    box-shadow: 0rpx 4rpx 6rpx 0rpx rgba(18,46,102,.5);
+    font-size: 28rpx;
+    line-height: 72rpx;
+    margin-right: 40rpx;
+    width: 200rpx
+}

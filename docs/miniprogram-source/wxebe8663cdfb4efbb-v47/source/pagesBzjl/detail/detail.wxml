@@ -1,0 +1,96 @@
+<view class="container">
+    <view class="text" wx:if="{{isShow}}"></view>
+    <view class="scroll" wx:else>
+        <view class="cell">
+            <view class="seperator"></view>
+            <view class="item">
+                <text class="title">申请状态</text>
+                <text class="detail" style="color:#139685;" wx:if="{{obj.blzt==1}}">审核通过（生效中）</text>
+                <text class="detail" style="color:#E7792E;" wx:if="{{obj.blzt==2}}">已取消</text>
+                <text class="detail" style="color:#E7792E;" wx:if="{{obj.blzt==3}}">审核通过（已失效）</text>
+                <text class="detail" style="color:#E7792E;" wx:if="{{obj.blzt==4}}">失败（审核不通过）</text>
+                <text class="detail" style="color:#4E86F7;" wx:if="{{obj.blzt==5}}">审核中</text>
+                <text class="detail" style="color:#139685;" wx:if="{{obj.blzt==6}}">审核通过（待生效）</text>
+                <text class="detail" style="color:#E7792E;" wx:if="{{obj.blzt==7}}">审核通过（已作废）</text>
+                <text class="detail" style="color:#4E86F7;" wx:if="{{obj.blzt==8}}">取消办理中</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">进京证种类</text>
+                <text class="detail">{{obj.jjzzlmc||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">申请时间</text>
+                <text class="detail">{{obj.sqsj||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">驾驶证号</text>
+                <text class="detail">{{$root.g0}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">驾驶员姓名</text>
+                <text class="detail">{{obj.jsrxm||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">拟进京日期</text>
+                <text class="detail">{{obj.jjrq||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">拟进京路口</text>
+                <text class="detail">{{obj.jjlkmc||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">目的地</text>
+                <text class="detail">{{obj.xxdz||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">进京目的</text>
+                <text class="detail">{{obj.jjmdmc||'无'}}</text>
+            </view>
+            <view class="item" wx:if="{{$root.g1}}">
+                <text class="title">有效期</text>
+                <text class="detail">{{obj.jjrqName||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item" wx:if="{{obj.blzt==4}}">
+                <text class="title">审核失败原因</text>
+                <text class="detail">{{obj.shsbyyms||'无'}}</text>
+            </view>
+            <view class="seperator"></view>
+        </view>
+        <view class="cell" wx:if="{{item.g2}}" wx:for="{{$root.l0}}" wx:key="index">
+            <view class="seperator"></view>
+            <view class="item">
+                <text class="title">同行人姓名</text>
+                <text class="detail">{{item[$orig].txrxm||'无'}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">身份证号</text>
+                <text class="detail">{{item.g3}}</text>
+            </view>
+            <view class="seperator seperator-line"></view>
+            <view class="item">
+                <text class="title">手机号</text>
+                <text class="detail">{{item[$orig].txrsjh||'无'}}</text>
+            </view>
+            <view class="seperator"></view>
+        </view>
+        <view class="tip" wx:if="{{obj.blzt==5}}">您的申请已提交审核，请耐心等待!</view>
+        <view class="bottom-view" style="position:relative;">
+            <button bindtap="__e" class="view-button" data-event-opts="{{[ [ 'tap',[ [ 'goDzzjDetail',['$event'] ] ] ] ]}}" wx:if="{{obj.blzt==1}}">
+                <text class="button-text">查看证件</text>
+            </button>
+            <button bindtap="__e" class="cancel-button" data-event-opts="{{[ [ 'tap',[ [ 'handle',['$event'] ] ] ] ]}}" disabled="{{isHandle}}" wx:if="{{obj.blzt==6}}">
+                <text class="button-text">申请取消</text>
+            </button>
+        </view>
+    </view>
+</view>

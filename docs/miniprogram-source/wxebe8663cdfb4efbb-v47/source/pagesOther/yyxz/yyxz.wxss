@@ -1,0 +1,34 @@
+.bottom.data-v-1d49f84c {
+    background: #fff;
+    bottom: 0;
+    color: #333;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    left: 0;
+    position: fixed;
+    right: 0;
+    z-index: 999999
+}
+
+.bottom .box.data-v-1d49f84c {
+    -webkit-align-items: center;
+    align-items: center;
+    border: 1px solid hsla(0,0%,56%,.2);
+    box-shadow: 0 2rpx 20rpx 0 hsla(0,0%,56%,.2);
+    box-sizing: border-box;
+    display: -webkit-flex;
+    display: flex;
+    height: 88rpx
+}
+
+.bottom .left.data-v-1d49f84c,.bottom .right.data-v-1d49f84c {
+    line-height: 88rpx;
+    text-align: center;
+    width: 50%
+}
+
+.bottom .right.data-v-1d49f84c {
+    background: #4e86f7;
+    color: #fff
+}

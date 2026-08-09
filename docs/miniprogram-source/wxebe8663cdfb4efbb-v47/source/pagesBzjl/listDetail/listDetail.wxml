@@ -1,0 +1,64 @@
+<view class="container">
+    <view>
+        <view class="header">
+            <view class="cphm">{{$root.g0}}</view>
+            <picker bindchange="__e" data-event-opts="{{[ [ 'change',[ [ 'dateChange',['$event'] ] ] ] ]}}" end="{{endDate}}" fields="month" mode="date" start="{{startDate}}" value="{{date}}">
+                <view class="time">
+                    <text class="time-text">{{$root.g1+'月'}}</text>
+                </view>
+            </picker>
+            <view class="car-view-info">
+                <view class="car-view-info-item">
+                    <view class="car-view-info-item-count">{{ybcs||0}}</view>
+                    <view class="car-view-info-item-tip">已办次数</view>
+                </view>
+                <view class="car-view-info-item">
+                    <view class="car-view-info-item-count">{{kjts||0}}</view>
+                    <view class="car-view-info-item-tip">扣减天数</view>
+                </view>
+                <view class="car-view-info-item">
+                    <view class="car-view-info-item-count">{{sycs||0}}</view>
+                    <view class="car-view-info-item-tip">剩余次数</view>
+                </view>
+            </view>
+        </view>
+        <scroll-view class="scroll" scrollY="true">
+            <view class="noneDzzj" wx:if="{{$root.g2==0}}">
+                <image class="dzzjImg" mode="scaleToFill" src="../../static/common/empty.png"></image>
+                <view class="szzjText">{{texts}}</view>
+            </view>
+            <block wx:else>
+                <view bindtap="__e" class="cell" data-event-opts="{{[ [ 'tap',[ [ 'detailAction',['$0'],[ [ ['records','',index] ] ] ] ] ] ]}}" wx:for="{{records}}" wx:key="index">
+                    <view class="seperator"></view>
+                    <view class="item">
+                        <text class="title">驾驶员姓名</text>
+                        <text class="detail">{{item.jsrxm}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">拟进京日期</text>
+                        <text class="detail">{{item.jjrq}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">进京证种类</text>
+                        <text class="detail">{{item.jjzzlmc}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">办理状态</text>
+                        <text class="detail" style="color:#139685;" wx:if="{{item.blzt==1}}">审核通过（生效中）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{item.blzt==2}}">已取消</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{item.blzt==3}}">审核通过（已失效）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{item.blzt==4}}">失败（审核不通过）</text>
+                        <text class="detail" style="color:#4E86F7;" wx:if="{{item.blzt==5}}">审核中</text>
+                        <text class="detail" style="color:#139685;" wx:if="{{item.blzt==6}}">审核通过（待生效）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{item.blzt==7}}">审核通过（已作废）</text>
+                        <text class="detail" style="color:#4E86F7;" wx:if="{{item.blzt==8}}">取消办理中</text>
+                    </view>
+                    <view class="seperator"></view>
+                </view>
+            </block>
+        </scroll-view>
+    </view>
+</view>

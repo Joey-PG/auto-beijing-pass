@@ -1,0 +1,79 @@
+.view {
+    background-color: #fff;
+    margin-top: 20rpx
+}
+
+.seperator {
+    background-color: #e1e1e1;
+    height: 1rpx
+}
+
+.scan-image {
+    margin: 20rpx 45rpx
+}
+
+.item-view {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    height: 88rpx;
+    -webkit-justify-content: space-between;
+    justify-content: space-between
+}
+
+.item-view .left-text {
+    color: #333;
+    font-size: 28rpx;
+    margin-left: 20rpx
+}
+
+.item-view .right-text {
+    color: #999;
+    font-size: 28rpx;
+    margin-right: 20rpx;
+    text-align: right
+}
+
+.view-bottom {
+    -webkit-align-items: center;
+    align-items: center;
+    bottom: 0rpx;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    left: 0rpx;
+    position: absolute;
+    right: 0rpx
+}
+
+.view-bottom .left-button {
+    background: #b5b5b5;
+    box-shadow: 0rpx 5rpx 18rpx 2rpx hsla(0,0%,51%,.2)
+}
+
+.view-bottom .left-button,.view-bottom .right-button {
+    -webkit-align-items: center;
+    align-items: center;
+    border-radius: 10rpx;
+    color: #fff;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex: 1;
+    flex: 1;
+    font-size: 32rpx;
+    height: 88rpx;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin: 38rpx
+}
+
+.view-bottom .right-button {
+    background: #4e86f7;
+    box-shadow: 0rpx 10rpx 18rpx 2rpx rgba(78,134,247,.2)
+}

@@ -1,0 +1,24 @@
+.swiperImg.data-v-4abb0f5a {
+    height: -webkit-fit-content;
+    height: fit-content
+}
+
+.swiperImg.data-v-4abb0f5a .uni-swiper-wrapper .swiperItem {
+    height: -webkit-fit-content!important;
+    height: fit-content!important
+}
+
+.swiperImg.data-v-4abb0f5a .uni-swiper-wrapper .swiperItem .imgBox {
+    height: -webkit-fit-content;
+    height: fit-content;
+    text-align: center
+}
+
+.swiperImg.data-v-4abb0f5a .uni-swiper-wrapper .swiperItem .imgBox .myImg {
+    height: auto;
+    width: 100%!important
+}
+
+.swiperImg.data-v-4abb0f5a .uni-swiper-slide-frame::after {
+    clear: both
+}

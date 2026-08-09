@@ -1,0 +1,19 @@
+<view class="data-v-177afdf8">
+    <view class="select-item data-v-177afdf8">
+        <text class="title-text data-v-177afdf8">
+            <text class="important-text data-v-177afdf8">*</text>拟行驶路线</text>
+        <view class="data-v-177afdf8">
+            <image bindtap="__e" class="txr-right-button data-v-177afdf8" data-event-opts="{{[ [ 'tap',[ [ 'handleAdd',['$event'] ] ] ] ]}}" mode="aspectFit" src="{{addPic}}"></image>
+            <image bindtap="__e" class="txr-right-button data-v-177afdf8" data-event-opts="{{[ [ 'tap',[ [ 'handleDelete',['$event'] ] ] ] ]}}" mode="aspectFit" src="{{deletePic}}"></image>
+        </view>
+    </view>
+    <view class="data-v-177afdf8" wx:for="{{$root.l0}}" wx:for-index="__i0__" wx:key="id">
+        <view class="seperator-line data-v-177afdf8"></view>
+        <view bindtap="__e" class="select-item data-v-177afdf8" data-event-opts="{{[ [ 'tap',[ [ 'e0',['$event'] ] ] ] ]}}" data-event-params="{{({item:item})}}">
+            <text class="title-text data-v-177afdf8">
+                <text class="important-text data-v-177afdf8">*</text>{{item.label}}</text>
+            <text class="detail-text data-v-177afdf8">{{''+(lineForm['line'+item.id]||'请选择')+''}}</text>
+            <uni-icons bind:__l="__l" class="forward data-v-177afdf8" color="#999" size="15" type="forward" vueId="{{'50357be4-1-'+__i0__}}"></uni-icons>
+        </view>
+    </view>
+</view>

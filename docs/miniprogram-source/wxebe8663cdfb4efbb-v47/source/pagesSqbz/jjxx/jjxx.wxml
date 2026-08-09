@@ -1,0 +1,108 @@
+<view class="container">
+    <view class="content" wx:if="{{!loaded}}">
+        <image class="empty-image" mode="aspectFit" src="/static/common/empty.png"></image>
+        <view class="empty-text">正在加载中</view>
+    </view>
+    <view wx:if="{{loaded}}">
+        <view class="progress-view">
+            <image class="progress-image" mode="aspectFit" src="/pagesSqbz/static/sqbz-progress-3.png"></image>
+        </view>
+        <view class="item">
+            <view class="seperator"></view>
+            <text class="title-text">
+                <text class="important-text">*</text>拟进京日期</text>
+            <view class="loading" style="text-align:center;" wx:if="{{loading}}">正在加载中</view>
+            <uni-grid bind:__l="__l" class="grid-view" column="{{4}}" showBorder="{{false}}" square="{{false}}" vueId="4ab855aa-1" vueSlots="{{['default']}}" wx:else>
+                <uni-grid-item bind:__l="__l" vueId="{{'4ab855aa-2-'+index+','+'4ab855aa-1'}}" vueSlots="{{['default']}}" wx:for="{{$root.l0}}" wx:key="index">
+                    <view bindtap="__e" class="grid-item" data-event-opts="{{[ [ 'tap',[ [ 'dateAction',['$0',index],[ [ ['jjrqData.jjrqs','',index] ] ] ] ] ] ]}}">
+                        <view class="{{[item[$orig]==data.jjrq?'grid-item-button grid-item-button-active':'grid-item-button']}}" style="display:flex;flex-direction:column;box-sizing:border-box;height:90rpx;">
+                            <text class="{{[item[$orig]==data.jjrq?'item-text blue-text':'item-text black-text']}}">{{item.g0}}</text>
+                            <text class="{{[item[$orig]==data.jjrq?'item-text blue-text':'item-text black-text']}}">{{jjrqData.weekDays&&jjrqData.weekDays[index]}}</text>
+                        </view>
+                    </view>
+                </uni-grid-item>
+            </uni-grid>
+            <view class="tip">
+                <view class="important-text">温馨提示：</view>
+                <view class="tip-detail-text">请您自觉遵守北京市尾号限行规定及高峰时段区域限行交通管理规定。</view>
+            </view>
+            <view class="input-seperator"></view>
+        </view>
+        <view class="item">
+            <view class="seperator"></view>
+            <text class="title-text">
+                <text class="important-text">*</text>进京目的（可多选）</text>
+            <uni-grid bind:__l="__l" class="grid-view" column="{{3}}" showBorder="{{false}}" square="{{false}}" vueId="4ab855aa-3" vueSlots="{{['default']}}">
+                <uni-grid-item bind:__l="__l" vueId="{{'4ab855aa-4-'+index+','+'4ab855aa-3'}}" vueSlots="{{['default']}}" wx:for="{{jjmdList}}" wx:key="index">
+                    <view bindtap="__e" class="grid-item" data-event-opts="{{[ [ 'tap',[ [ 'jjmdAction',['$0'],[ [ ['jjmdList','',index] ] ] ] ] ] ]}}">
+                        <view class="{{[item.selected?'grid-item-button grid-item-button-active':'grid-item-button']}}">
+                            <text class="{{[item.selected?'item-text blue-text':'item-text black-text']}}">{{item.zdz}}</text>
+                        </view>
+                    </view>
+                </uni-grid-item>
+            </uni-grid>
+            <view class="input-seperator"></view>
+        </view>
+        <view class="item">
+            <view class="seperator"></view>
+            <view bindtap="__e" class="select-item" data-event-opts="{{[ [ 'tap',[ ['mddAction'] ] ] ]}}">
+                <text class="title-text">
+                    <text class="important-text">*</text>目的地</text>
+                <text class="detail-text">{{data.xxdz||data.area?data.area+data.xxdz:'请选择目的地'}}</text>
+                <uni-icons bind:__l="__l" class="forward" color="#999" size="15" type="forward" vueId="4ab855aa-5"></uni-icons>
+            </view>
+            <view class="seperator-line"></view>
+            <view bindtap="__e" class="select-item" data-event-opts="{{[ [ 'tap',[ [ 'toJjLine',['$event'] ] ] ] ]}}">
+                <text class="title-text">
+                    <text class="important-text">*</text>拟进京道路</text>
+                <text class="detail-text">{{njjdl?njjdl.jjlkmc||njjdl.zjxxdz:'请选择进京道路'}}</text>
+                <uni-icons bind:__l="__l" class="forward" color="#999" size="15" type="forward" vueId="4ab855aa-6"></uni-icons>
+            </view>
+            <view class="seperator-line"></view>
+            <driver-line bind:__l="__l" class="vue-ref" data-ref="DriverLine" vueId="4ab855aa-7" wx:if="{{showDriveLine}}"></driver-line>
+            <view class="input-seperator"></view>
+        </view>
+        <view bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ ['submitAction'] ] ] ]}}">
+            <text class="next-text">提交申请</text>
+        </view>
+    </view>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="confirm" type="center" vueId="4ab855aa-8" vueSlots="{{['default']}}">
+        <view class="pop-container">
+            <view class="jjlk-title">信息确认</view>
+            <view class="confirm-item">
+                <text class="confirm-item-title">进京车辆</text>
+                <text class="confirm-item-detail">{{data.hphm}}</text>
+            </view>
+            <view class="confirm-item">
+                <text class="confirm-item-title">进京驾驶员</text>
+                <text class="confirm-item-detail">{{data.jsrxm}}</text>
+            </view>
+            <view class="confirm-item">
+                <text class="confirm-item-title">进京日期</text>
+                <text class="confirm-item-detail text-red">{{data.jjrq}}</text>
+            </view>
+            <view class="confirm-item">
+                <text class="confirm-item-title">进京有效时长</text>
+                <text class="confirm-item-detail">{{jjrqData.kbyxts+'天'}}</text>
+            </view>
+            <view class="confirm-item">
+                <text class="confirm-item-title">进京证类型</text>
+                <text class="confirm-item-detail">{{data.jjzzl=='01'?'进京证六环内':'进京证六环外'}}</text>
+            </view>
+            <view class="confirm-tip">审核期间不可修改、取消。</view>
+            <view class="pop-operation">
+                <view bindtap="__e" class="pop-cancel-button" data-event-opts="{{[ [ 'tap',[ ['cancelAction'] ] ] ]}}">取消</view>
+                <view bindtap="__e" class="pop-confirm-button" data-event-opts="{{[ [ 'tap',[ ['confirmAction'] ] ] ]}}">确定</view>
+            </view>
+        </view>
+    </uni-popup>
+    <uni-popup bind:__l="__l" class="vue-ref" data-ref="notice" type="center" vueId="4ab855aa-9" vueSlots="{{['default']}}">
+        <view class="pop-notice-container">
+            <view class="jjlk-notice-title">温馨提示</view>
+            <scroll-view class="notice-content" scrollY="{{true}}" showScrollbar="{{true}}">
+                <rich-text nodes="{{noticeNodes}}"></rich-text>
+            </scroll-view>
+            <view bindtap="__e" class="notice-confirm" data-event-opts="{{[ [ 'tap',[ ['showConfirm'] ] ] ]}}">确定</view>
+        </view>
+    </uni-popup>
+</view>

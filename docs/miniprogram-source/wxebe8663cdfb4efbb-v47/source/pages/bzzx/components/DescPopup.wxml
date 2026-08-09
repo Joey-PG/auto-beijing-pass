@@ -1,0 +1,10 @@
+<uni-popup bind:__l="__l" class="data-v-d116601c vue-ref" data-ref="popup" maskClick="{{false}}" type="center" vueId="5725af54-1" vueSlots="{{['default']}}">
+    <view class="popup-container data-v-d116601c">
+        <view class="popup-title data-v-d116601c">温馨提示</view>
+        <view class="popup-text data-v-d116601c" style="text-indent:0;">各位驾驶员:</view>
+        <view class="popup-text data-v-d116601c">按照北京市《关于对部分载货汽车采取通行管理措施的通告》，自2025年4月20日起，外省、自治区、直辖市重型货车进入本市行政区内道路行驶的，应办理进京通行证，填报进京目的地、路线。行驶目的地不在北京、未按规定填报信息的不予办理进京通行证；填写信息与实际通行路线、进京目的地不符情况达到3次（含）的，一年内不予办理进京通行证。同时，东六环路（小庞各庄桥-施园桥）路段全天禁止重型载货汽车和运载危险化学品车辆通行。</view>
+        <view class="popup-text data-v-d116601c">请已绑定货车的用户进入 “<text bindtap="__e" class="data-v-d116601c" data-event-opts="{{[ [ 'tap',[ [ 'toCarManage',['$event'] ] ] ] ]}}" style="color:#4e86f7;">车辆管理功能</text>”， 严格按照行驶证上“车辆类型”一栏载明的内容，对货车车辆类型信息进行补充，如未正确填写将导致进京证申请失败。并在申请办证过程中请如实填写进京目的地、京内通行路线等信息。</view>
+        <view bindtap="__e" class="{{['next-button','popup-button','data-v-d116601c',timerRead?'disabledBtn':'']}}" data-event-opts="{{[ [ 'tap',[ [ 'closePopup',['$event'] ] ] ] ]}}" type="primary">已知晓<text class="data-v-d116601c" wx:if="{{timerRead}}">{{'('+timerRead+')'}}</text>
+        </view>
+    </view>
+</uni-popup>

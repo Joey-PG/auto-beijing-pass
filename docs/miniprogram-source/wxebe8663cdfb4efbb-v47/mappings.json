@@ -1,0 +1,109 @@
+{
+  "miniProgram": {
+    "appId": "wxebe8663cdfb4efbb",
+    "version": 47
+  },
+  "retrievedAt": "2026-08-09",
+  "dictionary": {
+    "endpoint": "https://jjz.jtgl.beijing.gov.cn:1443/pro/ucDicController/queryDic",
+    "method": "POST",
+    "labelField": "zdz",
+    "valueField": "zdbm"
+  },
+  "tripPurposes": [
+    {
+      "label": "自驾旅游",
+      "value": "01"
+    },
+    {
+      "label": "看病就医",
+      "value": "02"
+    },
+    {
+      "label": "探亲访友",
+      "value": "03"
+    },
+    {
+      "label": "学习培训",
+      "value": "04"
+    },
+    {
+      "label": "公务差旅",
+      "value": "05"
+    },
+    {
+      "label": "其它",
+      "value": "06"
+    }
+  ],
+  "beijingDistricts": [
+    {
+      "label": "东城区",
+      "value": "001"
+    },
+    {
+      "label": "西城区",
+      "value": "002"
+    },
+    {
+      "label": "朝阳区",
+      "value": "003"
+    },
+    {
+      "label": "丰台区",
+      "value": "004"
+    },
+    {
+      "label": "石景山区",
+      "value": "005"
+    },
+    {
+      "label": "海淀区",
+      "value": "006"
+    },
+    {
+      "label": "门头沟区",
+      "value": "007"
+    },
+    {
+      "label": "房山区",
+      "value": "008"
+    },
+    {
+      "label": "通州区",
+      "value": "009"
+    },
+    {
+      "label": "顺义区",
+      "value": "010"
+    },
+    {
+      "label": "昌平区",
+      "value": "011"
+    },
+    {
+      "label": "大兴区",
+      "value": "012"
+    },
+    {
+      "label": "怀柔区",
+      "value": "013"
+    },
+    {
+      "label": "平谷区",
+      "value": "014"
+    },
+    {
+      "label": "密云区",
+      "value": "015"
+    },
+    {
+      "label": "延庆区",
+      "value": "016"
+    },
+    {
+      "label": "开发区",
+      "value": "017"
+    }
+  ]
+}

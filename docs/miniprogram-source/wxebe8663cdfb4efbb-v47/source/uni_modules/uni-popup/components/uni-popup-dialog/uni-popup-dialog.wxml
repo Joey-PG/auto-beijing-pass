@@ -1,0 +1,21 @@
+<view class="uni-popup-dialog data-v-6f54520a">
+    <view class="uni-dialog-title data-v-6f54520a">
+        <text class="{{['uni-dialog-title-text','data-v-6f54520a','uni-popup__'+dialogType]}}">{{title}}</text>
+    </view>
+    <view class="uni-dialog-content data-v-6f54520a" wx:if="{{mode==='base'}}">
+        <slot wx:if="{{$slots.default}}"></slot>
+        <text class="uni-dialog-content-text data-v-6f54520a" wx:else>{{content}}</text>
+    </view>
+    <view class="uni-dialog-content data-v-6f54520a" wx:else>
+        <slot wx:if="{{$slots.default}}"></slot>
+        <input bindinput="__e" class="uni-dialog-input data-v-6f54520a" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '','val','$event',[] ] ] ] ] ]}}" focus="{{focus}}" placeholder="{{placeholder}}" type="text" value="{{val}}" wx:else></input>
+    </view>
+    <view class="uni-dialog-button-group data-v-6f54520a">
+        <view bindtap="__e" class="uni-dialog-button data-v-6f54520a" data-event-opts="{{[ [ 'tap',[ [ 'closeDialog',['$event'] ] ] ] ]}}">
+            <text class="uni-dialog-button-text data-v-6f54520a">取消</text>
+        </view>
+        <view bindtap="__e" class="uni-dialog-button uni-border-left data-v-6f54520a" data-event-opts="{{[ [ 'tap',[ [ 'onOk',['$event'] ] ] ] ]}}">
+            <text class="uni-dialog-button-text uni-button-color data-v-6f54520a">确定</text>
+        </view>
+    </view>
+</view>

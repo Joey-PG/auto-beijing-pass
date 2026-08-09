@@ -1,0 +1,10 @@
+<view catchtouchmove="__e" class="{{['uni-popup','data-v-7c43d41b',popupstyle,isDesktop?'fixforpc-z-index':'']}}" data-event-opts="{{[ [ 'touchmove',[ [ 'clear',['$event'] ] ] ] ]}}" wx:if="{{showPopup}}">
+    <view bindtouchstart="__e" class="data-v-7c43d41b" data-event-opts="{{[ [ 'touchstart',[ [ 'touchstart',['$event'] ] ] ] ]}}">
+        <uni-transition bind:__l="__l" bind:click="__e" class="data-v-7c43d41b" data-event-opts="{{[ [ '^click',[ ['onTap'] ] ] ]}}" duration="{{duration}}" modeClass="fade" name="mask" show="{{showTrans}}" styles="{{maskClass}}" vueId="0c37304b-1" wx:if="{{maskShow}}"></uni-transition>
+        <uni-transition bind:__l="__l" bind:click="__e" class="data-v-7c43d41b" data-event-opts="{{[ [ '^click',[ ['onTap'] ] ] ]}}" duration="{{duration}}" modeClass="{{ani}}" name="content" show="{{showTrans}}" styles="{{transClass}}" vueId="0c37304b-2" vueSlots="{{['default']}}">
+            <view bindtap="__e" class="{{['uni-popup__wrapper','data-v-7c43d41b',popupstyle]}}" data-event-opts="{{[ [ 'tap',[ [ 'clear',['$event'] ] ] ] ]}}" style="{{'background-color:'+bg+';'}}">
+                <slot></slot>
+            </view>
+        </uni-transition>
+    </view>
+</view>

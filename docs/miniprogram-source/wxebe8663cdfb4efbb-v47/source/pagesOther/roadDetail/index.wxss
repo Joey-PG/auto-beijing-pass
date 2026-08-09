@@ -1,0 +1,9 @@
+.container.data-v-f138798e {
+    height: -webkit-fit-content;
+    height: fit-content
+}
+
+.container ._img.data-v-f138798e {
+    margin: 0 auto;
+    width: 100%
+}

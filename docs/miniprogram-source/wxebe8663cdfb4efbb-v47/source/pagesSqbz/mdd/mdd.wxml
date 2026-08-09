@@ -1,0 +1,28 @@
+<view class="container">
+    <view class="item mdd">
+        <view class="seperator"></view>
+        <view>
+            <picker bindchange="__e" bindcolumnchange="__e" data-event-opts="{{[ [ 'columnchange',[ [ 'bindMultiPickerColumnChange',['$event'] ] ] ],[ 'change',[ [ 'changeAction',['$event'] ] ] ] ]}}" mode="multiSelector" range="{{multiArray}}" rangeKey="zdz" value="{{multiIndex}}">
+                <view class="select-item">
+                    <text class="title-text">
+                        <text class="important-text">*</text>选择地区</text>
+                    <text class="detail-text">{{area?area:'请选择目的地所在地区'}}</text>
+                    <uni-icons bind:__l="__l" class="forward" color="#999" size="15" type="forward" vueId="e6056764-1"></uni-icons>
+                </view>
+            </picker>
+        </view>
+        <view class="seperator-line"></view>
+        <view class="select-item">
+            <text class="title-text">
+                <text class="important-text">*</text>详细地址</text>
+            <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '','address','$event',[] ] ] ] ] ]}}" maxlength="180" placeholder="请输入详细地址" placeholderClass="input-item-detail" readonly="{{true}}" type="text" value="{{address}}"></input>
+        </view>
+        <view bindtap="__e" class="map-item" data-event-opts="{{[ [ 'tap',[ ['mapSelectAction'] ] ] ]}}">
+            <image class="location" mode="aspectFit" src="/pagesSqbz/static/location.png"></image>
+        </view>
+        <view class="input-seperator"></view>
+    </view>
+    <view bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ ['confirmAction'] ] ] ]}}">
+        <text class="next-text">确认</text>
+    </view>
+</view>

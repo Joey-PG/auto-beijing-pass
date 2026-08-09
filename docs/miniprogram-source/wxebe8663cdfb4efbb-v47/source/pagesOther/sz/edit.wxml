@@ -1,0 +1,5 @@
+<view class="box">
+    <view class="title">输入新的手机号码</view>
+    <input bindinput="__e" class="ipt" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '','sjhm','$event',[] ] ] ] ] ]}}" type="number" value="{{sjhm}}"></input>
+    <view bindtap="__e" class="save" data-event-opts="{{[ [ 'tap',[ [ 'save',['$event'] ] ] ] ]}}">保存</view>
+</view>

@@ -1,0 +1,7 @@
+<swiper autoplay="{{true}}" circular="{{true}}" class="swiperImg data-v-4abb0f5a" indicatorActiveColor="#4E86F7" indicatorColor="rgba(199, 209, 236, 1)" indicatorDots="{{true}}" style="{{'height:'+height+';'}}">
+    <swiper-item class="swiperItem data-v-4abb0f5a" wx:for="{{imgList}}" wx:for-index="__i0__" wx:key="id">
+        <view bindtap="__e" class="imgBox data-v-4abb0f5a" data-event-opts="{{[ [ 'tap',[ [ 'toDetail',['$0'],[ [ ['imgList','id',item.id,'id'] ] ] ] ] ] ]}}">
+            <image alt class="myImg data-v-4abb0f5a" mode="widthFix" src="{{item.imgUrl}}" style="width:100%;"></image>
+        </view>
+    </swiper-item>
+</swiper>

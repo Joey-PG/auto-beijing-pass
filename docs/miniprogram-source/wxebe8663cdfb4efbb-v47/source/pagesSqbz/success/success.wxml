@@ -1,0 +1,12 @@
+<view class="container">
+    <view class="top">
+        <image mode class="img" src="../static/icon.png"></image>
+        <view class="title">申请已提交</view>
+        <view class="waiter">请您耐心等待审核</view>
+        <view bindtap="__e" class="btn" data-event-opts="{{[ [ 'tap',[ [ 'beConfirm',['$event'] ] ] ] ]}}">确定</view>
+    </view>
+    <view class="bottom" wx:if="{{$root.g0}}">
+        <view class="content" wx:for="{{cgts}}" wx:for-index="k" wx:for-item="i" wx:key="k">{{i}}</view>
+    </view>
+    <view class="border-content" wx:if="{{tcqfts}}">{{tcqfts}}</view>
+</view>

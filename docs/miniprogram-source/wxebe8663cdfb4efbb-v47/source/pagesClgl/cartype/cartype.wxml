@@ -1,0 +1,6 @@
+<view class="container">
+    <uni-search-bar bgColor="white" bind:__l="__l" bind:input="__e" data-event-opts="{{[ [ '^input',[ [ '__set_model',[ '','searchValue','$event',[] ] ],['search'] ] ] ]}}" placeholder="请输入车辆类型查询" value="{{searchValue}}" vueId="ba80ca18-1"></uni-search-bar>
+    <scroll-view class="scroll" scrollY="true">
+        <view bindtap="__e" class="{{[item.zdbm==selectType.zdbm?'cell cell-selected':'cell']}}" data-event-opts="{{[ [ 'tap',[ [ 'confirmType',['$0'],[ [ ['showList','',index] ] ] ] ] ] ]}}" wx:for="{{showList}}">{{item.zdz}}</view>
+    </scroll-view>
+</view>

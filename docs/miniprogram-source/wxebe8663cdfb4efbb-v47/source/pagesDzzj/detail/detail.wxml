@@ -1,0 +1,35 @@
+<view class="container">
+    <view wx:if="{{dzzj}}">
+        <view class="title">{{obj.jjzzl=='01'?'进京证六环内':'进京证六环外'}}</view>
+        <view>
+            <text class="smallTile">{{obj.zjqyms}}</text>
+        </view>
+        <view class="dzzjCodeUrl">
+            <view bindtap="__e" class="rotate" data-event-opts="{{[ [ 'tap',[ [ 'rotateImg',['$event'] ] ] ] ]}}">
+                <image mode class="rotateImg" src="../static/rotate.png"></image>
+                <text>翻转</text>
+            </view>
+            <image animation="{{animationData}}" bindtap="__e" class="zj-image" data-event-opts="{{[ [ 'tap',[ [ 'preImg',['$event'] ] ] ] ]}}" src="{{img1}}"></image>
+            <image animation="{{animationData2}}" bindtap="__e" class="zj-image-back" data-event-opts="{{[ [ 'tap',[ [ 'preImg',['$event'] ] ] ] ]}}" src="{{img2}}"></image>
+        </view>
+        <view wx:if="{{!(obj.blzt==3||obj.blzt==7)&&isButton}}">
+            <view class="wxts">{{obj.xxts+''}}</view>
+            <view class="btn">
+                <view bindtap="__e" class="history" data-event-opts="{{[ [ 'tap',[ [ 'historyCard',['$event'] ] ] ] ]}}">历史证件</view>
+                <view bindtap="__e" class="download" data-event-opts="{{[ [ 'tap',[ [ 'download',['$event'] ] ] ] ]}}">下载纸质版</view>
+            </view>
+            <button bindtap="__e" class="default" data-event-opts="{{[ [ 'tap',[ [ 'handle',['$event'] ] ] ] ]}}" disabled="{{isHandle}}" wx:if="{{obj.blzt==6}}">取消申请</button>
+            <view class="bottom">
+                <view class="time">{{'更新于'+time+''}}<image mode bindtap="__e" class="{{[rotate?' go':'  aa','refresh']}}" data-event-opts="{{[ [ 'tap',[ [ 'refresh',['$event'] ] ] ] ]}}" src="../../static/bzzx/refresh.png"></image>
+                </view>
+                <image bindtap="__e" class="scanner" data-event-opts="{{[ [ 'tap',[ [ 'LookqcCodeUrl',['$event'] ] ] ] ]}}" src="{{qcCodeUrl}}"></image>
+                <view class="content">检查时请出示二维码图案，核验进京证信息</view>
+            </view>
+        </view>
+    </view>
+    <view class="noneDzzj" wx:else>
+        <image class="dzzjImg" mode="scaleToFill" src="../static/zwjl.png"></image>
+        <view class="szzjText">{{text}}</view>
+        <view bindtap="__e" class="noneDzzjbtn" data-event-opts="{{[ [ 'tap',[ [ 'historyCard',['$event'] ] ] ] ]}}" wx:if="{{btnShow}}">历史证件</view>
+    </view>
+</view>

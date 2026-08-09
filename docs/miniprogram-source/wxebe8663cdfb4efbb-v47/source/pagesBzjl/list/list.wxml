@@ -1,0 +1,59 @@
+<view class="container">
+    <view wx:if="{{$root.g0>0}}">
+        <view style="margin-bottom:20rpx;" wx:for="{{$root.l0}}" wx:for-index="k" wx:for-item="i" wx:key="k">
+            <view bindtap="__e" class="header" data-event-opts="{{[ [ 'tap',[ [ 'goCarList',['$0'],['carArr.'+k+''] ] ] ] ]}}">
+                <view class="cphm">{{i.g1}}</view>
+                <view class="car-view-info">
+                    <view class="car-view-info-item">
+                        <view class="car-view-info-item-count">{{i[$orig].ybcs||0}}</view>
+                        <view class="car-view-info-item-tip">已办次数</view>
+                    </view>
+                    <view class="car-view-info-item">
+                        <view class="car-view-info-item-count">{{i[$orig].kjts||0}}</view>
+                        <view class="car-view-info-item-tip">扣减天数</view>
+                    </view>
+                    <view class="car-view-info-item">
+                        <view class="car-view-info-item-count">{{i[$orig].sycs||0}}</view>
+                        <view class="car-view-info-item-tip">剩余次数</view>
+                    </view>
+                </view>
+            </view>
+            <view class="scroll">
+                <view bindtap="__e" class="cell" data-event-opts="{{[ [ 'tap',[ [ 'detailAction',['$0'],['carArr.'+k+'.bzxx'] ] ] ] ]}}" wx:if="{{i[$orig].bzxx.jsrxm}}">
+                    <view class="seperator"></view>
+                    <view class="item">
+                        <text class="title">驾驶员姓名</text>
+                        <text class="detail">{{i[$orig].bzxx.jsrxm}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">拟进京日期</text>
+                        <text class="detail">{{i[$orig].bzxx.yxqs}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">进京证种类</text>
+                        <text class="detail">{{i[$orig].bzxx.jjzzlmc}}</text>
+                    </view>
+                    <view class="seperator seperator-line"></view>
+                    <view class="item">
+                        <text class="title">办理状态</text>
+                        <text class="detail" style="color:#139685;" wx:if="{{i[$orig].bzxx.blzt==1}}">审核通过（生效中）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{i[$orig].bzxx.blzt==2}}">已取消</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{i[$orig].bzxx.blzt==3}}">审核通过（已失效）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{i[$orig].bzxx.blzt==4}}">失败（审核不通过）</text>
+                        <text class="detail" style="color:#4E86F7;" wx:if="{{i[$orig].bzxx.blzt==5}}">审核中</text>
+                        <text class="detail" style="color:#139685;" wx:if="{{i[$orig].bzxx.blzt==6}}">审核通过（待生效）</text>
+                        <text class="detail" style="color:#E7792E;" wx:if="{{i[$orig].bzxx.blzt==7}}">审核通过（已作废）</text>
+                        <text class="detail" style="color:#4E86F7;" wx:if="{{i[$orig].bzxx.blzt==8}}">取消办理中</text>
+                    </view>
+                    <view class="seperator"></view>
+                </view>
+            </view>
+        </view>
+    </view>
+    <view class="noneDzzj" wx:else>
+        <image class="dzzjImg" mode="scaleToFill" src="../../static/common/empty.png"></image>
+        <view class="szzjTexts">未添加车辆信息</view>
+    </view>
+</view>

@@ -1,0 +1,4 @@
+<view class="data-v-a113674c">
+    <web-view class="data-v-a113674c" src="{{url}}"></web-view>
+    <cover-view class="bottom-view data-v-a113674c">本服务由北京市公安局交通管理局提供</cover-view>
+</view>

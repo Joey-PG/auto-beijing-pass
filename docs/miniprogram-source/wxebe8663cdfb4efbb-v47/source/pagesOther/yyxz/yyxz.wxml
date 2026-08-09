@@ -1,0 +1,11 @@
+<view class="data-v-1d49f84c">
+    <web-view class="data-v-1d49f84c" src="{{url}}">
+        <cover-view class="bottom data-v-1d49f84c">
+            <cover-view class="box data-v-1d49f84c">
+                <cover-view bindtap="__e" class="left data-v-1d49f84c" data-event-opts="{{[ [ 'tap',[ [ 'cancelPrivacy',['$event'] ] ] ] ]}}">取消</cover-view>
+                <cover-view bindtap="__e" class="right data-v-1d49f84c" data-event-opts="{{[ [ 'tap',[ [ 'confirmPrivacy',['$event'] ] ] ] ]}}">同意</cover-view>
+            </cover-view>
+            <cover-view class="data-v-1d49f84c" style="width:100%;height:30rpx;background:#FFFFFF;"></cover-view>
+        </cover-view>
+    </web-view>
+</view>

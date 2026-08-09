@@ -1,0 +1,4 @@
+<view bindtap="__e" class="{{['data-v-c0f8de2a',true?'viewText':'',isRed?'red':'']}}" data-event-opts="{{[ [ 'tap',[ [ 'toDetail',['$event'] ] ] ] ]}}">
+    <view class="textBox data-v-c0f8de2a">点击查看电子证件</view>
+    <view class="signBox data-v-c0f8de2a"></view>
+</view>

@@ -1,0 +1,117 @@
+<view class="container">
+    <swiper-image bind:__l="__l" vueId="5041f700-1"></swiper-image>
+    <view class="content_bg">
+        <view class="content">
+            <swiper circular="{{true}}" class="swiper" indicatorActiveColor="#4E86F7" indicatorColor="rgba(199, 209, 236, 1)" indicatorDots="{{true}}" wx:if="{{$root.g0}}">
+                <swiper-item wx:for="{{$root.l0}}" wx:key="index">
+                    <view class="car-view">
+                        <view class="car-view-top">
+                            <view class="car-cphm">{{item[$orig].show?item[$orig].hphm:item[$orig].showHphm}}</view>
+                            <image bindtap="__e" class="car-eye" data-event-opts="{{[ [ 'tap',[ [ 'showCarInfo',[index] ] ] ] ]}}" mode="aspectFit" src="{{item[$orig].show?'/static/bzzx/bzzx_eye_open.png':'/static/bzzx/bzzx_eye_closed.png'}}"></image>
+                        </view>
+                        <view class="car-view-info">
+                            <view class="car-view-info-item">
+                                <view class="car-view-info-item-count">{{item[$orig].ybcs?item[$orig].ybcs:'0'}}</view>
+                                <view class="car-view-info-item-tip">已办次数</view>
+                            </view>
+                            <view class="car-view-info-item">
+                                <view class="car-view-info-item-count">{{item[$orig].kjts?item[$orig].kjts:'0'}}</view>
+                                <view class="car-view-info-item-tip">扣减天数</view>
+                            </view>
+                            <view class="car-view-info-item">
+                                <view class="car-view-info-item-count">{{item[$orig].sycs?item[$orig].sycs:'0'}}</view>
+                                <view class="car-view-info-item-tip">剩余次数</view>
+                            </view>
+                        </view>
+                        <block wx:if="{{item[$orig].bzxx&&item[$orig].bzxx.blzt==1}}">
+                            <view class="imgBox">
+                                <view-text bind:__l="__l" clickItem="{{item[$orig]}}" viewCerAction="{{viewCerAction}}" vueId="{{'5041f700-2-'+index}}"></view-text>
+                                <image bindtap="__e" class="car-view-sqbz-image" data-event-opts="{{[ [ 'tap',[ [ 'viewCerAction',['$0'],[ [ ['carList','',index] ] ] ] ] ] ]}}" mode="aspectFit" src="{{item.m0}}"></image>
+                            </view>
+                            <view class="{{[item[$orig].zjkb||item[$orig].ecztbz==1?'':'car-view-bottom-item']}}">
+                                <text class="car-view-text-gray">生效日期：</text>
+                                <text class="car-view-text-blue">{{item[$orig].bzxx.sxrqmc}}</text>
+                                <text class="car-view-text-gray">，有效期至：</text>
+                                <text class="car-view-text-red">{{item[$orig].bzxx.sxrzmc}}</text>
+                            </view>
+                            <block wx:if="{{item[$orig].ecbzxx&&item[$orig].ecbzxx[0]}}">
+                                <view class="apply-text" wx:if="{{item[$orig].ecbzxx[0].blzt==5}}">
+                                    <text bindtap="__e" class="apply-text-new" data-event-opts="{{[ [ 'tap',[ [ 'goSqjd',['$0'],[ [ ['carList','',index,'ecbzxx'] ] ] ] ] ] ]}}">[最新申请]</text>
+                                    <text>申请中，请耐心等待审核结果。</text>
+                                </view>
+                                <view class="apply-text overhidden" wx:if="{{item[$orig].ecbzxx[0].blzt==4}}">
+                                    <text class="apply-text-new">[最新申请]</text>
+                                    <text class="apply-text-red">{{item[$orig].ecbzxx[0].shsbyyms}}</text>
+                                </view>
+                                <view class="apply-text" wx:if="{{item[$orig].ecbzxx[0].blzt==6}}">
+                                    <text class="apply-text-new">[最新申请]</text>
+                                    <text>申请成功，生效日期：</text>
+                                    <text class="apply-text-blue">{{item.m1}}</text>
+                                </view>
+                            </block>
+                            <block wx:if="{{!item.g1}}">
+                                <button bindtap="__e" class="car-view-sqbz car-view-bottom-item" data-event-opts="{{[ [ 'tap',[ [ 'sqbzAction',['$0'],[ [ ['carList','',index] ] ] ] ] ] ]}}" disabled="{{isShenqing}}" wx:if="{{item[$orig].zjkb&&(item[$orig].ecztbz==null||item[$orig].ecztbz==2)}}">申请办证</button>
+                            </block>
+                        </block>
+                        <block wx:else>
+                            <block wx:if="{{item[$orig].bzxx&&item[$orig].bzxx.blzt==4}}">
+                                <image class="car-view-sqbz-image" mode="aspectFit" src="/static/bzzx/bzzx_shsb.png"></image>
+                                <view class="{{[item[$orig].zjkb?'car-view-text-tip':'car-view-text-tip car-view-bottom-item']}}" style="color:red;">{{''+(item[$orig].bnbzyy?item[$orig].bnbzyy:'')+''}}</view>
+                                <button bindtap="__e" class="car-view-sqbz car-view-bottom-item" data-event-opts="{{[ [ 'tap',[ [ 'sqbzAction',['$0'],[ [ ['carList','',index] ] ] ] ] ] ]}}" disabled="{{isShenqing}}" wx:if="{{item[$orig].zjkb}}">申请办证</button>
+                            </block>
+                            <block wx:else>
+                                <block wx:if="{{item[$orig].bzxx&&item[$orig].bzxx.blzt==5}}">
+                                    <image class="car-view-sqbz-image" mode="aspectFit" src="/static/bzzx/bzzx_shz.png"></image>
+                                    <view class="car-view-text-tip car-view-bottom-item">{{''+(item[$orig].bnbzyy?item[$orig].bnbzyy:'')+''}}</view>
+                                </block>
+                                <block wx:else>
+                                    <block wx:if="{{item[$orig].bzxx&&item[$orig].bzxx.blzt==6}}">
+                                        <image class="car-view-sqbz-image" mode="aspectFit" src="/static/bzzx/bzzx_dsx.png"></image>
+                                        <view class="car-view-bottom-item">
+                                            <text class="car-view-text-gray">生效日期：</text>
+                                            <text class="car-view-text-blue">{{item[$orig].bzxx.sxrqmc}}</text>
+                                            <text class="car-view-text-gray">，有效期至：</text>
+                                            <text class="car-view-text-red">{{item[$orig].bzxx.sxrzmc}}</text>
+                                        </view>
+                                    </block>
+                                    <block wx:else>
+                                        <block wx:if="{{item[$orig].bzxx&&item[$orig].bzxx.blzt==8}}">
+                                            <image class="car-view-sqbz-image" mode="aspectFit" src="/static/bzzx/bzzx_qxblz.png"></image>
+                                            <view class="car-view-text-tip car-view-bottom-item">{{''+(item[$orig].bnbzyy?item[$orig].bnbzyy:'')+''}}</view>
+                                        </block>
+                                        <block wx:else>
+                                            <image class="car-view-sqbz-image" mode="aspectFit" src="{{item[$orig].bzxx.blzt===2?'/static/bzzx/bzzx_qxcg.jpg':'/static/bzzx/bzzx_jjz.png'}}"></image>
+                                            <view class="{{[item[$orig].zjkb?'car-view-text-tip':'car-view-text-tip car-view-bottom-item']}}">{{''+(item[$orig].bnbzyy?item[$orig].bnbzyy:'')+''}}</view>
+                                            <button bindtap="__e" class="car-view-sqbz car-view-bottom-item" data-event-opts="{{[ [ 'tap',[ [ 'sqbzAction',['$0'],[ [ ['carList','',index] ] ] ] ] ] ]}}" disabled="{{isShenqing}}" wx:if="{{item[$orig].zjkb}}">申请办证</button>
+                                        </block>
+                                    </block>
+                                </block>
+                            </block>
+                        </block>
+                    </view>
+                </swiper-item>
+            </swiper>
+            <block wx:else>
+                <text class="no-car-title">暂无车辆</text>
+                <text class="no-car-detail">请点击添加非京牌车辆</text>
+                <image class="no-car-image" mode="aspectFit" src="/static/bzzx/bzzx_empty.png"></image>
+                <image bindtap="__e" class="no-car-add" data-event-opts="{{[ [ 'tap',[ [ 'addCar',['$event'] ] ] ] ]}}" mode="aspectFit" src="/static/bzzx/bzzx_add.png"></image>
+            </block>
+        </view>
+    </view>
+    <view class="bottom_view">
+        <uni-grid bind:__l="__l" bind:change="__e" column="{{4}}" data-event-opts="{{[ [ '^change',[ ['clickGrid'] ] ] ]}}" showBorder="{{false}}" vueId="5041f700-3" vueSlots="{{['default']}}">
+            <uni-grid-item bind:__l="__l" index="{{index}}" vueId="{{'5041f700-4-'+index+','+'5041f700-3'}}" vueSlots="{{['default']}}" wx:for="{{items}}" wx:key="index">
+                <view class="item">
+                    <view class="item_image_bg" style="{{'background:'+item.color+';'}}">
+                        <image class="item_image" mode="aspectFit" src="{{item.icon}}"></image>
+                    </view>
+                    <text class="item_title">{{item.title}}</text>
+                </view>
+            </uni-grid-item>
+        </uni-grid>
+    </view>
+    <desc-popup bind:__l="__l" vueId="5041f700-5" wx:if="{{openPopup}}"></desc-popup>
+    <auth-upgrade-popup bind:__l="__l" vueId="5041f700-6"></auth-upgrade-popup>
+    <my-toast bind:__l="__l" testData="{{testData}}" vueId="5041f700-7" wx:if="{{testData}}"></my-toast>
+</view>

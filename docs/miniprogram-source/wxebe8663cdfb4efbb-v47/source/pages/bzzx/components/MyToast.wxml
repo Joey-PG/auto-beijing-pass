@@ -1,0 +1,3 @@
+<view class="myToast _div data-v-8549fa1c">
+    <view class="textData _div data-v-8549fa1c">{{''+testData+''}}</view>
+</view>

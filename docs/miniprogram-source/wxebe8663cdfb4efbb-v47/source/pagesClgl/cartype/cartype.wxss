@@ -1,0 +1,20 @@
+.scroll {
+    -webkit-flex: 1;
+    flex: 1;
+    height: 1rpx
+}
+
+.scroll .cell {
+    background: #fff;
+    border-radius: 10rpx;
+    color: #333;
+    font-size: 28rpx;
+    font-weight: 400;
+    margin: 20rpx;
+    padding: 20rpx
+}
+
+.scroll .cell-selected {
+    border: 1rpx solid #4e86f7;
+    border-radius: 10rpx
+}

@@ -1,0 +1,44 @@
+<view class="container _div data-v-09ebe5e0">
+    <view class="data-v-09ebe5e0">
+        <view class="select-item data-v-09ebe5e0">
+            <text class="title-text data-v-09ebe5e0">
+                <text class="important-text data-v-09ebe5e0">*</text>车辆是否已在京</text>
+            <radio-group bindchange="__e" class="detail-text data-v-09ebe5e0" data-event-opts="{{[ [ 'change',[ [ 'change',['$event'] ] ] ] ]}}" style="margin-right:40rpx;">
+                <radio checked="{{sfzj==='1'}}" class="radio data-v-09ebe5e0" value="1">是</radio>
+                <radio checked="{{sfzj==='0'}}" class="radio data-v-09ebe5e0" style="margin-left:40rpx;" value="0">否</radio>
+            </radio-group>
+        </view>
+        <view class="seperator-line data-v-09ebe5e0"></view>
+        <block wx:if="{{sfzj=='0'}}">
+            <view class="select-item data-v-09ebe5e0">
+                <text class="title-text data-v-09ebe5e0">
+                    <text class="important-text data-v-09ebe5e0">*</text>选择进京道路</text>
+                <text class="detail-text data-v-09ebe5e0">{{jjlk?jjlk.zdz||'请选择进京道路':'请选择进京道路'}}</text>
+                <uni-icons bind:__l="__l" class="forward data-v-09ebe5e0" color="#999" size="15" type="forward" vueId="663815f6-1"></uni-icons>
+            </view>
+            <view class="pop-container data-v-09ebe5e0">
+                <view class="jjlk-content data-v-09ebe5e0" wx:if="{{jjlkArea}}">
+                    <scroll-view class="jjlk-area data-v-09ebe5e0" scrollY="{{true}}">
+                        <view bindtap="__e" class="{{['data-v-09ebe5e0',jjlkArea&&jjlkArea.zdbm==item.zdbm?'jjlk-area-item jjlk-area-item-selected':'jjlk-area-item']}}" data-event-opts="{{[ [ 'tap',[ [ 'jjlkAreaAction',['$0'],[ [ ['jjlkList','',index] ] ] ] ] ] ]}}" wx:for="{{jjlkList}}" wx:key="index">{{item.zdz}}</view>
+                    </scroll-view>
+                    <scroll-view class="jjlk-road data-v-09ebe5e0" scrollY="{{true}}">
+                        <view bindtap="__e" class="{{['data-v-09ebe5e0',jjlk&&jjlk.zdbm==item.zdbm?'jjlk-road-item jjlk-road-item-selected':'jjlk-road-item']}}" data-event-opts="{{[ [ 'tap',[ [ 'jjlkRoadAction',['$0'],[ [ ['jjlkArea.zdzj','',index] ] ] ] ] ] ]}}" wx:for="{{jjlkArea.zdzj}}" wx:key="index">{{item.zdz}}</view>
+                    </scroll-view>
+                </view>
+            </view>
+            <view bindtap="__e" class="map-item data-v-09ebe5e0" data-event-opts="{{[ [ 'tap',[ [ 'handleClick',['jjdl'] ] ] ] ]}}" wx:if="{{sfzj=='0'}}">
+                <view class="data-v-09ebe5e0"></view>以上道路均不符，从地图选择<image class="location data-v-09ebe5e0" mode="aspectFit" src="/pagesSqbz/static/location.png"></image>
+            </view>
+        </block>
+        <view bindtap="__e" class="select-item data-v-09ebe5e0" data-event-opts="{{[ [ 'tap',[ [ 'addressSelect',['$event'] ] ] ] ]}}" wx:if="{{sfzj=='1'}}">
+            <text class="title-text data-v-09ebe5e0">
+                <text class="important-text data-v-09ebe5e0">*</text>在京详细地址</text>
+            <text class="detail-text data-v-09ebe5e0">{{zjInfo.zjxxdz?zjInfo.zjxxdz:'请选择在京详细地址'}}</text>
+            <uni-icons bind:__l="__l" class="forward data-v-09ebe5e0" color="#999" size="15" type="forward" vueId="663815f6-2"></uni-icons>
+        </view>
+        <view class="seperator-line data-v-09ebe5e0"></view>
+    </view>
+    <view bindtap="__e" class="next-button data-v-09ebe5e0" data-event-opts="{{[ [ 'tap',[ [ 'handleSubmit',['$event'] ] ] ] ]}}">
+        <text class="next-text data-v-09ebe5e0">确 认</text>
+    </view>
+</view>

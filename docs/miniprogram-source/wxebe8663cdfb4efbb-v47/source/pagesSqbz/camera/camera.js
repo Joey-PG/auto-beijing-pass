@@ -1,0 +1,270 @@
+(global.webpackJsonp = global.webpackJsonp || []).push([
+  ["pagesSqbz/camera/camera"], {
+    361:
+      /*!********************************************************************************************!*\
+        !*** /Users/huazhijie/Desktop/工作/进京证/外网/WX/main.js?{"page":"pagesSqbz%2Fcamera%2Fcamera"} ***!
+        \********************************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {
+        "use strict";
+        (function(e, t) {
+          var a = n( /*! @babel/runtime/helpers/interopRequireDefault */ 4);
+          n( /*! uni-pages */ 26);
+          a(n( /*! vue */ 25));
+          var r = a(n( /*! ./pagesSqbz/camera/camera.vue */ 362));
+          e.__webpack_require_UNI_MP_PLUGIN__ = n, t(r.default)
+        }).call(this, n( /*! ./node_modules/@dcloudio/uni-mp-weixin/dist/wx.js */ 1).default, n( /*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2).createPage)
+      },
+    362:
+      /*!*************************************************************************!*\
+        !*** /Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue ***!
+        \*************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {
+        "use strict";
+        n.r(t);
+        var a = n( /*! ./camera.vue?vue&type=template&id=7419ae08& */ 363),
+          r = n( /*! ./camera.vue?vue&type=script&lang=js& */ 365);
+        for (var o in r)["default"].indexOf(o) < 0 && function(e) {
+          n.d(t, e, (function() {
+            return r[e]
+          }))
+        }(o);
+        n( /*! ./camera.vue?vue&type=style&index=0&lang=scss& */ 367);
+        var c = n( /*! ../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib/runtime/componentNormalizer.js */ 35),
+          u = Object(c.default)(r.default, a.render, a.staticRenderFns, !1, null, null, null, !1, a.components, void 0);
+        u.options.__file = "pagesSqbz/camera/camera.vue", t.default = u.exports
+      },
+    363:
+      /*!********************************************************************************************************!*\
+        !*** /Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=template&id=7419ae08& ***!
+        \********************************************************************************************************/
+      /*! exports provided: render, staticRenderFns, recyclableRender, components */
+      function(e, t, n) {
+        "use strict";
+        n.r(t);
+        var a = n( /*! -!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--17-0!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/webpack-uni-mp-loader/lib/template.js!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-uni-app-loader/page-meta.js!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!./camera.vue?vue&type=template&id=7419ae08& */ 364);
+        n.d(t, "render", (function() {
+          return a.render
+        })), n.d(t, "staticRenderFns", (function() {
+          return a.staticRenderFns
+        })), n.d(t, "recyclableRender", (function() {
+          return a.recyclableRender
+        })), n.d(t, "components", (function() {
+          return a.components
+        }))
+      },
+    364:
+      /*!********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+        !*** ./node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--17-0!./node_modules/@dcloudio/webpack-uni-mp-loader/lib/template.js!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-uni-app-loader/page-meta.js!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!./node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!/Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=template&id=7419ae08& ***!
+        \********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+      /*! exports provided: render, staticRenderFns, recyclableRender, components */
+      function(e, t, n) {
+        "use strict";
+        n.r(t), n.d(t, "render", (function() {
+          return a
+        })), n.d(t, "staticRenderFns", (function() {
+          return o
+        })), n.d(t, "recyclableRender", (function() {
+          return r
+        })), n.d(t, "components", (function() {}));
+        var a = function() {
+            var e = this.$createElement;
+            this._self._c
+          },
+          r = !1,
+          o = [];
+        a._withStripped = !0
+      },
+    365:
+      /*!**************************************************************************************************!*\
+        !*** /Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=script&lang=js& ***!
+        \**************************************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {
+        "use strict";
+        n.r(t);
+        var a = n( /*! -!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/babel-loader/lib!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--13-1!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/webpack-uni-mp-loader/lib/script.js!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!./camera.vue?vue&type=script&lang=js& */ 366),
+          r = n.n(a);
+        for (var o in a)["default"].indexOf(o) < 0 && function(e) {
+          n.d(t, e, (function() {
+            return a[e]
+          }))
+        }(o);
+        t.default = r.a
+      },
+    366:
+      /*!*********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+        !*** ./node_modules/babel-loader/lib!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--13-1!./node_modules/@dcloudio/webpack-uni-mp-loader/lib/script.js!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!./node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!/Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=script&lang=js& ***!
+        \*********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {
+        "use strict";
+        (function(e) {
+          var a = n( /*! @babel/runtime/helpers/interopRequireDefault */ 4);
+          Object.defineProperty(t, "__esModule", {
+            value: !0
+          }), t.default = void 0;
+          var r = a(n( /*! @babel/runtime/regenerator */ 30)),
+            o = a(n( /*! @babel/runtime/helpers/asyncToGenerator */ 32)),
+            c = {
+              data: function() {
+                return {
+                  devPosition: "back",
+                  viewH: 0,
+                  btmH: 0,
+                  authCamera: !1,
+                  src: null
+                }
+              },
+              onLoad: function(e) {},
+              onShow: function() {
+                var t = this;
+                e.authorize({
+                  scope: "scope.camera",
+                  success: function(e) {
+                    t.authCamera = !0
+                  },
+                  fail: function(n) {
+                    t.authCamera = !1, e.showModal({
+                      content: "进京证需要您的相机授权才能访问摄像头",
+                      confirmText: "确定",
+                      cancelText: "取消",
+                      success: function(n) {
+                        n.confirm && e.openSetting({
+                          success: function(n) {
+                            n.authSetting["scope.camera"] ? t.authCamera = !0 : e.showToast({
+                              title: "未授权",
+                              icon: "none"
+                            })
+                          },
+                          fail: function(e) {}
+                        })
+                      }
+                    })
+                  }
+                })
+              },
+              created: function() {
+                var t = this,
+                  n = e.getSystemInfoSync().windowHeight;
+                this.viewH = n, e.createSelectorQuery().select(".view_cont_btm").boundingClientRect((function(e) {
+                  t.btmH = e.height
+                })).exec()
+              },
+              methods: {
+                takePhoto: function() {
+                  var t = this;
+                  e.showLoading({
+                    title: "识别中.."
+                  }), e.createCameraContext().takePhoto({
+                    quality: "high",
+                    success: function(e) {
+                      t.src = e.tempImagePath, t.uploadImage()
+                    },
+                    complete: function() {}
+                  })
+                },
+                chooseImg: function() {
+                  var t = this;
+                  e.chooseImage({
+                    count: 1,
+                    sourceType: ["album"],
+                    success: function(e) {
+                      t.src = e.tempFilePaths[0], t.uploadImage()
+                    }
+                  })
+                },
+                uploadImage: function() {
+                  var t = this;
+                  return (0, o.default)(r.default.mark((function n() {
+                    var a, o, c;
+                    return r.default.wrap((function(n) {
+                      for (;;) switch (n.prev = n.next) {
+                        case 0:
+                          if (t.src) {
+                            n.next = 2;
+                            break
+                          }
+                          return n.abrupt("return", e.showToast({
+                            title: "请先拍照"
+                          }));
+                        case 2:
+                          return n.next = 4, t.$myUpload({
+                            url: "/jjzOcrController/ocr/2",
+                            filePath: t.src
+                          });
+                        case 4:
+                          if (a = n.sent, o = JSON.parse(a), console.log("扫描结果"), console.log(o), 200 !== o.code) {
+                            n.next = 18;
+                            break
+                          }
+                          if (console.log("" != o.data.驾驶证号 && "" != o.data.姓名), "" == o.data.jszh || "" == o.data.jszh) {
+                            n.next = 15;
+                            break
+                          }
+                          c = {
+                            src: t.src,
+                            jszh: o.data.jszh,
+                            xm: o.data.xm,
+                            jsz: o.data.ocrSavePath
+                          }, e.navigateTo({
+                            url: "/pagesSqbz/scanResult/scanResult?item=" + encodeURIComponent(JSON.stringify(c))
+                          }), n.next = 16;
+                          break;
+                        case 15:
+                          return n.abrupt("return", e.showToast({
+                            title: "请重新尝试",
+                            icon: "none",
+                            duration: 1e3
+                          }));
+                        case 16:
+                          n.next = 20;
+                          break;
+                        case 18:
+                          return console.log("识别失败、"), n.abrupt("return", e.showToast({
+                            title: o.msg,
+                            icon: "none",
+                            duration: 1e3
+                          }));
+                        case 20:
+                        case "end":
+                          return n.stop()
+                      }
+                    }), n)
+                  })))()
+                },
+                init: function(e) {}
+              }
+            };
+          t.default = c
+        }).call(this, n( /*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2).default)
+      },
+    367:
+      /*!***********************************************************************************************************!*\
+        !*** /Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=style&index=0&lang=scss& ***!
+        \***********************************************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {
+        "use strict";
+        n.r(t);
+        var a = n( /*! -!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/mini-css-extract-plugin/dist/loader.js??ref--8-oneOf-1-0!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/cjs.js??ref--8-oneOf-1-1!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib/loaders/stylePostLoader.js!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--8-oneOf-1-2!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/postcss-loader/src??ref--8-oneOf-1-3!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/sass-loader/dist/cjs.js??ref--8-oneOf-1-4!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--8-oneOf-1-5!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!../../../../../../../../../Applications/HBuilderX.app/Contents/HBuilderX/plugins/uniapp-cli/node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!./camera.vue?vue&type=style&index=0&lang=scss& */ 368),
+          r = n.n(a);
+        for (var o in a)["default"].indexOf(o) < 0 && function(e) {
+          n.d(t, e, (function() {
+            return a[e]
+          }))
+        }(o);
+        t.default = r.a
+      },
+    368:
+      /*!***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+        !*** ./node_modules/mini-css-extract-plugin/dist/loader.js??ref--8-oneOf-1-0!./node_modules/css-loader/dist/cjs.js??ref--8-oneOf-1-1!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--8-oneOf-1-2!./node_modules/postcss-loader/src??ref--8-oneOf-1-3!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/sass-loader/dist/cjs.js??ref--8-oneOf-1-4!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/webpack-preprocess-loader??ref--8-oneOf-1-5!./node_modules/@dcloudio/vue-cli-plugin-uni/packages/vue-loader/lib??vue-loader-options!./node_modules/@dcloudio/webpack-uni-mp-loader/lib/style.js!/Users/huazhijie/Desktop/工作/进京证/外网/WX/pagesSqbz/camera/camera.vue?vue&type=style&index=0&lang=scss& ***!
+        \***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+      /*! no static exports found */
+      function(e, t, n) {}
+  },
+  [
+    [361, "common/runtime", "common/vendor"]
+  ]
+]);

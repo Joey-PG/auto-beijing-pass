@@ -1,0 +1,115 @@
+{
+  "entryPagePath": "pages/bzzx/bzzx",
+  "pages": [
+    "pages/bzzx/bzzx",
+    "pages/lsdl/dlxz",
+    "pages/lsdl/lsdl",
+    "pages/bzzx/jjzsm",
+    "pages/login/login",
+    "pages/bzzx/quitPage"
+  ],
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将授权进京证小程序"
+    }
+  },
+  "preloadRule": {
+    "pages/bzzx/bzzx": {
+      "network": "all",
+      "packages": [
+        "pagesBzc",
+        "pagesBzjl",
+        "pagesClgl",
+        "pagesDzzj",
+        "pagesOther",
+        "pagesSqbz"
+      ]
+    }
+  },
+  "renderer": "webview",
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "componentFramework": "exparser",
+  "window": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "进京证",
+    "navigationBarBackgroundColor": "#4E86F7",
+    "backgroundColor": "#F8F8F8"
+  },
+  "subPackages": [
+    {
+      "root": "pagesBzc/",
+      "pages": [
+        "list/list",
+        "detail/detail"
+      ]
+    },
+    {
+      "root": "pagesBzjl/",
+      "pages": [
+        "list/list",
+        "detail/detail",
+        "listDetail/listDetail"
+      ]
+    },
+    {
+      "root": "pagesClgl/",
+      "pages": [
+        "list/list",
+        "detail/detail",
+        "add/add",
+        "edit/edit",
+        "camera/camera",
+        "cartype/cartype",
+        "scanResult/scanResult",
+        "cllx/cllx",
+        "CartypeDetail"
+      ]
+    },
+    {
+      "root": "pagesDzzj/",
+      "pages": [
+        "list/list",
+        "detail/detail"
+      ]
+    },
+    {
+      "root": "pagesOther/",
+      "pages": [
+        "bzzx/bzzx",
+        "bzzx/detail",
+        "yyxz/yyxz",
+        "yhxy/yhxy",
+        "yszc/yszc",
+        "sz/sz",
+        "sz/edit",
+        "zcgd/zcgd",
+        "xxzc/xxzc",
+        "sygd/sygd",
+        "blgd/blgd",
+        "jthbjc/jthbjc",
+        "roadDetail/index",
+        "commonWebview/index"
+      ]
+    },
+    {
+      "root": "pagesSqbz/",
+      "pages": [
+        "certype/certype",
+        "sqbz/sqbz",
+        "jjxx/jjxx",
+        "jjxx/JjLine",
+        "jjxx/ChooseZjaddress",
+        "jjxx/ChooseLine",
+        "mdd/mdd",
+        "camera/camera",
+        "success/success",
+        "scanResult/scanResult",
+        "chooseLocation/chooseLocation"
+      ]
+    }
+  ],
+  "plugins": {}
+}

@@ -1,0 +1,116 @@
+.text {
+    color: #999;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    padding-top: 40rpx;
+    text-align: center
+}
+
+.scroll {
+    -webkit-flex: 1;
+    flex: 1
+}
+
+.cell {
+    background-color: #fff;
+    margin-top: 20rpx
+}
+
+.cell .seperator {
+    background-color: #e1e1e1;
+    height: 1rpx;
+    margin-left: 0rpx;
+    margin-right: 0rpx
+}
+
+.cell .seperator-line {
+    margin-left: 30rpx
+}
+
+.cell .item {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    padding: 20rpx 0
+}
+
+.cell .item .title {
+    color: #333;
+    font-size: 28rpx;
+    font-weight: 400;
+    margin-left: 30rpx;
+    width: 30%
+}
+
+.cell .item .detail {
+    color: #999;
+    font-size: 28rpx;
+    font-weight: 400;
+    margin-right: 30rpx;
+    text-align: right;
+    width: 70%
+}
+
+.cell .item .shz-text {
+    color: #4e86f7
+}
+
+.cell .item .shtg-dsx-text {
+    color: #139685
+}
+
+.cell .item .shtg-ysx-text {
+    color: #e7792e
+}
+
+.tip {
+    color: #666;
+    font-size: 24rpx;
+    font-weight: 400;
+    -webkit-justify-content: center;
+    justify-content: center
+}
+
+.bottom-view,.tip {
+    display: -webkit-flex;
+    display: flex;
+    margin-top: 40rpx
+}
+
+.bottom-view {
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    height: 88rpx
+}
+
+.bottom-view .view-button {
+    background: #4e86f7;
+    box-shadow: 0 10px 18px 2px rgba(78,134,247,.2);
+    margin: 0 20px
+}
+
+.bottom-view .cancel-button,.bottom-view .view-button {
+    -webkit-align-items: center;
+    align-items: center;
+    border-radius: 10px;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex: 1;
+    flex: 1;
+    -webkit-justify-content: center;
+    justify-content: center
+}
+
+.bottom-view .cancel-button {
+    background: #ef863e;
+    box-shadow: 0 10px 18px 2px rgba(239,134,62,.2);
+    margin: 0 20rpx
+}
+
+.bottom-view .button-text {
+    color: #fff
+}

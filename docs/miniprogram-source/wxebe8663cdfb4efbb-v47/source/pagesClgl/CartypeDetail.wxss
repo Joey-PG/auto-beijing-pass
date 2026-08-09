@@ -1,0 +1,41 @@
+.CartypeDetail.data-v-5fb5fc64 {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 40rpx
+}
+
+.CartypeDetail .search-input.data-v-5fb5fc64 {
+    border: 1rpx solid #e1e1e1;
+    border-radius: 10rpx;
+    color: #333;
+    font-size: 28rpx;
+    height: 60rpx;
+    line-height: 60rpx;
+    margin-bottom: 20rpx;
+    padding: 0 20rpx
+}
+
+.CartypeDetail .selection-list.data-v-5fb5fc64 {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow-y: auto
+}
+
+.CartypeDetail .selection-list .selection-item.data-v-5fb5fc64 {
+    border-bottom: 1rpx solid #e1e1e1;
+    color: #333;
+    font-size: 28rpx;
+    line-height: 80rpx;
+    text-align: center
+}
+
+.CartypeDetail .selection-list .selection-item.selected.data-v-5fb5fc64 {
+    color: #4e86f7
+}
+
+.CartypeDetail .selection-list .selection-item.data-v-5fb5fc64:first-child {
+    border-top: 1rpx solid #e1e1e1
+}

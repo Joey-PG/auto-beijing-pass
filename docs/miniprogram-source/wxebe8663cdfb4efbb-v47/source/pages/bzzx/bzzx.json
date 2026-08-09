@@ -1,0 +1,13 @@
+{
+  "enablePullDownRefresh": true,
+  "navigationBarTitleText": "进京证办理",
+  "usingComponents": {
+    "uni-grid": "uni_modules/uni-grid/components/uni-grid/uni-grid",
+    "uni-grid-item": "uni_modules/uni-grid/components/uni-grid-item/uni-grid-item",
+    "swiper-image": "pages/bzzx/components/SwiperImage",
+    "view-text": "pages/bzzx/components/ViewText",
+    "desc-popup": "pages/bzzx/components/DescPopup",
+    "auth-upgrade-popup": "pages/bzzx/components/AuthUpgradePopup",
+    "my-toast": "pages/bzzx/components/MyToast"
+  }
+}

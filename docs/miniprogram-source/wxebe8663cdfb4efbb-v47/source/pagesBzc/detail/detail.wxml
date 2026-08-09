@@ -1,0 +1,4 @@
+<view class="_div">
+    <web-view src="{{url}}" wx:if="{{url}}"></web-view>
+    <cover-view class="bottom-view">本服务由北京市公安局交通管理局提供</cover-view>
+</view>

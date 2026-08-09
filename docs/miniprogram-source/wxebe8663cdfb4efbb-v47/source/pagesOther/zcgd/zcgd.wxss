@@ -1,0 +1,27 @@
+.bz_item.data-v-12f9ea5a {
+    -webkit-align-items: center;
+    align-items: center;
+    background-color: #fff;
+    border-bottom: 10rpx solid #f8f8f8;
+    color: #333;
+    display: -webkit-flex;
+    display: flex;
+    font-size: 30rpx;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    padding: 30rpx 20rpx
+}
+
+.none.data-v-12f9ea5a {
+    border-bottom: 0 solid #e1e1e1!important
+}
+
+.bottom-view.data-v-12f9ea5a {
+    bottom: 0;
+    box-sizing: border-box;
+    left: 0;
+    padding: 20rpx;
+    position: fixed;
+    right: 0;
+    z-index: 999999
+}

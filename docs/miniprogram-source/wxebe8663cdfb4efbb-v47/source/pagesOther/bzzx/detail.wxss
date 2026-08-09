@@ -1,0 +1,48 @@
+@-webkit-keyframes flipping {
+    from {
+        -webkit-transform: rotateY(0);
+        transform: rotateY(0)
+    }
+
+    to {
+        -webkit-transform: rotateY(180deg);
+        transform: rotateY(180deg)
+    }
+}
+
+@keyframes flipping {
+    from {
+        -webkit-transform: rotateY(0);
+        transform: rotateY(0)
+    }
+
+    to {
+        -webkit-transform: rotateY(180deg);
+        transform: rotateY(180deg)
+    }
+}
+
+.active {
+    -webkit-animation: flipping .5s ease-in;
+    animation: flipping .5s ease-in
+}
+
+page {
+    background-color: #f8f8f8;
+    font-size: 24rpx
+}
+
+body .question {
+    font-weight: 700
+}
+
+body .answer,body .question {
+    background-color: #fff;
+    margin: 20rpx;
+    padding: 20rpx
+}
+
+body .answer {
+    font-size: 28rpx;
+    height: 300rpx
+}

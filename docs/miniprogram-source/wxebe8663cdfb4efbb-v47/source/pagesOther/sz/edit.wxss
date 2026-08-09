@@ -1,0 +1,35 @@
+.box {
+    padding: 0 40rpx
+}
+
+.box .title {
+    color: #333;
+    font-family: PingFang SC;
+    font-size: 30rpx;
+    font-weight: 500;
+    margin-top: 70rpx
+}
+
+.box .ipt {
+    background: #f8f8f8;
+    color: #999;
+    font-size: 29rpx;
+    margin: 40rpx 0;
+    padding-left: 20rpx
+}
+
+.box .ipt,.box .save {
+    font-family: PingFang SC;
+    font-weight: 400;
+    height: 88rpx;
+    line-height: 88rpx
+}
+
+.box .save {
+    background: #4e86f7;
+    border-radius: 10rpx;
+    box-shadow: 0 10rpx 18rpx 2rpx rgba(78,134,247,.2);
+    color: #fcfefc;
+    font-size: 28rpx;
+    text-align: center
+}

@@ -1,0 +1,43 @@
+<view class="container">
+    <view class="progress-view">
+        <image class="progress-image" mode="aspectFit" src="/pagesSqbz/static/sqbz-progress.png"></image>
+    </view>
+    <view class="scroll" scrollY="{{true}}">
+        <view class="tip1">请选择您要申请的进京证种类</view>
+        <block wx:for="{{$root.l0}}" wx:key="index">
+            <view class="{{['cer-type-item',item.m0]}}" wx:if="{{item[$orig].nfbl}}">
+                <view bindtap="__e" class="cer-type-item-content" data-event-opts="{{[ [ 'tap',[ [ 'certypeSelectAction',['$0'],[ [ ['cerList','',index] ] ] ] ] ] ]}}">
+                    <view class="{{[item[$orig].jjzzl==jjzzl?'cer-type-title cer-type-title-selected':'cer-type-title']}}">{{''+item[$orig].title+''}}</view>
+                    <view class="cer-type-desc">
+                        <block wx:if="{{item[$orig].title==='进京证(六环内)'}}">市界到二环路(不含二环主路)，客车全年可办理12次，每次限通行7天</block>
+                        <block wx:else>市界到六环路 (含六环路主路、不含通州全域、不含<view catchtap="__e" class="todetail" data-event-opts="{{[ [ 'tap',[ [ 'todetail',['$event'] ] ] ] ]}}">远郊区部分道路</view>)，每次限通行7天</block>
+                    </view>
+                </view>
+                <view class="hphm-item-selected" wx:if="{{item[$orig].jjzzl==jjzzl}}">
+                    <image class="item_image_selected" mode="aspectFill" src="/pagesSqbz/static/certype-selected.png"></image>
+                </view>
+            </view>
+            <view class="{{['cer-type-item',item.m1]}}" wx:else>
+                <view class="cer-type-item-content">
+                    <view class="cer-type-title text-disable">{{item[$orig].title}}</view>
+                    <view class="cer-type-desc text-disable">
+                        <block wx:if="{{item[$orig].title==='进京证(六环内)'}}">市界到二环路(不含二环主路)，客车全年可办理12次，每次限通行7天</block>
+                        <block wx:else>市界到六环路 (含六环路主路、不含通州全域、不含<view catchtap="__e" class="todetail" data-event-opts="{{[ [ 'tap',[ [ 'todetail',['$event'] ] ] ] ]}}">远郊区部分道路</view>)，每次限通行7天</block>
+                    </view>
+                    <view class="cer-type-desc text-disable">{{item.g0}}</view>
+                </view>
+                <view class="item-view-disable">
+                    <image class="item-view-disable-image" mode="aspectFill" src="/pagesSqbz/static/certype-disable.png"></image>
+                    <text class="item-view-disable-text">无法选择</text>
+                </view>
+            </view>
+        </block>
+        <view bindtap="__e" class="tip2" data-event-opts="{{[ [ 'tap',[ ['viewRuleAction'] ] ] ]}}">
+            <image class="tip2-image" mode="aspectFit" src="/pagesSqbz/static/sqbz-tip.png"></image>
+            <text class="tip2-text">查看详细政策规定说明</text>
+        </view>
+    </view>
+    <view bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ ['nextAction'] ] ] ]}}">
+        <text class="next-text">下一步</text>
+    </view>
+</view>

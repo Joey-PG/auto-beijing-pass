@@ -1,0 +1,99 @@
+.uni-popup-dialog.data-v-6f54520a {
+    background-color: #fff;
+    border-radius: 15px;
+    width: 300px
+}
+
+.uni-dialog-title.data-v-6f54520a {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-justify-content: center;
+    justify-content: center;
+    padding-bottom: 5px;
+    padding-top: 15px
+}
+
+.uni-dialog-title-text.data-v-6f54520a {
+    font-size: 16px;
+    font-weight: 500
+}
+
+.uni-dialog-content.data-v-6f54520a {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-justify-content: center;
+    justify-content: center;
+    padding: 5px 15px 15px
+}
+
+.uni-dialog-content-text.data-v-6f54520a {
+    color: #6e6e6e;
+    font-size: 14px
+}
+
+.uni-dialog-button-group.data-v-6f54520a {
+    border-top: 1px solid #f5f5f5;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row
+}
+
+.uni-dialog-button.data-v-6f54520a {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex: 1;
+    flex: 1;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    height: 45px;
+    -webkit-justify-content: center;
+    justify-content: center
+}
+
+.uni-border-left.data-v-6f54520a {
+    border-left: 1px solid #f0f0f0
+}
+
+.uni-dialog-button-text.data-v-6f54520a {
+    font-size: 14px
+}
+
+.uni-button-color.data-v-6f54520a {
+    color: #007aff
+}
+
+.uni-dialog-input.data-v-6f54520a {
+    border: 1px solid #eee;
+    border-radius: 5px;
+    color: #555;
+    -webkit-flex: 1;
+    flex: 1;
+    font-size: 14px;
+    height: 40px;
+    padding: 0 10px
+}
+
+.uni-popup__success.data-v-6f54520a {
+    color: #4cd964
+}
+
+.uni-popup__warn.data-v-6f54520a {
+    color: #f0ad4e
+}
+
+.uni-popup__error.data-v-6f54520a {
+    color: #dd524d
+}
+
+.uni-popup__info.data-v-6f54520a {
+    color: #909399
+}

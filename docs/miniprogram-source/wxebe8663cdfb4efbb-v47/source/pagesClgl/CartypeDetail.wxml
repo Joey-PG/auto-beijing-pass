@@ -1,0 +1,6 @@
+<view class="CartypeDetail data-v-5fb5fc64">
+    <input bindinput="__e" class="search-input data-v-5fb5fc64" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '','searchText','$event',[] ] ] ] ] ]}}" placeholder="请输入关键字搜索" type="text" value="{{searchText}}"></input>
+    <view class="selection-list data-v-5fb5fc64">
+        <view bindtap="__e" class="{{['selection-item','data-v-5fb5fc64',selectedId===item.zdbm?'selected':'']}}" data-event-opts="{{[ [ 'tap',[ [ 'handleSelect',['$0'],[ [ ['selectionsShow','zdbm',item.zdbm] ] ] ] ] ] ]}}" wx:for="{{selectionsShow}}" wx:for-index="__i0__" wx:key="zdbm">{{item.zdz}}</view>
+    </view>
+</view>

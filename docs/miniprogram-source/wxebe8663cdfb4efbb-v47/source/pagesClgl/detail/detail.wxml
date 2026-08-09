@@ -1,0 +1,46 @@
+<view class="container">
+    <view class="section">
+        <view class="line"></view>
+        <text class="title">车辆基本信息</text>
+    </view>
+    <view class="content">
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">号牌号码：</text>
+            <text class="detail">{{carDetail.hphm}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">号牌种类：</text>
+            <text class="detail">{{carDetail.hpzlmc}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">发动机号：</text>
+            <text class="detail">{{carDetail.fdjh}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">品牌型号：</text>
+            <text class="detail">{{carDetail.ppxh}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">注册日期：</text>
+            <text class="detail">{{carDetail.zcsj}}</text>
+        </view>
+        <view class="seperator"></view>
+        <view class="item">
+            <text class="title">车辆类型：</text>
+            <text class="detail">{{carDetail.cllxmc}}</text>
+        </view>
+        <view class="seperator"></view>
+        <block wx:if="{{carDetail.cllxmc==='货车'}}">
+            <view class="item">
+                <text class="title">车辆类型明细：</text>
+                <text class="detail">{{carDetail.kz4}}</text>
+            </view>
+            <view class="seperator"></view>
+        </block>
+    </view>
+</view>

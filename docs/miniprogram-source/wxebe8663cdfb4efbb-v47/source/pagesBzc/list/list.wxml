@@ -1,0 +1,19 @@
+<view class="container">
+    <view class="main">
+        <uni-search-bar bgColor="white" bind:__l="__l" bind:cancel="__e" bind:confirm="__e" bind:input="__e" data-event-opts="{{[ [ '^cancel',[ ['cancel'] ] ],[ '^confirm',[ ['search'] ] ],[ '^input',[ [ '__set_model',[ '','searchValue','$event',[] ] ],['input'] ] ] ]}}" placeholder="请输入办证处名称、电话或地址进行查询" value="{{searchValue}}" vueId="42ccb911-1"></uni-search-bar>
+    </view>
+    <view class="list" wx:if="{{$root.g0}}">
+        <view bindtap="__e" class="box" data-event-opts="{{[ [ 'tap',[ [ 'goDetail',['$0'],[ [ ['bzcList','',k] ] ] ] ] ] ]}}" wx:for="{{bzcList}}" wx:for-index="k" wx:for-item="i" wx:key="k">
+            <view class="left">
+                <view class="bzcmc">{{i.bzcmc||''}}</view>
+                <view class="phone">{{'电话：'+(i.bgdh||'')}}</view>
+                <view class="adress">{{'地址：'+(i.bgdd||'')}}</view>
+            </view>
+            <view class="right">{{''+(i.bzcjl||'')+''}}</view>
+        </view>
+    </view>
+    <view class="noneDzzj" wx:else>
+        <image class="dzzjImg" mode="scaleToFill" src="../../static/common/empty.png"></image>
+        <view class="szzjText">{{text}}</view>
+    </view>
+</view>

@@ -1,0 +1,5 @@
+<view class="container">
+    <view class="question">{{'Q：'+obj.wt}}</view>
+    <view class="answer">
+        <text style="color:#f59a23;">A：</text>{{''+obj.jd+''}}</view>
+</view>

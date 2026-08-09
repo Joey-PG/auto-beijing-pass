@@ -1,0 +1,11 @@
+<view class="container">
+    <web-view src="{{url}}">
+        <cover-view class="bottom-view">
+            <cover-view bindtap="__e" class="rule-button" data-event-opts="{{[ [ 'tap',[ ['agreeAction'] ] ] ]}}">
+                <cover-image class="rule-image" mode="aspectFit" src="{{agree?icon_selected_url:icon_unselected_url}}"></cover-image>
+                <cover-view class="rule-text">我已充分了解该注意事项，保证提交材料的真实性，并承诺遵守进京证使用规定。</cover-view>
+            </cover-view>
+            <cover-view bindtap="__e" class="{{[true?'next-button':'',hadReadTime?'disabled-button':'']}}" data-event-opts="{{[ [ 'tap',[ [ 'sqbzAction',['$event'] ] ] ] ]}}">{{'下一步'+(hadReadTime?'('+hadReadTime+')':'')}}</cover-view>
+        </cover-view>
+    </web-view>
+</view>

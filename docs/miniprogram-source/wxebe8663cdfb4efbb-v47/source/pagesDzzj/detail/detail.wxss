@@ -1,0 +1,210 @@
+.noneDzzj {
+    text-align: center
+}
+
+.noneDzzj .dzzjImg {
+    height: 244rpx;
+    margin-top: 230rpx;
+    width: 583rpx
+}
+
+.noneDzzj .szzjText {
+    color: #666;
+    margin-bottom: 432rpx;
+    margin-top: 102rpx
+}
+
+.noneDzzj .noneDzzjbtn,.noneDzzj .szzjText {
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400
+}
+
+.noneDzzj .noneDzzjbtn {
+    background: #4e86f7;
+    border-radius: 10px;
+    box-shadow: 0 10px 18px 2px rgba(78,134,247,.2);
+    color: #fcfefc;
+    height: 88rpx;
+    line-height: 88rpx;
+    margin: 0 auto;
+    width: 670rpx
+}
+
+.aa,.go {
+    transition: all 1s
+}
+
+.go {
+    -webkit-transform: rotate(-180deg);
+    transform: rotate(-180deg)
+}
+
+page {
+    background: #f8f8f8
+}
+
+body .container {
+    box-sizing: border-box;
+    padding-top: 30rpx;
+    text-align: center
+}
+
+body .container .title {
+    color: #333;
+    font-family: PingFang SC;
+    font-size: 36rpx;
+    font-weight: 500
+}
+
+body .container .smallTile {
+    background: #e7ecf8;
+    border-radius: 23rpx;
+    color: #4e86f7;
+    display: inline-block;
+    font-family: PingFang SC;
+    font-size: 24rpx;
+    font-weight: 400;
+    height: 46rpx;
+    line-height: 46rpx;
+    margin: 20rpx 0;
+    padding: 0 50rpx
+}
+
+body .container .dzzjCodeUrl {
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    position: relative
+}
+
+body .container .dzzjCodeUrl,body .container .dzzjCodeUrl .rotate {
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-justify-content: center;
+    justify-content: center
+}
+
+body .container .dzzjCodeUrl .rotate {
+    background: rgba(0,0,0,.6);
+    bottom: 10rpx;
+    color: #fff;
+    font-family: PingFang SC;
+    font-size: 20rpx;
+    font-weight: 400;
+    height: 40rpx;
+    position: absolute;
+    right: 20rpx;
+    width: 91rpx;
+    z-index: 99
+}
+
+body .container .dzzjCodeUrl .rotate .rotateImg {
+    height: 24rpx;
+    width: 24rpx
+}
+
+body .container .dzzjCodeUrl .zj-image {
+    height: 480rpx;
+    width: 640rpx
+}
+
+body .container .dzzjCodeUrl .zj-image-back {
+    height: 480rpx;
+    margin-top: -480rpx;
+    opacity: 0;
+    -webkit-transform: rotateY(-180deg);
+    transform: rotateY(-180deg);
+    width: 640rpx
+}
+
+body .container .btn {
+    display: -webkit-flex;
+    display: flex;
+    padding: 0 40rpx
+}
+
+body .container .btn .history {
+    background: #4e86f7;
+    margin-right: 30rpx
+}
+
+body .container .btn .download,body .container .btn .history {
+    border-radius: 10px;
+    box-shadow: 0 5px 18px 2px rgba(78,134,247,.2);
+    box-sizing: border-box;
+    color: #fff;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    padding: 15rpx 0;
+    width: 50%
+}
+
+body .container .btn .download {
+    background: #f1863e
+}
+
+body .container .default {
+    background: #b5b5b5;
+    border-radius: 10px;
+    box-shadow: 0 5px 18px 2px hsla(0,0%,51%,.2);
+    box-sizing: border-box;
+    color: #fff;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    margin: 20rpx 40rpx 30rpx;
+    padding: 15rpx;
+    text-align: center
+}
+
+body .container .bottom {
+    background-color: #fff;
+    padding-bottom: 26rpx;
+    padding-top: 41rpx
+}
+
+body .container .bottom .time {
+    -webkit-align-items: center;
+    align-items: center;
+    color: #333;
+    display: -webkit-flex;
+    display: flex;
+    font-family: PingFang SC;
+    font-size: 28rpx;
+    font-weight: 400;
+    -webkit-justify-content: center;
+    justify-content: center
+}
+
+body .container .bottom .time .refresh {
+    height: 26rpx;
+    margin-left: 23rpx;
+    width: 36rpx
+}
+
+body .container .bottom .scanner {
+    height: 226rpx;
+    margin-bottom: 35rpx;
+    margin-top: 30rpx;
+    width: 226rpx
+}
+
+body .container .bottom .content {
+    color: #999;
+    font-size: 24rpx
+}
+
+.wxts,body .container .bottom .content {
+    font-family: PingFang SC;
+    font-weight: 400
+}
+
+.wxts {
+    color: red;
+    font-size: 28rpx;
+    margin: 20rpx 0;
+    padding: 0 20rpx
+}

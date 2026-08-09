@@ -1,0 +1,73 @@
+<view class="container">
+    <scroll-view class="scroll" scrollY="true">
+        <view>
+            <view class="input-content">
+                <view class="input-seperator"></view>
+                <view class="input-item">
+                    <text class="input-item-title">姓名</text>
+                    <input bindblur="__e" bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'blur',[ [ 'isChinese',['$0'],['jsy.xm'] ] ] ],[ 'input',[ [ '__set_model',[ '$0','xm','$event',[] ],['jsy'] ] ] ] ]}}" maxlength="15" placeholder="请输入姓名" value="{{jsy.xm}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">身份证号</text>
+                    <input bindblur="__e" bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'blur',[ [ 'isIdcard',['$0'],['jsy.sfzh'] ] ] ],[ 'input',[ [ '__set_model',[ '$0','sfzh','$event',[] ],['jsy'] ] ] ] ]}}" maxlength="18" placeholder="请输入身份证号" type="idcard" value="{{jsy.sfzh}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">手机号码</text>
+                    <input bindblur="__e" bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'blur',[ [ 'isPhone',['$0'],['jsy.sjhm'] ] ] ],[ 'input',[ [ '__set_model',[ '$0','sjhm','$event',[] ],['jsy'] ] ] ] ]}}" maxlength="11" placeholder="请输入手机号码" type="tel" value="{{jsy.sjhm}}"></input>
+                </view>
+                <view class="input-seperator-line"></view>
+                <view class="input-item">
+                    <text class="input-item-title">图形验证码</text>
+                    <input bindblur="__e" bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'blur',[ [ 'isCaptcha',['$0'],['jsy.txyzm'] ] ] ],[ 'input',[ [ '__set_model',[ '$0','txyzm','$event',[] ],['jsy'] ] ] ] ]}}" placeholder="请输入图形验证码" type="text" value="{{jsy.txyzm}}"></input>
+                    <view bindtap="__e" class="vert-view" data-event-opts="{{[ [ 'tap',[ [ 'getVerifyCodeImg',['$event'] ] ] ] ]}}">
+                        <image class="vert-image" mode="aspectFit" src="{{verifyCodeImg}}"></image>
+                    </view>
+                </view>
+                <view class="input-seperator"></view>
+            </view>
+            <view style="padding:30rpx 40rpx;">
+                <text style="color:#CB4046;font-size:28rpx;">温馨提示：
+
+					1、若为老用户，请使用北京市统一身份认证平台账号信息进行登录，否则无法同步已办理的进京证数据
+
+					2、若为新用户，请您待登录恢复正常后，使用本次登录的姓名、身份证号、手机号注册北京市统一身份认证平台继续使用进京证，否则将无法查看本次临时登录申请的进京证信息。</text>
+            </view>
+        </view>
+        <view>
+            <uni-popup bind:__l="__l" class="vue-ref" data-ref="popup" maskClick="{{false}}" vueId="4c9aef60-1" vueSlots="{{['default']}}">
+                <view class="popup_lsdl">
+                    <view style="padding:0 10px;">
+                        <view style="width:100%;font-size:40rpx;text-align:center;font-weight:600;padding:30rpx 0;">
+                            <text>新用户短信认证</text>
+                        </view>
+                        <view style="font-size:30rpx;">
+                            <text>{{'新用户需进行短信认证后才能登录，请点击获取验证码，验证码将发送至您的手机'+sjhmyc+''}}</text>
+                        </view>
+                        <view class="popup_input">
+                            <input bindinput="__e" class="input-item-detail" data-event-opts="{{[ [ 'input',[ [ '__set_model',[ '','dxyzm','$event',[] ] ] ] ] ]}}" placeholder="请输入短信验证码" type="number" value="{{dxyzm}}"></input>
+                            <button bindtap="__e" class="popup_button" data-event-opts="{{[ [ 'tap',[ [ 'getCode',['$event'] ] ] ] ]}}" style="background-color:#1BB3F9;color:#fff;" wx:if="{{minTime===60}}">获取验证码</button>
+                            <button class="popup_button" disabled="{{true}}" style="background-color:#1BB3F9;color:#fff;" wx:else>{{minTime+'s重新获取'}}</button>
+                        </view>
+                    </view>
+                    <view style="margin-top:30rpx;display:flex;">
+                        <button bindtap="__e" class="popup_button" data-event-opts="{{[ [ 'tap',[ [ 'close',['$event'] ] ] ] ]}}" style="flex:1;">关闭</button>
+                        <button bindtap="__e" class="popup_button" data-event-opts="{{[ [ 'tap',[ [ 'login',[1] ] ] ] ]}}" style="flex:1;background-color:#1BB3F9;color:#fff;">确定</button>
+                    </view>
+                </view>
+            </uni-popup>
+        </view>
+    </scroll-view>
+    <view class="bottom-view">
+        <view bindtap="__e" class="rule-button" data-event-opts="{{[ [ 'tap',[ ['agreeAction'] ] ] ]}}">
+            <image class="rule-image" mode="aspectFit" src="{{agree?icon_selected_url:icon_unselected_url}}"></image>
+            <view class="rule-text">我已阅读并同意<text bindtap="__e" data-event-opts="{{[ [ 'tap',[ [ 'gotoOtherPage',[1] ] ] ] ]}}" style="color:#1BB3F9;">《进京证用户协议》</text>
+                <text bindtap="__e" data-event-opts="{{[ [ 'tap',[ [ 'gotoOtherPage',[2] ] ] ] ]}}" style="color:#1BB3F9;">《进京证隐私政策》</text>
+            </view>
+        </view>
+        <view bindtap="__e" class="next-button" data-event-opts="{{[ [ 'tap',[ [ 'nextAction',['$event'] ] ] ] ]}}">
+            <text class="next-text">立即登录</text>
+        </view>
+    </view>
+</view>

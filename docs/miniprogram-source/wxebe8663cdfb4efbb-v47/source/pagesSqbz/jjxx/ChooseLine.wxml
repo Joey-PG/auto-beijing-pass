@@ -1,0 +1,4 @@
+<view>
+    <web-view bindmessage="__e" data-event-opts="{{[ [ 'message',[ [ 'onMessage',['$event'] ] ] ] ]}}" src="{{url}}"></web-view>
+    <cover-view class="bottom-view">本服务由北京市公安局交通管理局提供</cover-view>
+</view>
