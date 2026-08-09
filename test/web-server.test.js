@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { scryptSync } from 'node:crypto';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -105,6 +105,63 @@ test('web server uses a login session without triggering browser basic auth', as
   } finally {
     server.close();
     await once(server, 'close');
+  }
+});
+
+test('web login survives a server restart and logout remains revocable', async () => {
+  const configDir = mkdtempSync(join(tmpdir(), 'auto-bj-pass-web-session-'));
+  const sessionFile = join(configDir, 'web-sessions.json');
+  const options = {
+    auditWriter: () => {},
+    password: 'secret-value',
+    sessionFile,
+    username: 'operator',
+  };
+  let server = createDashboardServer(options);
+  let baseUrl = await listen(server);
+  try {
+    const login = await fetch(`${baseUrl}/api/auth/login`, {
+      body: JSON.stringify({ username: 'operator', password: 'secret-value' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+    const cookie = login.headers.get('set-cookie');
+    const token = cookie.match(/auto_bj_pass_session=([^;]+)/)?.[1];
+    assert.ok(token);
+    assert.equal(statSync(sessionFile).mode & 0o777, 0o600);
+    assert.doesNotMatch(readFileSync(sessionFile, 'utf8'), new RegExp(token));
+
+    server.close();
+    await once(server, 'close');
+    server = createDashboardServer(options);
+    baseUrl = await listen(server);
+
+    const restored = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Cookie: cookie },
+    });
+    assert.equal((await restored.json()).data.authenticated, true);
+
+    const logout = await fetch(`${baseUrl}/api/auth/logout`, {
+      headers: { Cookie: cookie },
+      method: 'POST',
+    });
+    assert.equal(logout.status, 200);
+
+    server.close();
+    await once(server, 'close');
+    server = createDashboardServer(options);
+    baseUrl = await listen(server);
+
+    const revoked = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Cookie: cookie },
+    });
+    assert.equal((await revoked.json()).data.authenticated, false);
+  } finally {
+    if (server.listening) {
+      server.close();
+      await once(server, 'close');
+    }
+    rmSync(configDir, { recursive: true, force: true });
   }
 });
 

@@ -44,6 +44,7 @@ npm 包名为 `auto-beijing-pass`，CLI 命令为 `auto-bj-pass`。要求 Node.j
 - cron 输出：`~/.auto-bj-pass/logs/cron.log`
 - 每日运行日志：`~/.auto-bj-pass/logs/app-YYYY-MM-DD.log`
 - 每月审计日志：`~/.auto-bj-pass/logs/audit-YYYY-MM.jsonl`
+- Web 会话：`~/.auto-bj-pass/web-sessions.json`
 
 同步代码并安装依赖后，将命令入口指向项目文件：
 
@@ -151,6 +152,9 @@ auto-bj-pass web --host 0.0.0.0 --port 3751
 仅在新增或重新登录时通过 HTTPS 提交，业务 token 和已保存密码不会返回浏览器，
 普通日志继续保持敏感信息脱敏。受限权限的结构化审计日志会保留业务账号和车牌，
 用于管理员追溯操作；密码、token、通知地址和出行地址仍不会写入审计日志。
+Web 登录会话以服务端文件持久化，因此服务重启或代码部署不会主动退出登录；文件
+权限固定为 `0600`，只保存随机 Cookie 令牌的 SHA-256 哈希、用户名和过期时间，
+不会保存原始 Cookie。退出登录和 12 小时绝对有效期仍由服务端强制执行。
 CLI 的 `auto-bj-pass init` 仍可用于账号初始化。
 
 ## 快速开始（AI Agent）

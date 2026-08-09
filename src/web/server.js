@@ -5,6 +5,7 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { writeAuditEvent } from '../lib/audit-logger.js';
+import { getConfigDir } from '../lib/config-manager.js';
 
 import {
   addDashboardAccount,
@@ -18,6 +19,7 @@ import {
   updateDashboardAccount,
   WebServiceError,
 } from './dashboard-service.js';
+import { SessionStore } from './session-store.js';
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), 'public');
 const MAX_BODY_BYTES = 64 * 1024;
@@ -125,12 +127,15 @@ function parseCookies(request) {
   return cookies;
 }
 
-function getSession(request, sessions) {
+function getSession(request, sessions, authenticators) {
   const token = parseCookies(request)[SESSION_COOKIE];
   if (!token) return null;
   const session = sessions.get(token);
   if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
+  if (
+    authenticators.length > 0 &&
+    !authenticators.some((authenticator) => authenticator.name === session.username)
+  ) {
     sessions.delete(token);
     return null;
   }
@@ -139,7 +144,7 @@ function getSession(request, sessions) {
 
 function isAuthenticated(request, authenticators, sessions) {
   if (authenticators.length === 0) return true;
-  return Boolean(getSession(request, sessions)) ||
+  return Boolean(getSession(request, sessions, authenticators)) ||
     Boolean(getBasicAuthenticatedUsername(request, authenticators));
 }
 
@@ -165,19 +170,12 @@ function clearSessionCookie(request) {
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
 }
 
-function pruneSessions(sessions) {
-  const now = Date.now();
-  for (const [token, session] of sessions) {
-    if (session.expiresAt <= now) sessions.delete(token);
-  }
-}
-
 async function handleAuth(request, response, url, context) {
   const { auditWriter, authenticators, loginAttempts, sessions } = context;
   const authenticationEnabled = authenticators.length > 0;
 
   if (request.method === 'GET' && url.pathname === '/api/auth/session') {
-    const session = getSession(request, sessions);
+    const session = getSession(request, sessions, authenticators);
     sendJson(response, 200, {
       success: true,
       data: {
@@ -258,9 +256,8 @@ async function handleAuth(request, response, url, context) {
     }
 
     loginAttempts.delete(address);
-    pruneSessions(sessions);
     const token = randomBytes(32).toString('base64url');
-    sessions.set(token, {
+    sessions.create(token, {
       expiresAt: now + SESSION_TTL_SECONDS * 1000,
       username: authenticatedUsername,
     });
@@ -283,7 +280,7 @@ async function handleAuth(request, response, url, context) {
     if (!isSafeOrigin(request)) {
       throw new WebServiceError('请求来源校验失败', 403);
     }
-    const session = getSession(request, sessions);
+    const session = getSession(request, sessions, authenticators);
     auditWriter('web_logout', {
       actor: session?.username || null,
       address: getClientAddress(request),
@@ -436,11 +433,12 @@ async function serveStatic(response, pathname) {
 
 export function createDashboardServer({
   auditWriter = writeAuditEvent,
+  sessionFile = '',
   username = '',
   password = '',
   users = [],
 } = {}) {
-  const sessions = new Map();
+  const sessions = new SessionStore({ filePath: sessionFile });
   const loginAttempts = new Map();
   const authenticators = normalizeAuthenticators({ password, username, users });
   return createServer(async (request, response) => {
@@ -461,7 +459,7 @@ export function createDashboardServer({
           });
           return;
         }
-        const session = getSession(request, sessions);
+        const session = getSession(request, sessions, authenticators);
         const actor = session?.username ||
           getBasicAuthenticatedUsername(request, authenticators) ||
           (authenticators.length === 0 ? '本机管理员' : null);
@@ -497,6 +495,9 @@ export async function startDashboardServer({
     process.env.AUTO_BJ_PASS_WEB_PASSWORD ||
     process.env.CROSS_BJ_WEB_PASSWORD ||
     '',
+  sessionFile =
+    process.env.AUTO_BJ_PASS_WEB_SESSION_FILE ||
+    join(getConfigDir(), 'web-sessions.json'),
   users = [],
   usersFile = process.env.AUTO_BJ_PASS_WEB_USERS_FILE || '',
 } = {}) {
@@ -523,7 +524,12 @@ export async function startDashboardServer({
       'AUTO_BJ_PASS_WEB_USERS_FILE，或设置 AUTO_BJ_PASS_WEB_USERNAME 和 AUTO_BJ_PASS_WEB_PASSWORD',
     );
   }
-  const server = createDashboardServer({ username, password, users: configuredUsers });
+  const server = createDashboardServer({
+    sessionFile,
+    username,
+    password,
+    users: configuredUsers,
+  });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, resolve);
