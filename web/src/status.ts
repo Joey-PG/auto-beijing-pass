@@ -10,6 +10,10 @@ export function getLatestRecord(vehicle: Vehicle) {
   return vehicle.records[0] || null;
 }
 
+export function getVehicleFailureReason(vehicle: Vehicle) {
+  return getLatestRecord(vehicle)?.failureReason || vehicle.cannotApplyReason || '';
+}
+
 export function getVehicleStatus(vehicle: Vehicle): VehicleStatus {
   const record = getLatestRecord(vehicle);
   if (!record) return { color: 'error', key: 'attention', label: '暂无证件' };

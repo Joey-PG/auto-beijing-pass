@@ -17,10 +17,16 @@ import {
   Tabs,
   Tag,
   Timeline,
+  Tooltip,
 } from 'antd';
 import { useEffect, useState } from 'react';
 
-import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
+import {
+  formatDateTime,
+  getLatestRecord,
+  getVehicleFailureReason,
+  getVehicleStatus,
+} from '../status';
 import type { Account, MapConfig, TripProfileInput, Vehicle } from '../types';
 import { TripProfileFields, tripProfileToInput } from './trip-profile-fields';
 
@@ -71,14 +77,20 @@ export function VehicleDrawer({
 
   const record = getLatestRecord(vehicle);
   const status = getVehicleStatus(vehicle);
+  const failureReason = status.key === 'attention'
+    ? getVehicleFailureReason(vehicle)
+    : '';
   const profile = account.tripProfile;
+  const statusTag = <Tag color={status.color}>{status.label}</Tag>;
 
   const overview = (
     <div className="drawer-tab-content">
       <section className="drawer-section drawer-status-section">
         <div className="section-title-row">
           <h3>当前证件状态</h3>
-          <Tag color={status.color}>{status.label}</Tag>
+          {failureReason ? (
+            <Tooltip title={failureReason}>{statusTag}</Tooltip>
+          ) : statusTag}
         </div>
         <Descriptions column={2} colon={false} size="small">
           <Descriptions.Item label="进京证有效期">
@@ -204,20 +216,29 @@ export function VehicleDrawer({
         <Empty description="暂无续签历史" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
         <Timeline
-          items={vehicle.records.map((item, index) => ({
-            color: index === 0 ? 'green' : 'gray',
-            dot: index === 0 ? <CheckCircleFilled /> : <ClockCircleOutlined />,
-            children: (
-              <div className="history-item">
-                <div className="history-title-row">
-                  <strong>{item.statusName || '状态未知'}</strong>
-                  <Tag>{item.entryTypeName || account.entryType}</Tag>
+          items={vehicle.records.map((item, index) => {
+            const itemFailureReason = item.failureReason ||
+              (index === 0 ? vehicle.cannotApplyReason : '');
+            const itemStatus = (
+              <strong>{item.statusName || '状态未知'}</strong>
+            );
+            return {
+              color: index === 0 ? 'green' : 'gray',
+              dot: index === 0 ? <CheckCircleFilled /> : <ClockCircleOutlined />,
+              children: (
+                <div className="history-item">
+                  <div className="history-title-row">
+                    {itemFailureReason ? (
+                      <Tooltip title={itemFailureReason}>{itemStatus}</Tooltip>
+                    ) : itemStatus}
+                    <Tag>{item.entryTypeName || account.entryType}</Tag>
+                  </div>
+                  <p>{item.validFrom || '—'} 至 {item.validTo || '—'}</p>
+                  <span>申请时间：{item.applyTime || '—'}</span>
                 </div>
-                <p>{item.validFrom || '—'} 至 {item.validTo || '—'}</p>
-                <span>申请时间：{item.applyTime || '—'}</span>
-              </div>
-            ),
-          }))}
+              ),
+            };
+          })}
         />
       )}
     </div>

@@ -20,7 +20,12 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 
-import { formatDateTime, getLatestRecord, getVehicleStatus } from '../status';
+import {
+  formatDateTime,
+  getLatestRecord,
+  getVehicleFailureReason,
+  getVehicleStatus,
+} from '../status';
 import type { Account, Dashboard, Vehicle } from '../types';
 
 function formatRenewalDate(value: string, generatedAt: string) {
@@ -158,7 +163,13 @@ export function VehiclePage({
       key: 'status',
       render: (_, vehicle) => {
         const status = getVehicleStatus(vehicle);
-        return <Tag color={status.color}>{status.label}</Tag>;
+        const failureReason = status.key === 'attention'
+          ? getVehicleFailureReason(vehicle)
+          : '';
+        const statusTag = <Tag color={status.color}>{status.label}</Tag>;
+        return failureReason ? (
+          <Tooltip title={failureReason}>{statusTag}</Tooltip>
+        ) : statusTag;
       },
       title: '证件状态',
       width: 115,

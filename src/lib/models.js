@@ -82,6 +82,8 @@ export function parseRecord(data) {
     applyId: data.applyId || '',
     statusCode: data.blzt || '',
     statusName: data.blztmc || '',
+    failureReasonCode: data.shsbyy == null ? '' : String(data.shsbyy),
+    failureReason: data.shsbyyms || '',
     validFrom: data.yxqs || '',
     validTo: data.yxqz || '',
     remainingDays: data.sxsyts ?? '',

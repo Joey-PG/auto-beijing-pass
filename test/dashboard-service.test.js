@@ -66,9 +66,13 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
             hphm: '京A12345',
             sycs: 8,
             syts: 20,
+            bnbzyy: '审核未通过，该车辆在京有未处理的交通违法行为。',
             bzxx: [{
               applyId: 'apply-1',
-              blztmc: '审核通过(生效中)',
+              blzt: 4,
+              blztmc: '失败(审核不通过)',
+              shsbyy: '10023',
+              shsbyyms: '审核未通过，该车辆在京有未处理的交通违法行为。',
               yxqs: '2026-08-01',
               yxqz: '2026-08-07',
               sqsj: '2026-07-31 08:00:00',
@@ -114,6 +118,18 @@ test('dashboard aggregates account, vehicle configuration, and renewal history',
     assert.equal(dashboard.accounts[0].vehicles[0].engineNumber, '••••23');
     assert.equal(dashboard.accounts[0].vehicles[0].preferred, true);
     assert.equal(dashboard.accounts[0].vehicles[0].records[0].applyId, 'apply-1');
+    assert.equal(
+      dashboard.accounts[0].vehicles[0].records[0].failureReasonCode,
+      '10023',
+    );
+    assert.equal(
+      dashboard.accounts[0].vehicles[0].records[0].failureReason,
+      '审核未通过，该车辆在京有未处理的交通违法行为。',
+    );
+    assert.equal(
+      dashboard.accounts[0].vehicles[0].cannotApplyReason,
+      '审核未通过，该车辆在京有未处理的交通违法行为。',
+    );
     assert.equal(
       dashboard.accounts[0].vehicles[0].lastExecution.event,
       'renewal_submitted',

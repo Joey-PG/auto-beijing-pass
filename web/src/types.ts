@@ -2,6 +2,8 @@ export interface RenewalRecord {
   applyId: string;
   applyTime: string;
   entryTypeName: string;
+  failureReason: string;
+  failureReasonCode: string;
   statusName: string;
   validFrom: string;
   validTo: string;
